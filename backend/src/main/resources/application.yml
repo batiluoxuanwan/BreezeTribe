@@ -1,3 +1,16 @@
 spring:
   application:
     name: backend
+  datasource:
+    url: jdbc:mysql://rm-cn-9me4964qo001148o.rwlb.rds.aliyuncs.com:3306/breeze-tribe
+    username: root
+    password: H2v4uZwDpBVv4ysHy5wy
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    show-sql: false # 是否在控制台显示Hibernate执行的SQL语句
+    hibernate:
+      ddl-auto: update # 开发和测试阶段，'update' 比较方便
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQLDialect
