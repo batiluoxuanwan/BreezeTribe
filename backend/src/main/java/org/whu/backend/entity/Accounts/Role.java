@@ -1,4 +1,4 @@
-package org.whu.backend.entity;
+package org.whu.backend.entity.Accounts;
 
 public enum Role {
     ROLE_USER,

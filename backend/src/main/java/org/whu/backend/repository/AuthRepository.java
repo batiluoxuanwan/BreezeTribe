@@ -1,8 +1,8 @@
 package org.whu.backend.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.whu.backend.entity.Account;
-import org.whu.backend.entity.Role;
+import org.whu.backend.entity.Accounts.Account;
+import org.whu.backend.entity.Accounts.Role;
 
 import java.util.Optional;
 import java.util.UUID;
