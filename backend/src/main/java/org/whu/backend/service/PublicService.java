@@ -15,6 +15,7 @@ import org.whu.backend.dto.route.RouteDetailDto;
 import org.whu.backend.dto.spot.SpotDetailDto;
 import org.whu.backend.dto.travelpack.PackageDetailDto;
 import org.whu.backend.dto.travelpack.PackageSummaryDto;
+import org.whu.backend.entity.Route;
 import org.whu.backend.entity.Spot;
 import org.whu.backend.entity.TravelPackage;
 import org.whu.backend.repository.TravelPackageRepository;
@@ -108,7 +109,8 @@ public class PublicService {
 
         // 转换嵌套的路线列表
         List<RouteDetailDto> routeDtos = entity.getRoutes().stream()
-                .map(routeEntity -> {
+                .map(packageRoute -> {
+                    Route routeEntity = packageRoute.getRoute(); // 从关联实体中获取真正的Route对象
                     RouteDetailDto routeDto = new RouteDetailDto();
                     routeDto.setId(routeEntity.getId());
                     routeDto.setName(routeEntity.getName());
@@ -116,7 +118,8 @@ public class PublicService {
 
                     // 转换每个路线下的景点列表
                     List<SpotDetailDto> spotDtos = routeEntity.getSpots().stream()
-                            .map(spotEntity -> {
+                            .map(routeSpot -> {
+                                Spot spotEntity = routeSpot.getSpot(); // 从关联实体中获取真正的Spot对象
                                 SpotDetailDto spotDto = new SpotDetailDto();
                                 spotDto.setId(spotEntity.getId());
                                 spotDto.setMapProviderUid(spotEntity.getMapProviderUid());

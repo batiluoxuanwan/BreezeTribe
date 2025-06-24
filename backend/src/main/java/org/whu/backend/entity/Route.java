@@ -5,6 +5,7 @@ import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.SoftDelete;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.whu.backend.entity.association.RouteSpot;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -34,12 +35,9 @@ public class Route {
 //    @JoinColumn(name = "dealer_account_id", nullable = false)
 //    private DealerAccount dealer;
 
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(name = "route_spots",
-            joinColumns = @JoinColumn(name = "route_id"),
-            inverseJoinColumns = @JoinColumn(name = "spot_id"))
-    @OrderBy("order_column ASC")
-    private List<Spot> spots = new ArrayList<>(); // 多对多关系，Route与Spot
+    @OneToMany(mappedBy = "route", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("orderColumn ASC") // 正确地按照关联实体中的字段排序了！
+    private List<RouteSpot> spots = new ArrayList<>();
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)

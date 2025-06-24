@@ -5,6 +5,9 @@ import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.SoftDelete;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.whu.backend.entity.association.PackageImage;
+import org.whu.backend.entity.association.PackageRoute;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -62,12 +65,9 @@ public class TravelPackage {
     @OrderBy("sortOrder ASC")
     private List<PackageImage> images = new ArrayList<>();
 
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(name = "package_routes",
-            joinColumns = @JoinColumn(name = "package_id"),
-            inverseJoinColumns = @JoinColumn(name = "route_id"))
-    @OrderBy("day_number ASC")
-    private List<Route> routes = new ArrayList<>(); // 多对多关系，Route和TravelPackage
+    @OneToMany(mappedBy = "travelPackage", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("dayNumber ASC") // 正确地按照关联实体中的字段排序了！
+    private List<PackageRoute> routes = new ArrayList<>();
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)

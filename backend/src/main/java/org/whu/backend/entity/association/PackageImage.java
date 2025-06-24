@@ -1,7 +1,9 @@
-package org.whu.backend.entity;
+package org.whu.backend.entity.association;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import org.whu.backend.entity.MediaFile;
+import org.whu.backend.entity.TravelPackage;
 
 /**
  * 旅行团图片关联实体 (中间表)
