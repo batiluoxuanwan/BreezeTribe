@@ -4,14 +4,13 @@ import org.springframework.stereotype.Service;
 
 
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
 import org.whu.backend.common.Result;
 import org.whu.backend.common.exception.BizException;
 import org.whu.backend.dto.auth.LoginRequest;
 import org.whu.backend.dto.auth.LoginResponse;
 import org.whu.backend.dto.auth.RegisterRequest;
-import org.whu.backend.entity.Account;
-import org.whu.backend.entity.Role;
+import org.whu.backend.entity.Accounts.Account;
+import org.whu.backend.entity.Accounts.Role;
 import org.whu.backend.repository.AuthRepository;
 
 import java.util.Optional;

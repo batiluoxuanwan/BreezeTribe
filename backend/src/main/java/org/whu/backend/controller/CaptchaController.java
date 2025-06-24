@@ -16,8 +16,8 @@ public class CaptchaController {
     @Autowired
     private CaptchaService captchaService;
 
-    @PostMapping("/sendCode")
-    public Result sendCode(@RequestParam String email) {
+    @PostMapping("/sendEmail")
+    public Result sendEmail(@RequestParam String email) {
         captchaService.sendVerificationEmail(email);
         return Result.success("验证码已发送，请查收邮件");
     }
