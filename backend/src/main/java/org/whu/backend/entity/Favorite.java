@@ -18,7 +18,7 @@ public class Favorite {
     private String id;
 
     @Column(length = 36, nullable = false)
-    private String userAccountId; // 谁收藏的 TODO: 改为 @ManyToOne UserAccount
+    private UUID userAccountId; // 谁收藏的 TODO: 改为 @ManyToOne UserAccount
 
     @Column(length = 36, nullable = false)
     private String itemId; // 收藏的项目的ID (可能是TravelPackage的ID, Spot的ID等)

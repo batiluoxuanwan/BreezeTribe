@@ -1,5 +1,6 @@
 package org.whu.backend.service;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.mail.SimpleMailMessage;
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Service;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
+@Slf4j
 @Service
 public class CaptchaService {
 
@@ -30,7 +32,8 @@ public class CaptchaService {
 
     public void sendVerificationEmail(String toEmail) {
         String code = generateCode();
-
+        //System.out.println(code);
+        log.debug("REIDS里面的值为"+code);
         // 存Redis，设置过期时间5分钟
         redisTemplate.opsForValue().set(CODE_KEY_PREFIX + toEmail, code, 5, TimeUnit.MINUTES);
 

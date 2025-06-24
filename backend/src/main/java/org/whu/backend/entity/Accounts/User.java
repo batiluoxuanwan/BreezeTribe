@@ -8,7 +8,5 @@ import lombok.Data;
 @Entity
 @DiscriminatorValue("USER")
 public class User extends Account {
-    public User() {
-        this.setRole(Role.ROLE_USER);
-    }
+    //用户专属
 }

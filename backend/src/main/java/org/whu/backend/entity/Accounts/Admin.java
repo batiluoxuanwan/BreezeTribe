@@ -9,8 +9,7 @@ import lombok.Data;
 @Entity
 @DiscriminatorValue("ADMIN")
 public class Admin extends Account {
-    public Admin() {
-        this.setRole(Role.ROLE_ADMIN);
-    }
+    //管理专属
+    private boolean approved = false;   // 审核状态
 }
 
