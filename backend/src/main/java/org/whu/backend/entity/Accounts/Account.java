@@ -19,6 +19,7 @@ import java.util.UUID;
 @Data
 public class Account {
     @Id
+    @Column(length = 36)
     private String id;
 
     private String email;
