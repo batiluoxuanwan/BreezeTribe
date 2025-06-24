@@ -11,6 +11,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * 单个路线实体，一个路线实体可以有很多个景点
+ */
 @Data
 @Entity
 @SoftDelete
@@ -26,8 +29,10 @@ public class Route {
     @Lob
     private String description; // 路线描述
 
-    @Column(length = 36, nullable = false)
-    private String dealerAccountId; // TODO: 后续改为 @ManyToOne DealerAccount
+//    // 该路线所属的经销商 // TODO: 等Account表实现
+//    @ManyToOne(fetch = FetchType.LAZY)
+//    @JoinColumn(name = "dealer_account_id", nullable = false)
+//    private DealerAccount dealer;
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(name = "route_spots",

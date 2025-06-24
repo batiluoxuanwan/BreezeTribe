@@ -10,6 +10,9 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+/**
+ * 表示一个用户创建的加入旅游团的订单
+ */
 @Data
 @Entity
 @SoftDelete
@@ -19,11 +22,15 @@ public class Order {
     @Column(length = 36)
     private String id;
 
-    @Column(length = 36, nullable = false)
-    private String userAccountId; // 下单用户 TODO: 改为 @ManyToOne UserAccount
+//    // 实体关联，表示订单所属的用户账号 TODO: 等Account实现
+//    @ManyToOne(fetch = FetchType.LAZY)
+//    @JoinColumn(name = "user_account_id", nullable = false)
+//    private User user;
 
-    @Column(length = 36, nullable = false)
-    private String packageId; // 关联的旅行团 TODO: 改为 @ManyToOne TravelPackage
+    // 实体关联，该订单对应的旅行团
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "package_id", nullable = false)
+    private TravelPackage travelPackage;
 
     @Column(nullable = false)
     private Integer travelerCount; // 出行人数

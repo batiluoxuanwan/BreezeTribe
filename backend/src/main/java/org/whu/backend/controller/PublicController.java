@@ -3,26 +3,38 @@ package org.whu.backend.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.whu.backend.common.Result;
+import org.whu.backend.common.exception.BizException;
 import org.whu.backend.dto.PageRequestDto;
 import org.whu.backend.dto.PageResponseDto;
 import org.whu.backend.dto.spot.SpotSearchResponseDto;
+import org.whu.backend.dto.travelpack.PackageDetailDto;
 import org.whu.backend.dto.travelpack.PackageSearchRequestDto;
 import org.whu.backend.dto.travelpack.PackageSummaryDto;
+import org.whu.backend.service.PublicService;
 
 @Tag(name = "公共接口 (Public)", description = "无需认证即可访问的API")
+@Slf4j
 @RestController
 @RequestMapping("/api/public")
 public class PublicController {
 
+    @Autowired
+    private PublicService publicService;
+
     @Operation(summary = "获取已发布的旅行团列表（分页）", description = "供所有用户浏览")
     @GetMapping("/travel-packages")
     public Result<PageResponseDto<PackageSummaryDto>> getPublishedPackages(@Valid @ParameterObject PageRequestDto pageRequestDto) {
-        // TODO: 查询状态为 PUBLISHED 的旅行团并分页返回
-        return Result.success();
+        log.info("收到查询已发布旅行团列表请求");
+        PageResponseDto<PackageSummaryDto> resultPage = publicService.getPublishedPackages(pageRequestDto);
+        return Result.success(resultPage);
     }
+
+
 
     @Operation(summary = "搜索旅行团（复杂条件）", description = "根据多种条件组合搜索旅行团")
     @GetMapping("/travel-packages/search")
@@ -34,11 +46,11 @@ public class PublicController {
         return Result.success();
     }
 
-    @Operation(summary = "获取单个旅行团的公开详情", description = "包含其路线和景点信息")
+    @Operation(summary = "获取单个旅行团的公开详情", description = "包含其所有的路线和景点信息")
     @GetMapping("/travel-packages/{id}")
-    public Result<PackageSummaryDto> getPackageDetails(@PathVariable String id) {
-        // TODO: 查询旅行团及其关联的路线和景点详情
-        return Result.success();
+    public Result<PackageDetailDto> getPackageDetails(@PathVariable String id) {
+        PackageDetailDto packageDetails = publicService.getPackageDetails(id);
+        return Result.success(packageDetails);
     }
 
     @Operation(summary = "搜索外部地图平台的景点", description = "用于前端景点选择功能，后端转发百度地图API请求，返回搜索到的一些地名以及详细的信息，例如百度地图uid等")

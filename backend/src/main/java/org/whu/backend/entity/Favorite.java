@@ -8,6 +8,9 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+/**
+ * 单个路线收藏，每一个实体都对应一个被收藏的东西和收藏的账号
+ */
 @Data
 @Entity
 @Table(name = "favorites",
@@ -17,8 +20,10 @@ public class Favorite {
     @Column(length = 36)
     private String id;
 
-    @Column(length = 36, nullable = false)
-    private String userAccountId; // 谁收藏的 TODO: 改为 @ManyToOne UserAccount
+//    // 表示收藏的所属账号 TODO: 等Account实现
+//    @ManyToOne(fetch = FetchType.LAZY)
+//    @JoinColumn(name = "user_account_id", nullable = false)
+//    private UserAccount user;
 
     @Column(length = 36, nullable = false)
     private String itemId; // 收藏的项目的ID (可能是TravelPackage的ID, Spot的ID等)

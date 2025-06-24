@@ -11,6 +11,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * 单个旅游团实体，一个旅游团实体可以有很多个路线
+ */
 @Data
 @Entity
 @SoftDelete
@@ -38,8 +41,26 @@ public class TravelPackage {
     @Enumerated(EnumType.STRING)
     private PackageStatus status; // 旅行团状态
 
-    @Column(length = 36, nullable = false)
-    private String dealerAccountId; // TODO: 后续改为 @ManyToOne DealerAccount
+//    关联对应的经销商 TODO: 等Account实现
+//    @ManyToOne(fetch = FetchType.LAZY)
+//    @JoinColumn(name = "dealer_account_id", nullable = false)
+//    private DealerAccount dealer;
+
+    /**
+     * 旅行团的图册。这是一个一对多的关系，指向我们的关联实体 PackageImage。
+     * mappedBy = "travelPackage" 指明了在 PackageImage 实体中，是通过名为 'travelPackage' 的字段来维护关系的。
+     * cascade = CascadeType.ALL 表示对旅行团的操作（如保存、删除）会级联到其关联的图片关系上。
+     * orphanRemoval = true 表示如果从这个 images 列表中移除一个 PackageImage 对象，那么这个对象将从数据库中被删除。
+     * OrderBy("sortOrder ASC") 会让JPA在查询时，自动按照 sortOrder 字段升序排列返回的图片列表。
+     */
+    @OneToMany(
+            mappedBy = "travelPackage",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true,
+            fetch = FetchType.LAZY
+    )
+    @OrderBy("sortOrder ASC")
+    private List<PackageImage> images = new ArrayList<>();
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(name = "package_routes",
@@ -63,5 +84,14 @@ public class TravelPackage {
         if (this.id == null || this.id.trim().isEmpty()) {
             this.id = UUID.randomUUID().toString();
         }
+    }
+
+    // 辅助方法，方便地添加图片和排序
+    public void addImage(MediaFile mediaFile, int sortOrder) {
+        PackageImage packageImage = new PackageImage();
+        packageImage.setTravelPackage(this);
+        packageImage.setMediaFile(mediaFile);
+        packageImage.setSortOrder(sortOrder);
+        this.images.add(packageImage);
     }
 }
