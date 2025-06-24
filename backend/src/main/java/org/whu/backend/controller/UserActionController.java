@@ -31,12 +31,25 @@ public class UserActionController {
         return Result.success();
     }
 
-    @Operation(summary = "取消参加一个旅行团（取消订单）")
-    @DeleteMapping("/orders/{id}")
-    public Result<OrderDetailDto> createOrder(@PathVariable String id) {
+    @Operation(summary = "【模拟】假装已经成功支付一笔订单")
+    @PostMapping("/orders/{orderId}/confirm-payment")
+    public Result<?> confirmPayment(@PathVariable String orderId) {
         // TODO: 业务逻辑
-        return Result.success();
+        // 1. 获取当前登录用户ID，验证该订单是否属于此用户
+        // 2. 将订单状态从 PENDING_PAYMENT 修改为 PAID
+        return Result.success("支付成功");
     }
+
+    @Operation(summary = "用户取消一笔订单")
+    @PostMapping("/orders/{orderId}/cancel")
+    public Result<?> cancelOrder(@PathVariable String orderId) {
+        // TODO: 业务逻辑
+        // 1. 获取当前登录用户ID，验证该订单是否属于此用户
+        // 2. 只有 PENDING_PAYMENT 状态的订单才能被用户取消
+        // 3. 将订单状态修改为 CANCELED
+        return Result.success("订单已取消");
+    }
+
 
     @Operation(summary = "收藏一个项目（旅行团、景点等）")
     @PostMapping("/favorites")

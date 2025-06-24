@@ -5,8 +5,8 @@ import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.SoftDelete;
 import org.hibernate.annotations.UpdateTimestamp;
-
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 @Entity
@@ -14,30 +14,35 @@ import java.time.LocalDateTime;
 @Table(name = "spots")
 public class Spot {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID) // 使用UUID作为主键
-    private String id;
+    @Column(length = 36)
+    private String id; // 36位UUID
+
+    @Column(unique = true, nullable = false)
+    private String mapProviderUid; // 外部地图供应商的唯一UID，百度地图
 
     @Column(nullable = false)
-    private String name; // 景点名称，如“埃菲尔铁塔”
-    @Column(nullable = false)
-    private String cityName; // 景点所在城市
-    @Column(nullable = false)
-    private String baiduUid; // 对应百度地图的uid，唯一标识
+    private String name; // 景点名
 
-    private String description; // 描述
+    private String address; // 地址
 
-    private Double longitude; // 经度
+    private String city; // 所在城市
+
+    private Double longitude; //经度
+
     private Double latitude; // 纬度
-
-    @Column(nullable = false, insertable = false, updatable = false)
-    private boolean deleted = false; // 删除标记
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
-    private LocalDateTime createdTime;
+    private LocalDateTime createdTime; // 创建时间
 
     @UpdateTimestamp
     @Column(nullable = false)
-    private LocalDateTime updatedTime;
+    private LocalDateTime updatedTime; // 更新时间
 
+    @PrePersist
+    protected void onPrePersist() {
+        if (this.id == null || this.id.trim().isEmpty()) {
+            this.id = UUID.randomUUID().toString();
+        }
+    }
 }

@@ -5,11 +5,11 @@ import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.SoftDelete;
 import org.hibernate.annotations.UpdateTimestamp;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Data
 @Entity
@@ -17,41 +17,36 @@ import java.util.List;
 @Table(name = "travel_packages")
 public class TravelPackage {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private String id;
+    @Column(length = 36)
+    private String id; // 36带横线UUID
 
     @Column(nullable = false)
-    private String title; // 旅行团标题, e.g., "法意瑞10日豪华团"
+    private String title; // 旅行团标题
 
-    private String coverImageUrl; // 封面图URL (存放在阿里云OSS)
+    private String coverImageUrl; // 封面的ObjectKey
 
-    @Column(columnDefinition = "TEXT")
-    private String detailedDescription; // 图文详情
+    @Lob
+    private String detailedDescription; // 旅行团描述
 
     @Column(nullable = false)
     private BigDecimal price; // 价格
 
     private LocalDateTime departureDate; // 出发日期
 
-    private Integer durationInDays; // 行程天数
+    private Integer durationInDays; // 持续天数
 
     @Enumerated(EnumType.STRING)
-    private PackageStatus status; // 状态: DRAFT(草稿), PENDING_APPROVAL(待审核), PUBLISHED(已发布), REJECTED(已驳回)
+    private PackageStatus status; // 旅行团状态
 
-    // 一个旅行团包含多条路线 (比如 Day1, Day2 的路线)
+    @Column(length = 36, nullable = false)
+    private String dealerAccountId; // TODO: 后续改为 @ManyToOne DealerAccount
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(name = "package_routes",
             joinColumns = @JoinColumn(name = "package_id"),
             inverseJoinColumns = @JoinColumn(name = "route_id"))
-    @OrderBy("day_number ASC") // 假设中间表有个day_number来表示第几天
-    private List<Route> routes = new ArrayList<>();
-
-    // TODO: 等待用户模块完成后，这里应改为 @ManyToOne private DealerAccount dealer;
-    @Column(nullable = false)
-    private String dealerAccountId;
-
-    @Column(nullable = false, insertable = false, updatable = false)
-    private boolean deleted = false; // 删除标记
+    @OrderBy("day_number ASC")
+    private List<Route> routes = new ArrayList<>(); // 多对多关系，Route和TravelPackage
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
@@ -61,7 +56,12 @@ public class TravelPackage {
     @Column(nullable = false)
     private LocalDateTime updatedTime;
 
-    public enum PackageStatus {
-        DRAFT, PENDING_APPROVAL, PUBLISHED, REJECTED
+    public enum PackageStatus { DRAFT, PENDING_APPROVAL, PUBLISHED, REJECTED }
+
+    @PrePersist
+    protected void onPrePersist() {
+        if (this.id == null || this.id.trim().isEmpty()) {
+            this.id = UUID.randomUUID().toString();
+        }
     }
 }

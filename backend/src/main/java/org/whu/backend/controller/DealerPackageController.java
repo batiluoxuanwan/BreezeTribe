@@ -8,7 +8,6 @@ import org.springframework.web.bind.annotation.*;
 import org.whu.backend.common.Result;
 import org.whu.backend.dto.PageRequestDto;
 import org.whu.backend.dto.PageResponseDto;
-import org.whu.backend.dto.order.OrderDetailDto;
 import org.whu.backend.dto.order.OrderSummaryDto;
 import org.whu.backend.dto.travelpack.PackageCreateRequestDto;
 import org.whu.backend.dto.travelpack.PackageSummaryDto;
