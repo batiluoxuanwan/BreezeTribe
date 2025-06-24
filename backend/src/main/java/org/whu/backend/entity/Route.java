@@ -5,6 +5,7 @@ import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.SoftDelete;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.whu.backend.entity.Accounts.Merchant;
 import org.whu.backend.entity.association.RouteSpot;
 
 import java.time.LocalDateTime;
@@ -30,10 +31,10 @@ public class Route {
     @Lob
     private String description; // 路线描述
 
-//    // 该路线所属的经销商 // TODO: 等Account表实现
-//    @ManyToOne(fetch = FetchType.LAZY)
-//    @JoinColumn(name = "dealer_account_id", nullable = false)
-//    private DealerAccount dealer;
+    // 字段类型是具体的子类，但JoinColumn指向父类的表和主键
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "dealer_account_id", referencedColumnName = "id", nullable = false)
+    private Merchant dealer;
 
     @OneToMany(mappedBy = "route", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("orderColumn ASC") // 正确地按照关联实体中的字段排序了！

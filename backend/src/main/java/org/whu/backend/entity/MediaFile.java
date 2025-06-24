@@ -6,6 +6,8 @@ import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.SoftDelete;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.whu.backend.entity.Accounts.Account;
+import org.whu.backend.entity.Accounts.User;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -36,9 +38,9 @@ public class MediaFile {
     private Long fileSize;
 
     // 上传者的账户ID。用于权限校验和追踪。
-    // TODO: 后续可以改为 @ManyToOne 与 Account 实体建立多对一关联。
-    @Column(length = 36, nullable = false)
-    private String uploaderId;
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "user_account_id", referencedColumnName = "id",nullable = false)
+    private Account uoloaderId;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)

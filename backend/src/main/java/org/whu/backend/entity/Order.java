@@ -5,6 +5,7 @@ import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.SoftDelete;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.whu.backend.entity.Accounts.User;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -22,10 +23,10 @@ public class Order {
     @Column(length = 36)
     private String id;
 
-//    // 实体关联，表示订单所属的用户账号 TODO: 等Account实现
-//    @ManyToOne(fetch = FetchType.LAZY)
-//    @JoinColumn(name = "user_account_id", nullable = false)
-//    private User user;
+    // 实体关联，表示订单所属的用户账号
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "user_account_id", referencedColumnName = "id", nullable = false)
+    private User user;
 
     // 实体关联，该订单对应的旅行团
     @ManyToOne(fetch = FetchType.EAGER)

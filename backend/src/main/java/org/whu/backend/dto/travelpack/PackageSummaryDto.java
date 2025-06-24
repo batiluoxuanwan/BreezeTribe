@@ -1,5 +1,6 @@
 package org.whu.backend.dto.travelpack;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -9,9 +10,20 @@ import java.math.BigDecimal;
  */
 @Data
 public class PackageSummaryDto {
+
+    @Schema(description = "旅行团id")
     private String id;
+
+    @Schema(description = "旅行团标题")
     private String title;
+
+    @Schema(description = "旅行团封面带签名的URL")
     private String coverImageUrl;
+
+
+    @Schema(description = "旅行团价格")
     private BigDecimal price;
+
+    @Schema(description = "旅行团持续天数")
     private Integer durationInDays;
 }

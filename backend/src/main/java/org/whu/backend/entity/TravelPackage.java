@@ -5,6 +5,7 @@ import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.SoftDelete;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.whu.backend.entity.Accounts.Merchant;
 import org.whu.backend.entity.association.PackageImage;
 import org.whu.backend.entity.association.PackageRoute;
 
@@ -37,6 +38,10 @@ public class TravelPackage {
     @Column(nullable = false)
     private BigDecimal price; // 价格
 
+    private Integer capacity; // 总容量
+
+    private Integer participants; // 参与人数
+
     private LocalDateTime departureDate; // 出发日期
 
     private Integer durationInDays; // 持续天数
@@ -44,10 +49,10 @@ public class TravelPackage {
     @Enumerated(EnumType.STRING)
     private PackageStatus status; // 旅行团状态
 
-//    关联对应的经销商 TODO: 等Account实现
-//    @ManyToOne(fetch = FetchType.LAZY)
-//    @JoinColumn(name = "dealer_account_id", nullable = false)
-//    private DealerAccount dealer;
+    //    关联对应的经销商
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "dealer_account_id", referencedColumnName = "id", nullable = false)
+    private Merchant dealer;
 
     /**
      * 旅行团的图册。这是一个一对多的关系，指向我们的关联实体 PackageImage。
@@ -77,7 +82,7 @@ public class TravelPackage {
     @Column(nullable = false)
     private LocalDateTime updatedTime;
 
-    public enum PackageStatus { DRAFT, PENDING_APPROVAL, PUBLISHED, REJECTED }
+    public enum PackageStatus {DRAFT, PENDING_APPROVAL, PUBLISHED, REJECTED}
 
     @PrePersist
     protected void onPrePersist() {
