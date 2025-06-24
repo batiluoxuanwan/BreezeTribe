@@ -4,10 +4,10 @@
     <header class="nav">
       <div class="logo">BreezeTribe</div>
       <nav>
-        <a href="#">首页</a>
-        <a href="#">游记广场</a>
-        <a href="#">登录</a>
-        <a href="#">注册</a>
+        <router-link to="/">首页</router-link>
+        <router-link to="/square">游记广场</router-link>
+        <router-link to="/login">登录</router-link>
+        <router-link to="/register">注册</router-link>
       </nav>
       <input type="text" placeholder="搜索目的地 / 团名..." />
     </header>
@@ -50,8 +50,7 @@ import NoteCard from '@/components/NoteCard.vue'
 
 const tours = [
   { title: '桂林阳朔5日游', image: 'img1.jpg', price: 2999, location: '广西' },
-  { title: '广东巽寮湾4日游', image: 'img2.jpg', price: 2899, location: '广东' },
-  // ...更多数据
+  { title: '广东巽寮湾4日游', image: 'img2.jpg', price: 2899, location: '广东' }
 ]
 
 
@@ -59,23 +58,20 @@ const notes = [
   {
     title: '在稻城亚丁遇见蓝色星球的眼泪',
     description: '海子山下，那一片纯净蓝色，真的好像是童话。',
-    image: '/images/note1.jpg',
-    author: '阿木',
-    avatar: '/avatars/user1.jpg'
+    image: '',
+    author: '阿木'
   },
   {
     title: '云南腾冲，泡温泉的冬日故事',
     description: '烟雾缭绕中，每一口呼吸都好像治愈了城市疲惫。',
     image: '/images/note2.jpg',
-    author: '橙子',
-    avatar: '/avatars/user2.jpg'
+    author: '橙子'
   },
   {
     title: '和风微光里的镰仓小路',
     description: '在镰仓的海边慢慢走，像是走进了一部夏目友人帐。',
     image: '/images/note3.jpg',
-    author: 'Luna',
-    avatar: '/avatars/user3.jpg'
+    author: 'Luna'
   },
 ]
 
@@ -92,8 +88,8 @@ const notes = [
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 14px 30px;
-  background: #ffffff;
+  padding: 16px 30px;
+  background: #ffffff87;
   border-bottom: 1px solid #eee;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
 }
@@ -105,7 +101,7 @@ const notes = [
 }
 
 .nav nav a {
-  margin: 0 12px;
+  margin: 0 24px;
   color: #555;
   text-decoration: none;
   font-weight: 500;

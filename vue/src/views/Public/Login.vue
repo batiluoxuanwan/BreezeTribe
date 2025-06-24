@@ -3,7 +3,7 @@
   <div class="login-container">
     <!-- 左侧 Logo -->
       <div class="login-left">
-        <img src="@/assets/logo.svg" alt="Logo" class="login-logo" />
+        <img src="/Logo.jpg" alt="Logo" class="login-logo" />
       </div>
       <!-- 右侧表单 -->
       <div class="login-right">
