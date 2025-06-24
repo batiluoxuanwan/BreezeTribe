@@ -9,6 +9,7 @@ import org.whu.backend.common.Result;
 import org.whu.backend.dto.PageRequestDto;
 import org.whu.backend.dto.PageResponseDto;
 import org.whu.backend.dto.spot.SpotSearchResponseDto;
+import org.whu.backend.dto.travelpack.PackageSearchRequestDto;
 import org.whu.backend.dto.travelpack.PackageSummaryDto;
 
 @Tag(name = "公共接口 (Public)", description = "无需认证即可访问的API")
@@ -20,6 +21,16 @@ public class PublicController {
     @GetMapping("/travel-packages")
     public Result<PageResponseDto<PackageSummaryDto>> getPublishedPackages(@Valid @ParameterObject PageRequestDto pageRequestDto) {
         // TODO: 查询状态为 PUBLISHED 的旅行团并分页返回
+        return Result.success();
+    }
+
+    @Operation(summary = "搜索旅行团（复杂条件）", description = "根据多种条件组合搜索旅行团")
+    @GetMapping("/travel-packages/search")
+    public Result<PageResponseDto<PackageSummaryDto>> searchPackages(@Valid @ParameterObject PackageSearchRequestDto searchRequestDto) {
+        // 后端实现提示:
+        // 在Service层，可以使用JPA的Specification或Criteria API来动态构建查询条件
+        // 这样可以优雅地处理searchRequestDto中各种可选的搜索参数
+        // TODO: 实现复杂的、多条件的搜索逻辑
         return Result.success();
     }
 
