@@ -31,7 +31,10 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         //放行登录接口
-                        .requestMatchers("/api/auth/**", "/api/captcha/**").permitAll()
+                        .requestMatchers(
+                                "/api/auth/**",
+                                "/api/captcha/**",
+                                "/api/public/**").permitAll()
                         //放行swagger
                         .requestMatchers(
                                 "/v3/api-docs/**",
@@ -39,8 +42,7 @@ public class SecurityConfig {
                                 "/swagger-ui.html",
                                 "/swagger-resources/**",
                                 "/webjars/**"
-
-                        ).permitAll()
+                                ).permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
