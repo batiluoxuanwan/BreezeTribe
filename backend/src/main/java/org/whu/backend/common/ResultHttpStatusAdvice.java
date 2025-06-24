@@ -13,7 +13,7 @@ import org.springframework.http.server.ServletServerHttpResponse;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 
-@RestControllerAdvice(basePackages = "org.whu.fleetingtime") // 指定扫描的包，确保只处理你项目下的Result返回
+@RestControllerAdvice(basePackages = "org.whu.backend") // 指定扫描的包，确保只处理你项目下的Result返回
 public class ResultHttpStatusAdvice implements ResponseBodyAdvice<Result<?>> {
 
     private static final Logger logger = LoggerFactory.getLogger(ResultHttpStatusAdvice.class);

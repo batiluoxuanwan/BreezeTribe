@@ -10,6 +10,6 @@ import org.whu.backend.common.Result;
 public class HelloWorldController {
     @GetMapping("world")
     public Result<?> hello() {
-        return Result.success("hello world!");
+        return Result.failure(400,"hello world!");
     }
 }
