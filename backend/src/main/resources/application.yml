@@ -36,7 +36,16 @@ spring:
           ssl.enable: false  # 587端口一般不启用SSL
   data:
     redis:
-      host: localhost
+      host: 121.43.136.251
+      #host: localhost
       port: 6379
-      password:  # 如果有密码填这里
-      timeout: 2000ms
+      password: cloudora100points
+      database: 0
+#Sms
+sms:
+  host: https://gyytz.market.alicloudapi.com
+  path: /sms/smsSend
+  method: POST
+  appcode: 37d5da8d351c43fea103145f51e4d64c
+  smsSignId: 2e65b1bb3d054466b82f0c9d125465e2
+  templateId: 908e94ccf08b4476ba6c876d13f084ad

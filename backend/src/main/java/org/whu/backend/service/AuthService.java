@@ -1,5 +1,6 @@
 package org.whu.backend.service;
 
+import org.apache.commons.validator.routines.EmailValidator;
 import org.springframework.stereotype.Service;
 
 
@@ -9,8 +10,7 @@ import org.whu.backend.common.exception.BizException;
 import org.whu.backend.dto.auth.LoginRequest;
 import org.whu.backend.dto.auth.LoginResponse;
 import org.whu.backend.dto.auth.RegisterRequest;
-import org.whu.backend.entity.Accounts.Account;
-import org.whu.backend.entity.Accounts.Role;
+import org.whu.backend.entity.Accounts.*;
 import org.whu.backend.repository.AuthRepository;
 
 import java.util.Optional;
@@ -61,11 +61,41 @@ public class AuthService {
             throw new BizException((email != null && !email.isBlank()) ? "该邮箱已被注册" : "该手机号已被注册");
         }
 
-        Account account = new Account();
-        account.setEmail(email);
-        account.setPhone(phone);
-        account.setRole(role);
-        account.setPassword(passwordEncoder.encode(request.getPassword()));
+        Account account;
+
+        switch (role) {
+            case ROLE_USER:
+                User user = new User();
+                user.setEmail(email);
+                user.setPhone(phone);
+                user.setPassword(passwordEncoder.encode(request.getPassword()));
+                user.setRole(Role.ROLE_USER);
+                user.setEnabled(true);
+                account = user;
+                break;
+            case ROLE_MERCHANT:
+                Merchant merchant = new Merchant();
+                merchant.setEmail(email);
+                merchant.setPhone(phone);
+                merchant.setPassword(passwordEncoder.encode(request.getPassword()));
+                merchant.setRole(Role.ROLE_MERCHANT);
+                merchant.setEnabled(false);
+                // 特有字段暂时不填，后续用接口补充
+                account = merchant;
+                break;
+            case ROLE_ADMIN:
+                Admin admin = new Admin();
+                admin.setEmail(email);
+                admin.setPhone(phone);
+                admin.setPassword(passwordEncoder.encode(request.getPassword()));
+                admin.setRole(Role.ROLE_ADMIN);
+                admin.setEnabled(false);
+                account = admin;
+                break;
+            default:
+                throw new BizException("未知角色");
+        }
+
         authRepository.save(account);
 
         String token = jwtService.generateToken(account);
@@ -94,7 +124,9 @@ public class AuthService {
             throw new BizException("账号不存在");
         }
         Account account = optionalAccount.get();
-
+        if (!account.isEnabled()) {
+            throw new BizException("账号暂时不可使用，请联系管理员");
+        }
         if (!passwordEncoder.matches(request.getPassword(), account.getPassword())) {
             throw new BizException("密码错误");
         }
@@ -105,11 +137,13 @@ public class AuthService {
     }
 
 
+
     private boolean isValidEmail(String email) {
-        return email != null && email.matches("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,6}$");
+        return email != null && EmailValidator.getInstance().isValid(email);
     }
 
     private boolean isValidPhone(String phone) {
-        return phone != null && phone.matches("^\\d{10,15}$"); // 可根据实际手机号位数修改
+        // 中国大陆 11 位标准手机号
+        return phone != null && phone.matches("^1[3-9]\\d{9}$");
     }
 }
