@@ -1,6 +1,5 @@
 <template>
   <div class="relative w-full h-full overflow-hidden" :class="props.class">
-    <!-- 视频遮罩层 -->
     <div
       class="absolute inset-0 flex items-center justify-center"
       :style="{

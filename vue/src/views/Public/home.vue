@@ -11,7 +11,7 @@
       </nav>
       <div class="search-box">
         <input type="text" placeholder="请输入团名或景点...">
-        <button>搜索</button>
+        <el-icon><Search /></el-icon>
       </div>
     </header>
 
@@ -45,12 +45,14 @@
     </section>
 
     <!-- 页脚 -->
-    <footer class="footer">
-      <a href="#">关于我们</a>
-      <a href="#">联系我们</a>
-      <a href="#">商户入驻</a>
-      <a href="#">App 下载</a>
-    </footer>
+    <el-footer class="footer">
+      <div class="footer-content">
+        <!-- 版权信息 -->
+        <div class="copyright">
+          Copyright © 2025 BREEZETRIBE
+        </div>
+      </div>
+    </el-footer>
   </div>
 </template>
 
@@ -91,8 +93,12 @@ const notes = [
 <style scoped>
 .home-page {
   font-family: 'Quicksand', 'Poppins', sans-serif;
-  background-color: rgba(224, 242, 241, 0.95);
   color: #444;
+  
+  background-image: url('@/assets/background.png');
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center;
 }
 
 .nav {
@@ -103,7 +109,7 @@ const notes = [
   z-index: 1000;     /* 保证在最上层 */
   
   display: flex;
-  justify-content: flex-start;
+  justify-content: space-between;
   align-items: center;
   padding: 28px 30px;
   background:rgba(128,203,196,0.55) ;
@@ -127,16 +133,15 @@ const notes = [
 }
 
 .nav-center {
-  margin-left: auto;
-  margin-right: 900px; /* 让出一点空间给 search-box */
+  text-align:center;
+  max-width: 600px;
 }
 
 .search-box {
   align-items: center;
   display: flex;
-  max-width: 500px;
   position: relative;
-  margin-right:auto;
+  margin-left:20px;
 }
 .search-box input {
   width: 100%;
@@ -152,21 +157,13 @@ const notes = [
   border-color: #4fc3f7;
   box-shadow: 0 0 0 3px rgba(79, 195, 247, 0.3);
 }
-.search-box button {
+.search-box .el-icon {
   position: absolute;
-  right: 2px;
+  right: 10px; /* Adjust as needed, ensure it's within padding */
   top: 50%;
   transform: translateY(-50%);
-  background-color: #6da0b1;
-  border: none;
-  color: white;
-  padding: 12px 16px;
-  border-radius: 999px;
+  color: #6da0b1;
   cursor: pointer;
-  transition: background-color 0.2s;
-}
-.search-box button:hover {
-  background-color: #039be5;
 }
 
 .banner {
@@ -243,20 +240,26 @@ h2 {
   background-color: #d3ece7;
 }
 
+/* 页脚 */
 .footer {
-  text-align: center;
-  padding: 30px;
-  background: #f2f2f2;
-  color: #777;
-  font-size: 0.9rem;
-  border-top: 1px solid #e0e0e0;
-  margin-top: 40px;
+  flex-shrink: 0;
+  padding: 40px 0 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(7, 7, 7, 0.8);
 }
 
-.footer a {
-  margin: 0 12px;
-  color: #777;
-  text-decoration: none;
+.footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.copyright {
+  font-size: 16px;
+  opacity: 0.8;
 }
 
 </style>
