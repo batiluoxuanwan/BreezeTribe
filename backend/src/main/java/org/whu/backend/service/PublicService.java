@@ -33,6 +33,7 @@ public class PublicService {
     private TravelPackageRepository travelPackageRepository;
 
     public static final long EXPIRE_TIME = 60 * 60 * 4;
+    public static final String IMAGE_PROCESS = "image/resize,l_1600/quality,q_50";
 
     /**
      * 获取已发布的旅行团列表（分页）
@@ -72,13 +73,12 @@ public class PublicService {
     public PackageDetailDto getPackageDetails(String id) {
         log.info("开始查询ID为 '{}' 的旅行团详情。", id);
 
-        // 1. 调用Repository中我们定义好的方法
+        // 1. 调用Repository中定义好的方法
         TravelPackage travelPackage = travelPackageRepository.findByIdAndStatus(id, TravelPackage.PackageStatus.PUBLISHED)
                 .orElseThrow(() -> {
                     log.warn("查询失败：找不到ID为 '{}' 的旅行团，或该旅行团尚未发布。", id);
                     return new BizException("找不到ID为 " + id + " 的旅行团，或该旅行团尚未发布。");
                 });
-
         log.info("成功查询到旅行团 '{}' 的详情。", travelPackage.getTitle());
         // 2. 将Entity转换为详细的DTO
         return convertToDetailDto(travelPackage);
@@ -86,23 +86,25 @@ public class PublicService {
 
 
     // --- 私有的转换方法 (Entity -> DTO) ---
-
+    // 把旅游团实体TravelPackage转化为简略的信息PackageSummaryDto
     private PackageSummaryDto convertToSummaryDto(TravelPackage entity) {
         PackageSummaryDto dto = new PackageSummaryDto();
         dto.setId(entity.getId());
         dto.setTitle(entity.getTitle());
-        dto.setCoverImageUrl(entity.getCoverImageUrl());
+        if (entity.getCoverImageUrl() != null)
+            dto.setCoverImageUrl(AliyunOssUtil.generatePresignedGetUrl(entity.getCoverImageUrl(), EXPIRE_TIME, IMAGE_PROCESS));
         dto.setPrice(entity.getPrice());
         dto.setDurationInDays(entity.getDurationInDays());
         return dto;
     }
 
+    // 把旅游团实体TravelPackage转化为详细的信息PackageDetailDto
     private PackageDetailDto convertToDetailDto(TravelPackage entity) {
         PackageDetailDto detailDto = new PackageDetailDto();
         detailDto.setId(entity.getId());
         detailDto.setTitle(entity.getTitle());
         if (entity.getCoverImageUrl() != null)
-            detailDto.setCoverImageUrl(AliyunOssUtil.generatePresignedGetUrl(entity.getCoverImageUrl(), EXPIRE_TIME, "image/resize,l_1600/quality,q_50"));
+            detailDto.setCoverImageUrl(AliyunOssUtil.generatePresignedGetUrl(entity.getCoverImageUrl(), EXPIRE_TIME, IMAGE_PROCESS));
         detailDto.setPrice(entity.getPrice());
         detailDto.setDurationInDays(entity.getDurationInDays());
         detailDto.setDetailedDescription(entity.getDetailedDescription());
