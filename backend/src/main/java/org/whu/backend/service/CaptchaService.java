@@ -52,95 +52,79 @@ public class CaptchaService {
 
             helper.setFrom("2365246549@qq.com");
             helper.setTo(toEmail);
-            helper.setSubject("【BreezeTribe】注册验证码");
+            helper.setSubject("【风旅集】注册验证码");
 
             // ✅ 构建HTML内容
             String htmlContent = """
                 <html>
-                <body style="font-family: Arial, sans-serif; background-color: #f9fafb; margin: 0; padding: 0;">
-                  <table role="presentation" cellpadding="0" cellspacing="0" width="100%%" style="margin: 0 auto; padding: 40px 0;">
+                <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:#f5f7fa; margin:0; padding:0;">
+                  <table align="center" width="600" style="background:#fff; border-radius:12px; padding:40px 48px; box-shadow:0 8px 24px rgba(0,0,0,0.12);">
+                    
+                    <!-- 标题 -->
                     <tr>
-                      <td align="center">
-                        <table role="presentation" cellpadding="0" cellspacing="0" width="600" style="background-color: #ffffff; border-radius: 8px; padding: 40px; box-shadow: 0px 4px 15px rgba(0,0,0,.1);">
-                          
-                          <!-- Logo / Header -->
-                          <tr>
-                            <td align="center" style="font-size: 24px; font-weight: bold; color: #4CAF50;">
-                              【风旅集】
-                            </td>
-                          </tr>
-                
-                          <!-- Message -->
-                          <tr>
-                            <td style="font-size: 16px; color: #333333; padding: 30px 0 10px;">
-                              您正在注册 BreezeTribe，您的验证码是：
-                            </td>
-                          </tr>
-                          
-                          <!-- Code Box -->
-                          <tr>
-                            <td align="center" style="padding: 10px 0;">
-                              <div style="
-                                font-size: 32px;
-                                font-weight: bold;
-                                color: #007BFF;
-                                background-color: #f1f3f5;
-                                padding: 20px 30px;
-                                border-radius: 8px;
-                                user-select: all;">
-                                %s
-                              </div>
-                            </td>
-                          </tr>
-                
-                          <!-- Validity Info -->
-                          <tr>
-                            <td style="font-size: 14px; color: #555555; text-align: center; padding: 10px 0;">
-                              ⚡ 有效期 5 分钟，请尽快验证。
-                            </td>
-                          </tr>
-                
-                          <!-- Button -->
-                          <tr>
-                            <td align="center" style="padding: 20px 0;">
-                              <a href="https://www.yourappurl.com/verify?code=%s&email=%s" 
-                                style="
-                                  font-size: 16px;
-                                  font-weight: bold;
-                                  color: #ffffff;
-                                  background-color: #007BFF;
-                                  padding: 14px 28px;
-                                  border-radius: 5px;
-                                  text-decoration: none;">
-                                点击跳转验证
-                              </a>
-                            </td>
-                          </tr>
-                
-                          <!-- Fallback Info -->
-                          <tr>
-                            <td style="font-size: 14px; color: #777777; text-align: center; padding: 10px 0;">
-                              如果以上链接无效，您也可以手动将验证码复制到应用中。
-                            </td>
-                          </tr>
-                
-                          <!-- Logo Image -->
-                          <tr>
-                            <td align="center" style="padding: 30px 0;">
-                              <img src="cid:logoImage" alt="BreezeTribe Logo" style="width: 100px; height: auto;" />
-                            </td>
-                          </tr>
-                
-                          <!-- Signature -->
-                          <tr>
-                            <td style="font-size: 12px; color: #888888; text-align: center;">
-                              —— BreezeTribe 团队
-                            </td>
-                          </tr>
-                
-                        </table>
+                      <td align="center" style="font-size: 30px; font-weight: 700; color:#2a9d8f; padding-bottom: 24px;">
+                        【 风旅集 】
                       </td>
                     </tr>
+                
+                    <!-- 正文 -->
+                    <tr>
+                      <td style="font-size: 17px; color: #444; text-align: center; padding-bottom: 32px; line-height: 1.6;">
+                        您正在注册 BreezeTribe，
+                        您的验证码如下，请在5分钟内完成验证：
+                      </td>
+                    </tr>
+                
+                    <!-- 验证码区 -->
+                    <tr>
+                      <td align="center" style="padding-bottom: 40px;">
+                        <div style="display:inline-block; font-size: 42px; font-weight: 800; color:#264653; background:#e7f0fd; padding: 24px 56px; border-radius: 16px; letter-spacing: 14px; user-select: all;">
+                          %s
+                        </div>
+                      </td>
+                    </tr>
+                
+                    <!-- 按钮 -->
+                    <tr>
+                      <td align="center" style="padding-bottom: 36px;">
+                        <a href="https://yourdomain.com/verify?code=%s&email=%s" style="
+                          display:inline-block;
+                          padding: 16px 36px;
+                          font-size: 18px;
+                          font-weight: 700;
+                          color: #fff;
+                          background-color: #2a9d8f;
+                          border-radius: 12px;
+                          box-shadow: 0 10px 20px rgba(42, 157, 143, 0.38);
+                          text-decoration: none;
+                          transition: background-color 0.3s ease;
+                        " onmouseover="this.style.backgroundColor='#1f6a74'" onmouseout="this.style.backgroundColor='#2a9d8f'">
+                          点击跳转验证
+                        </a>
+                      </td>
+                    </tr>
+                
+                    <!-- 备注 -->
+                    <tr>
+                      <td align="center" style="font-size: 14px; color: #777; padding-bottom: 32px;">
+                        如果按钮无法点击，请复制验证码手动输入
+                      </td>
+                    </tr>
+                
+                    <!-- logo -->
+                    <tr>
+                      <td align="center" style="padding-bottom: 12px;">
+                        <img src="cid:logoImage" alt="BreezeTribe Logo" style="width: 90px; height: auto;" />
+                      </td>
+                    </tr>
+                
+                    <!-- 签名 -->
+                    <tr>
+                      <td align="center" style="font-size: 12px; color: #aaa;">
+                        —— BreezeTribe 团队敬上
+                      </td>
+                    </tr>
+                    
                   </table>
                 </body>
                 </html>
