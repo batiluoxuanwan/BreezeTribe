@@ -3,7 +3,7 @@
   <div class="login-container">
     <!-- 左侧 Logo -->
       <div class="login-left">
-        <img src="/Logo.jpg" alt="Logo" class="login-logo" />
+        <img src="@/assets/Logo.jpg" alt="Logo" class="login-logo" />
       </div>
       <!-- 右侧表单 -->
       <div class="login-right">
@@ -108,7 +108,7 @@ export default {
   display: flex;
   justify-content: center;
   align-items: center;
-  background-image: url('@/assets/loginbackground.png');
+  background-image: url('@/assets/background.png');
   background-size: cover;
   background-position: center;
   padding: 16px; /* 防止在小屏设备挤边 */
