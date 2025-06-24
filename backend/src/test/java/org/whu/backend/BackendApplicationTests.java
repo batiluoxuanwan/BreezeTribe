@@ -14,13 +14,6 @@ class BackendApplicationTests {
 
     @Test
     void contextLoads() {
-        Spot spot = new Spot();
-        spot.setName("下北泽");
-        spot.setCityName("东京市");
-        spot.setDescription("111");
-        spot.setLongitude(11.1);
-        spot.setLatitude(11.1);
-        spotRepository.save(spot);
     }
 
 }
