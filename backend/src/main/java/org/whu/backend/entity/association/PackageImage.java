@@ -19,7 +19,7 @@ public class PackageImage {
     private Long id; // 对于简单的关联表，用自增ID即可
 
     // 关联到哪个旅行团。
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "package_id", nullable = false)
     private TravelPackage travelPackage;
 
@@ -28,7 +28,7 @@ public class PackageImage {
     @JoinColumn(name = "media_file_id", nullable = false)
     private MediaFile mediaFile;
 
-    // 排序字段！这张图片在这个旅行团的图册中排在第几位。
+    // 这张图片在这个旅行团的图册中排在第几位。
     @Column(nullable = false)
     private int sortOrder;
 }

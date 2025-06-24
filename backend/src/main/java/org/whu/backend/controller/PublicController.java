@@ -8,7 +8,6 @@ import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.whu.backend.common.Result;
-import org.whu.backend.common.exception.BizException;
 import org.whu.backend.dto.PageRequestDto;
 import org.whu.backend.dto.PageResponseDto;
 import org.whu.backend.dto.spot.SpotSearchResponseDto;
@@ -17,7 +16,7 @@ import org.whu.backend.dto.travelpack.PackageSearchRequestDto;
 import org.whu.backend.dto.travelpack.PackageSummaryDto;
 import org.whu.backend.service.PublicService;
 
-@Tag(name = "公共接口 (Public)", description = "无需认证即可访问的API")
+@Tag(name = "公共接口 (Public)", description = "无需认证即可访问的API，可以获取旅行团列表，搜索旅行团，查看旅行团的详细，转发百度地图API请求查询景点")
 @Slf4j
 @RestController
 @RequestMapping("/api/public")
@@ -33,7 +32,6 @@ public class PublicController {
         PageResponseDto<PackageSummaryDto> resultPage = publicService.getPublishedPackages(pageRequestDto);
         return Result.success(resultPage);
     }
-
 
 
     @Operation(summary = "搜索旅行团（复杂条件）", description = "根据多种条件组合搜索旅行团")

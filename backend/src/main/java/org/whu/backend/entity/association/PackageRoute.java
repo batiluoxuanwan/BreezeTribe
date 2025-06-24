@@ -21,7 +21,7 @@ public class PackageRoute {
     @JoinColumn(name = "route_id")
     private Route route;
 
-    // 关键字段！用于表示这是第几天的行程
+    // 用于表示这是第几天的行程
     @Column(name = "day_number")
     private int dayNumber;
 }

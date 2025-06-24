@@ -36,11 +36,6 @@ public class MediaFile {
     // 文件大小（字节）。
     private Long fileSize;
 
-    // 上传者的账户ID。用于权限校验和追踪。
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "user_account_id", referencedColumnName = "id",nullable = false)
-    private Account uoloaderId;
-
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdTime;
@@ -48,6 +43,11 @@ public class MediaFile {
     @UpdateTimestamp
     @Column(nullable = false)
     private LocalDateTime updatedTime;
+
+    // 上传者的账户ID。用于权限校验和追踪。
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "user_account_id", referencedColumnName = "id",nullable = false)
+    private Account uploaderId;
 
     @PrePersist
     protected void onPrePersist() {

@@ -18,10 +18,8 @@ import java.util.UUID;
 @DiscriminatorColumn(name = "account_type", discriminatorType = DiscriminatorType.STRING)
 @Data
 public class Account {
-
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    private String id;
 
     private String email;
 
@@ -39,4 +37,11 @@ public class Account {
     private boolean enabled = true;
 
     private LocalDateTime createdAt = LocalDateTime.now();
+
+    @PrePersist
+    protected void onPrePersist() {
+        if (this.id == null || this.id.trim().isEmpty()) {
+            this.id = UUID.randomUUID().toString();
+        }
+    }
 }

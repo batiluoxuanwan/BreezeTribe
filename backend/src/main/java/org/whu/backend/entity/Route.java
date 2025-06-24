@@ -31,15 +31,6 @@ public class Route {
     @Lob
     private String description; // 路线描述
 
-    // 字段类型是具体的子类，但JoinColumn指向父类的表和主键
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "dealer_account_id", referencedColumnName = "id", nullable = false)
-    private Merchant dealer;
-
-    @OneToMany(mappedBy = "route", cascade = CascadeType.ALL, orphanRemoval = true)
-    @OrderBy("orderColumn ASC") // 正确地按照关联实体中的字段排序了！
-    private List<RouteSpot> spots = new ArrayList<>();
-
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdTime;
@@ -47,6 +38,16 @@ public class Route {
     @UpdateTimestamp
     @Column(nullable = false)
     private LocalDateTime updatedTime;
+
+    // 字段类型是具体的子类，但JoinColumn指向父类的表和主键
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "dealer_account_id", referencedColumnName = "id", nullable = false)
+    private Merchant dealer;
+
+    // 使用关系表RouteSpot关联景点与路线
+    @OneToMany(mappedBy = "route", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("orderColumn ASC") // 正确地按照关联实体中的字段排序
+    private List<RouteSpot> spots = new ArrayList<>();
 
     @PrePersist
     protected void onPrePersist() {
