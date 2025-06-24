@@ -23,16 +23,6 @@ public class Order {
     @Column(length = 36)
     private String id;
 
-    // 实体关联，表示订单所属的用户账号
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "user_account_id", referencedColumnName = "id", nullable = false)
-    private User user;
-
-    // 实体关联，该订单对应的旅行团
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "package_id", nullable = false)
-    private TravelPackage travelPackage;
-
     @Column(nullable = false)
     private Integer travelerCount; // 出行人数
 
@@ -57,6 +47,16 @@ public class Order {
         CANCELED, // 取消
         COMPLETED // 完成
     }
+
+    // 实体关联，表示订单所属的用户账号
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "user_account_id", referencedColumnName = "id", nullable = false)
+    private User user;
+
+    // 实体关联，该订单对应的旅行团
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "package_id", nullable = false)
+    private TravelPackage travelPackage;
 
     @PrePersist
     protected void onPrePersist() {

@@ -44,7 +44,7 @@ public class PublicService {
         Sort sort = Sort.by(Sort.Direction.fromString(pageRequestDto.getSortDirection()), pageRequestDto.getSortBy());
         Pageable pageable = PageRequest.of(pageRequestDto.getPage() - 1, pageRequestDto.getSize(), sort);
 
-        // 2. 调用Repository中我们定义好的方法
+        // 2. 调用Repository中定义好的方法，查询的是PUBLISHED的旅游团
         Page<TravelPackage> packagePage = travelPackageRepository.findByStatus(TravelPackage.PackageStatus.PUBLISHED, pageable);
         log.info("查询到 {} 条记录，总共 {} 页。", packagePage.getNumberOfElements(), packagePage.getTotalPages());
 
@@ -53,7 +53,7 @@ public class PublicService {
                 .map(this::convertToSummaryDto)
                 .collect(Collectors.toList());
 
-        // 4. [修复] 使用Builder模式构建我们自定义的分页响应对象
+        // 4. 使用Builder模式构建分页响应对象
         return PageResponseDto.<PackageSummaryDto>builder()
                 .content(summaryDtos)
                 .pageNumber(packagePage.getNumber() + 1)

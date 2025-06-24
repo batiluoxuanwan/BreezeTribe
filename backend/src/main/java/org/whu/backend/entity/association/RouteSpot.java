@@ -21,7 +21,7 @@ public class RouteSpot {
     @JoinColumn(name = "spot_id")
     private Spot spot;
 
-    // 关键字段！用于表示景点在这条路线中的顺序
+    // 用于表示景点在这条路线中的顺序
     @Column(name = "order_column")
     private int orderColumn;
 }
