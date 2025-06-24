@@ -1,45 +1,45 @@
 <template>
   <div class="login-background">
-  <div class="login-container">
-    <!-- 左侧 Logo -->
-      <div class="login-left">
-        <img src="@/assets/logo.svg" alt="Logo" class="login-logo" />
-      </div>
+    <div class="login-container">
+      <!-- 左侧 Logo -->
+        <div class="login-left">
+          <img src="@/assets/logo.svg" alt="Logo" class="login-logo" />
+        </div>
       <!-- 右侧表单 -->
-      <div class="login-right">
-      <h2>BreezeTribe-登录</h2>
+        <div class="login-right">
+        <h2>BreezeTribe-登录</h2>
       <!-- 登录方式切换 -->
-      <div class="login-switch">
-        <el-button :type="mode === 'phone' ? 'primary' : 'text'" @click="mode = 'phone'">手机号登录</el-button>
-        <el-button :type="mode === 'email' ? 'primary' : 'text'" @click="mode = 'email'">邮箱登录</el-button>
-      </div>
+        <div class="login-switch">
+          <el-button :type="mode === 'phone' ? 'primary' : 'text'" @click="mode = 'phone'">手机号登录</el-button>
+          <el-button :type="mode === 'email' ? 'primary' : 'text'" @click="mode = 'email'">邮箱登录</el-button>
+        </div>
 
-      <el-form :model="loginForm" :rules="rules" ref="loginFormRef" label-width="80px">
-        <el-form-item v-if="mode === 'phone'" label="手机号" prop="phone">
-          <el-input v-model="loginForm.phone" placeholder="请输入手机号" />
-        </el-form-item>
+        <el-form :model="loginForm" :rules="rules" ref="loginFormRef" label-width="80px">
+          <el-form-item v-if="mode === 'phone'" label="手机号" prop="phone">
+            <el-input v-model="loginForm.phone" placeholder="请输入手机号" />
+          </el-form-item>
 
-        <el-form-item v-if="mode === 'email'" label="邮箱" prop="email">
-          <el-input v-model="loginForm.email" placeholder="请输入邮箱" />
-        </el-form-item>
+          <el-form-item v-if="mode === 'email'" label="邮箱" prop="email">
+            <el-input v-model="loginForm.email" placeholder="请输入邮箱" />
+          </el-form-item>
 
-        <el-form-item label="密码" prop="password">
-          <el-input v-model="loginForm.password" type="password" placeholder="请输入密码" show-password></el-input>
-        </el-form-item>
+          <el-form-item label="密码" prop="password">
+            <el-input v-model="loginForm.password" type="password" placeholder="请输入密码" show-password></el-input>
+          </el-form-item>
 
-        <el-form-item label="身份" prop="role">
-          <el-select v-model="loginForm.role" placeholder="请选择登录身份">
-            <el-option label="用户" value="user" />
-            <el-option label="经销商" value="dealer" />
-            <el-option label="管理员" value="admin" />
-          </el-select>
-        </el-form-item>
+          <el-form-item label="身份" prop="role">
+            <el-select v-model="loginForm.role" placeholder="请选择登录身份">
+              <el-option label="用户" value="user" />
+              <el-option label="经销商" value="dealer" />
+              <el-option label="管理员" value="admin" />
+            </el-select>
+          </el-form-item>
 
-        <el-form-item>
-          <el-button type="primary" @click="handleLogin">登录</el-button>
-          <el-button type="text" @click="goRegister">还没有账号？去注册</el-button>
-        </el-form-item>
-      </el-form>
+          <el-form-item>
+            <el-button type="primary" @click="handleLogin">登录</el-button>
+            <el-button type="text" @click="goRegister">还没有账号？去注册</el-button>
+          </el-form-item>
+        </el-form>
       </div>
     </div>
   </div>
@@ -108,7 +108,7 @@ export default {
   display: flex;
   justify-content: center;
   align-items: center;
-  background-image: url('@/assets/loginbackground.png');
+  background-image: url('@/assets/background.png');
   background-size: cover;
   background-position: center;
   padding: 16px; /* 防止在小屏设备挤边 */
