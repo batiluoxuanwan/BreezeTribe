@@ -20,6 +20,11 @@ const routes =[
         path:'/Merchant/Profile',
         name:'团长个人中心',
         component:() =>import('../views/Merchant/Profile.vue')
+    },
+    {
+        path:'/Merchant/Newgroup',
+        name:'发布新团',
+        component:() =>import('../views/Merchant/Newgroup.vue')
     }
 ];
 

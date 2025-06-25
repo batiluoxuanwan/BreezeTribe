@@ -12,16 +12,16 @@
     <div class="dashboard-body">
       <!-- 左侧菜单 -->
       <el-menu class="sidebar" :default-active="'1'" router>
-        <el-menu-item index="1">商户概览</el-menu-item>
+        <el-menu-item index="/Merchant/Profile">商户概览</el-menu-item>
         <el-sub-menu index="2">
           <template #title>旅游团管理</template>
-          <el-menu-item index="2-1">发布新团</el-menu-item>
+          <el-menu-item index="/Merchant/Newgroup">发布新团</el-menu-item>
           <el-menu-item index="2-2">我的旅游团</el-menu-item>
         </el-sub-menu>
         <el-menu-item index="3">订单管理</el-menu-item>
-        <el-menu-item index="4">财务报表</el-menu-item>
+        <!-- <el-menu-item index="4">财务报表</el-menu-item>
         <el-menu-item index="5">客户消息</el-menu-item>
-        <el-menu-item index="6">系统设置</el-menu-item>
+        <el-menu-item index="6">系统设置</el-menu-item> -->
       </el-menu>
 
       <!-- 主内容区 -->
@@ -43,11 +43,11 @@
         </div>
 
         <!-- 按钮 -->
-        <div class="action-buttons">
+        <!-- <div class="action-buttons">
           <el-button type="primary">发布新团</el-button>
           <el-button>管理旅游团</el-button>
           <el-button>查看订单</el-button>
-        </div>
+        </div> -->
 
         <!-- 审核状态 -->
         <el-card class="status-card">
