@@ -3,14 +3,22 @@
     <!-- 顶部导航栏 -->
     <header class="nav">
       <div class="logo">BreezeTribe</div>
-      <nav>
-        <a href="#">首页</a>
-        <a href="#">游记广场</a>
-        <a href="#">登录</a>
-        <a href="#">注册</a>
+      <nav class="nav-center">
+        <router-link to="/">首页</router-link>
+        <router-link to="/square">游记广场</router-link>
+        <router-link to="/login">登录</router-link>
+        <router-link to="/register">注册</router-link>
       </nav>
-      <input type="text" placeholder="搜索目的地 / 团名..." />
+      <div class="search-box">
+        <input type="text" placeholder="请输入团名或景点...">
+        <button>搜索</button>
+      </div>
     </header>
+
+      <!-- 视频文字 -->
+    <div class="relative h-full w-full">
+      <VideoText src="https://cdn.magicui.design/ocean-small.webm"> BREEZETRIBE </VideoText>
+    </div>
 
     <!-- 推荐团列表 -->
     <section class="tour-list">
@@ -30,8 +38,10 @@
 
     <!-- 游记精选 -->
     <section class="notes">
-      <h2>游记精选</h2>
-      <NoteCard v-for="(note, i) in notes" :key="i" :note="note" />
+      <h2 class="notes-header">游记精选</h2>
+      <div class="notes-content">
+        <NoteCard v-for="(note, i) in notes" :key="i" :note="note" />
+      </div>
     </section>
 
     <!-- 页脚 -->
@@ -47,11 +57,11 @@
 <script setup>
 import TourCard from '@/components/Tour.vue'
 import NoteCard from '@/components/NoteCard.vue'
+import VideoText from '@/components/ui/video-text/VideoText.vue'
 
 const tours = [
   { title: '桂林阳朔5日游', image: 'img1.jpg', price: 2999, location: '广西' },
-  { title: '广东巽寮湾4日游', image: 'img2.jpg', price: 2899, location: '广东' },
-  // ...更多数据
+  { title: '广东巽寮湾4日游', image: 'img2.jpg', price: 2899, location: '广东' }
 ]
 
 
@@ -59,23 +69,20 @@ const notes = [
   {
     title: '在稻城亚丁遇见蓝色星球的眼泪',
     description: '海子山下，那一片纯净蓝色，真的好像是童话。',
-    image: '/images/note1.jpg',
-    author: '阿木',
-    avatar: '/avatars/user1.jpg'
+    image: '',
+    author: '阿木'
   },
   {
     title: '云南腾冲，泡温泉的冬日故事',
     description: '烟雾缭绕中，每一口呼吸都好像治愈了城市疲惫。',
     image: '/images/note2.jpg',
-    author: '橙子',
-    avatar: '/avatars/user2.jpg'
+    author: '橙子'
   },
   {
     title: '和风微光里的镰仓小路',
     description: '在镰仓的海边慢慢走，像是走进了一部夏目友人帐。',
     image: '/images/note3.jpg',
-    author: 'Luna',
-    avatar: '/avatars/user3.jpg'
+    author: 'Luna'
   },
 ]
 
@@ -84,19 +91,26 @@ const notes = [
 <style scoped>
 .home-page {
   font-family: 'Quicksand', 'Poppins', sans-serif;
-  background-color: #fafaf9;
+  background-color: rgba(224, 242, 241, 0.95);
   color: #444;
 }
 
 .nav {
+  position: fixed;    /* 悬浮，脱离文档流 */
+  top: 0;
+  left: 0;
+  width: 100%;       /* 宽度铺满 */
+  z-index: 1000;     /* 保证在最上层 */
+  
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
-  padding: 14px 30px;
-  background: #ffffff;
+  padding: 28px 30px;
+  background:rgba(128,203,196,0.55) ;
   border-bottom: 1px solid #eee;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
 }
+
 
 .nav .logo {
   font-size: 1.5rem;
@@ -105,24 +119,54 @@ const notes = [
 }
 
 .nav nav a {
-  margin: 0 12px;
+  margin: 0 24px;
   color: #555;
   text-decoration: none;
   font-weight: 500;
+  font-size: 1.2rem;
+}
+
+.nav-center {
+  margin-left: auto;
+  margin-right: 900px; /* 让出一点空间给 search-box */
 }
 
 .search-box {
-  padding: 8px 14px;
-  border: 1px solid #ddd;
-  border-radius: 999px;
-  background: #f8f8f8;
-  transition: all 0.3s;
+  align-items: center;
+  display: flex;
+  max-width: 500px;
+  position: relative;
+  margin-right:auto;
 }
-
-.search-box:focus {
+.search-box input {
+  width: 100%;
+  padding: 12px 20px;
+  border-radius: 999px;
+  border: 1px solid #ccc;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  font-size: 16px;
+  transition: all 0.3s ease;
+}
+.search-box input:focus {
   outline: none;
-  border-color: #a3d3c0;
-  background: #fff;
+  border-color: #4fc3f7;
+  box-shadow: 0 0 0 3px rgba(79, 195, 247, 0.3);
+}
+.search-box button {
+  position: absolute;
+  right: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: #6da0b1;
+  border: none;
+  color: white;
+  padding: 12px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.search-box button:hover {
+  background-color: #039be5;
 }
 
 .banner {
@@ -146,8 +190,7 @@ const notes = [
   color: #888;
 }
 
-.tour-list,
-.notes {
+.tour-list{
   display: flex;
   gap: 20px;
   flex-wrap: wrap;
@@ -160,10 +203,28 @@ const notes = [
   text-align: center;
 }
 
-.topics h2 {
+h2 {
   margin-bottom: 1rem;
   font-size: 1.4rem;
   color: #6db193;
+}
+
+.notes {
+  padding: 30px;
+}
+
+.notes-header {
+  text-align: center;
+  font-size: 1.4rem;
+  margin-bottom: 1rem;
+  color: #6db193;
+}
+
+.notes-content {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .buttons button {

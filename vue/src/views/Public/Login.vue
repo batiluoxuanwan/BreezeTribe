@@ -38,13 +38,13 @@
             <el-input v-model="loginForm.password" type="password" placeholder="请输入密码" show-password />
           </el-form-item>
 
-          <el-form-item label="身份" prop="role">
-            <el-select v-model="loginForm.role" placeholder="请选择登录身份">
-              <el-option label="用户" value="user" />
-              <el-option label="经销商" value="dealer" />
-              <el-option label="管理员" value="admin" />
-            </el-select>
-          </el-form-item>
+        <el-form-item label="身份" prop="role">
+          <el-select v-model="loginForm.role" placeholder="请选择登录身份">
+            <el-option label="用户" value="user" />
+            <el-option label="经销商" value="dealer" />
+            <el-option label="管理员" value="admin" />
+          </el-select>
+        </el-form-item>
 
           <!-- 登录与取消 -->
           <el-form-item>

@@ -14,3 +14,25 @@ spring:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.MySQLDialect
+
+  jwt:
+    secret: ThereisnofuturethereisnopastThankGodthismomentisnotthelast
+    expiration: 7200000 # 2h，单位毫秒
+
+  mail:
+    host: smtp.qq.com
+    port: 587
+    username: 2365246549@qq.com       # 你的QQ邮箱账号
+    password: ykauwqrvjrewebgj  # 你刚才生成的授权码
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls.enable: true
+          ssl.enable: false  # 587端口一般不启用SSL
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password:  # 如果有密码填这里
+      timeout: 2000ms
