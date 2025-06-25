@@ -9,9 +9,6 @@ import lombok.Data;
 @Entity
 @DiscriminatorValue("MERCHANT")
 public class Merchant extends Account {
-    public Merchant() {
-        this.setRole(Role.ROLE_MERCHANT);
-    }
     //营业执照
     private String businessLicenseUrl;
     //营业许可证
