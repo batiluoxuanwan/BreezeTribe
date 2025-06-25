@@ -1,7 +1,7 @@
 package org.whu.backend.dto.auth;
 
 import lombok.Data;
-import org.whu.backend.entity.Accounts.Role;
+import org.whu.backend.entity.accounts.Role;
 
 @Data
 public class RegisterRequest {

@@ -6,8 +6,8 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.whu.backend.entity.Accounts.Account;
-import org.whu.backend.entity.Accounts.Role;
+import org.whu.backend.entity.accounts.Account;
+import org.whu.backend.entity.accounts.Role;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Key;

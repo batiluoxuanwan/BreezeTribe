@@ -15,6 +15,11 @@ const routes =[
         path:'/register',
         name:'注册',
         component:() =>import('../views/Public/Register.vue')
+    },
+    {
+        path:'/Merchant/Profile',
+        name:'团长个人中心',
+        component:() =>import('../views/Merchant/Profile.vue')
     }
 ];
 
