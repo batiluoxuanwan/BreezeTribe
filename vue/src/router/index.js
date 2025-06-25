@@ -4,7 +4,7 @@ const routes =[
     {
         path:'/',
         name:'首页',
-        component:() =>import('../views/Public/home.vue')
+        component:() =>import('../views/Public/Home.vue')
     },
     {
         path:'/login',
@@ -15,6 +15,11 @@ const routes =[
         path:'/register',
         name:'注册',
         component:() =>import('../views/Public/Register.vue')
+    },
+    {
+        path:'/square',
+        name:'旅行广场',
+        component:() =>import('../views/Public/Square.vue')
     },
     {
         path:'/user/me',

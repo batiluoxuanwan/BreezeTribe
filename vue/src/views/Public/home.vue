@@ -5,7 +5,7 @@
       <div class="logo">BreezeTribe</div>
       <nav class="nav-center">
         <router-link to="/">首页</router-link>
-        <router-link to="/square">游记广场</router-link>
+        <router-link to="/square">旅行广场</router-link>
         <router-link to="/login">登录</router-link>
         <router-link to="/register">注册</router-link>
       </nav>
@@ -15,32 +15,37 @@
       </div>
     </header>
 
-      <!-- 视频文字 -->
-    <div class="relative h-full w-full">
-      <VideoText src="https://cdn.magicui.design/ocean-small.webm"> BREEZETRIBE </VideoText>
-    </div>
+    <VideoText src="/src/assets/Timeline 1.mp4"> BREEZETRIBE </VideoText>
 
-    <!-- 推荐团列表 -->
-    <section class="tour-list">
-      <TourCard v-for="(tour, i) in tours" :key="i" :tour="tour" />
-    </section>
-
-    <!-- 热门主题推荐 -->
-    <section class="topics">
-      <h2>热门主题推荐</h2>
-      <div class="buttons">
-        <button>国内游</button>
-        <button>海岛游</button>
-        <button>学生团</button>
-        <button>自驾团</button>
+    <section class="section-container tour-section">
+      <h2 class="section-header">
+        <span class="header-icon"><el-icon><Camera /></el-icon></span>
+        热门旅行团
+        <span class="header-subtitle">精选路线，即刻出发</span>
+      </h2>
+      <div class="card-grid">
+        <TourCard v-for="tour in tours" :key="tour.id" :tour="tour" />
+      </div>
+      <div class="more-link-wrapper">
+        <router-link to="/square?tab=groups" class="more-link">
+          查看更多旅行团 <el-icon><ArrowRightBold /></el-icon>
+        </router-link>
       </div>
     </section>
 
-    <!-- 游记精选 -->
-    <section class="notes">
-      <h2 class="notes-header">游记精选</h2>
-      <div class="notes-content">
-        <NoteCard v-for="(note, i) in notes" :key="i" :note="note" />
+    <section class="section-container notes-section">
+      <h2 class="section-header">
+        <span class="header-icon"><el-icon><Notebook /></el-icon></span>
+        游记精选
+        <span class="header-subtitle">探索世界，分享你的故事</span>
+      </h2>
+      <div class="card-grid">
+        <NoteCard v-for="note in notes" :key="note.id" :note="note" />
+      </div>
+      <div class="more-link-wrapper">
+        <router-link to="/square?tab=notes" class="more-link">
+          查看更多游记 <el-icon><ArrowRightBold /></el-icon>
+        </router-link>
       </div>
     </section>
 
@@ -62,31 +67,68 @@ import NoteCard from '@/components/NoteCard.vue'
 import VideoText from '@/components/ui/video-text/VideoText.vue'
 
 const tours = [
-  { title: '桂林阳朔5日游', image: 'img1.jpg', price: 2999, location: '广西' },
-  { title: '广东巽寮湾4日游', image: 'img2.jpg', price: 2899, location: '广东' }
+  {
+    id: 1,
+    title: '云南丽江大理6日精品游', // 可以稍微长一点测试标题截断
+    location: '丽江, 大理',
+    image: 'https://via.placeholder.com/300x200?text=LijiangTour', // 示例图片
+    price: 3200,
+    rating: 4.8, // 新增：评分
+    isHot: true, // 新增：是否热门
+    duration: 6, // 新增：天数
+    startDate: '2025-07-10', // 新增：出发日期
+  },
+  {
+    id: 2,
+    title: '川西秘境稻城亚丁7日深度探索之旅',
+    location: '稻城亚丁',
+    image: 'https://via.placeholder.com/300x200?text=DaochengTour',
+    price: 5800,
+    rating: 4.9,
+    isHot: false,
+    duration: 7,
+    startDate: '2025-08-01',
+  },
+  {
+    id: 3,
+    title: '海南三亚自由行5天4晚，海岛风情',
+    location: '三亚',
+    image: 'https://via.placeholder.com/300x200?text=SanyaTour',
+    price: 2800,
+    rating: 4.7,
+    isHot: true,
+    duration: 5,
+    startDate: '2025-09-05',
+  },
 ]
 
 
 const notes = [
   {
-    title: '在稻城亚丁遇见蓝色星球的眼泪',
-    description: '海子山下，那一片纯净蓝色，真的好像是童话。',
-    image: '',
-    author: '阿木'
+    id: 101,
+    title: '夏日青海湖，一场关于色彩的旅行体验', // 标题可以稍微长一点测试截断
+    description: '青海湖的夏天，是碧蓝与金黄的交织，是心灵的洗涤。这里有你向往的一切，包括壮丽的油菜花海和神秘的湖畔风光，每一次呼吸都充满纯净。', // 描述可以稍微长一点测试截断
+    author: '小马快跑',
+    avatar: 'https://via.placeholder.com/50/FFD700/FFFFFF?text=MP', // 示例头像
+    image: 'https://via.placeholder.com/400x250?text=QinghaiLake', // 示例封面图
+    views: 12345, // 新增：浏览量
+    likes: 2890, // 新增：点赞数
+    category: '风光摄影', // 新增：分类标签
+    publishDate: '2025-06-20' // 新增：发布日期
   },
   {
-    title: '云南腾冲，泡温泉的冬日故事',
-    description: '烟雾缭绕中，每一口呼吸都好像治愈了城市疲惫。',
-    image: '/images/note2.jpg',
-    author: '橙子'
-  },
-  {
-    title: '和风微光里的镰仓小路',
-    description: '在镰仓的海边慢慢走，像是走进了一部夏目友人帐。',
-    image: '/images/note3.jpg',
-    author: 'Luna'
-  },
-]
+    id: 102,
+    title: '一个人也能玩转成都，吃喝玩乐全指南与心得分享',
+    description: '从火锅串串到熊猫基地，一个人的成都也能精彩纷呈，带你吃遍大街小巷，体验地道川味美食和悠闲茶馆文化，感受这座城市的慢生活节奏。',
+    author: '吃货小C',
+    avatar: 'https://via.placeholder.com/50/87CEEB/FFFFFF?text=CC',
+    image: 'https://via.placeholder.com/400x250?text=ChengduFood',
+    views: 9876,
+    likes: 1567,
+    category: '美食攻略',
+    publishDate: '2025-06-18'
+  }
+];
 
 </script>
 
@@ -99,6 +141,7 @@ const notes = [
   background-size: cover;
   background-repeat: no-repeat;
   background-position: center;
+  background-attachment: fixed;
 }
 
 .nav {
@@ -147,14 +190,15 @@ const notes = [
   width: 100%;
   padding: 12px 20px;
   border-radius: 999px;
-  border: 1px solid #ccc;
+  border: 1px solid #51e6d2;
   box-shadow: 0 2px 8px rgba(0,0,0,0.05);
   font-size: 16px;
   transition: all 0.3s ease;
+  background-color: #ffffff;
 }
 .search-box input:focus {
   outline: none;
-  border-color: #4fc3f7;
+  border-color: #01bda4;
   box-shadow: 0 0 0 3px rgba(79, 195, 247, 0.3);
 }
 .search-box .el-icon {
@@ -165,6 +209,8 @@ const notes = [
   color: #6da0b1;
   cursor: pointer;
 }
+
+
 
 .banner {
   text-align: center;
@@ -187,17 +233,88 @@ const notes = [
   color: #888;
 }
 
-.tour-list{
-  display: flex;
-  gap: 20px;
-  flex-wrap: wrap;
-  padding: 30px;
-  justify-content: center;
+.home-page > .VideoText {
+  padding-top: 80px; 
 }
 
-.topics {
-  padding: 20px;
+.section-container {
+  padding: 60px 40px; 
+  max-width: 1200px;
+  margin: 40px auto; 
+  border-radius: 15px; 
+  background-color: rgba(255, 255, 255, 0.65); 
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1); 
+}
+
+/* 区域标题通用样式 */
+.section-header {
   text-align: center;
+  font-size: 2.2rem; /* 增大标题字号 */
+  color: #333; /* 标题颜色 */
+  font-weight: 700;
+  margin-bottom: 40px; /* 标题与内容间距 */
+  position: relative;
+  padding-bottom: 15px; /* 为下划线留出空间 */
+}
+
+.section-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 250px; /* 下划线宽度 */
+  height: 5px; /* 下划线粗细 */
+  background: linear-gradient(45deg, rgb(77,182,172), rgb(178,223,219)); /* 渐变色下划线 */
+  border-radius: 3px;
+}
+
+.section-header .header-icon {
+  color: #25a574; 
+  font-size: 0.9em; 
+  margin-right: 10px;
+}
+
+.section-header .header-subtitle {
+  display: block; 
+  color: #666;
+  font-weight: 400;
+  font-size: 0.6em; 
+  margin-top: 10px;
+}
+
+/* 卡片网格布局 */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); /* 响应式网格，适应卡片大小 */
+  gap: 25px; /* 卡片间距 */
+  justify-content: center; /* 卡片居中 */
+  margin-bottom: 40px; /* 与“查看更多”链接的间距 */
+}
+
+/* 查看更多链接 */
+.more-link-wrapper {
+  text-align: center;
+}
+
+.more-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background-color: rgb(102, 162, 156);
+  color: #fff;
+  padding: 12px 25px;
+  border-radius: 30px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 10px rgba(64, 158, 255, 0.3);
+}
+
+.more-link:hover {
+  background-color: rgb(153, 213, 207);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 15px rgba(64, 158, 255, 0.4);
 }
 
 h2 {

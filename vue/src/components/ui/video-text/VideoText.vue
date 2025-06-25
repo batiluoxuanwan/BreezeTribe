@@ -1,5 +1,5 @@
 <template>
-  <div class="relative w-full h-full overflow-hidden" :class="props.class">
+  <div class="relative w-full h-200 overflow-hidden" :class="props.class">
     <div
       class="absolute inset-0 flex items-center justify-center"
       :style="{
