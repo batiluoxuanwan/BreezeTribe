@@ -6,10 +6,10 @@ spring:
     username: root
     password: H2v4uZwDpBVv4ysHy5wy
     driver-class-name: com.mysql.cj.jdbc.Driver
-#    url: jdbc:mysql://localhost:3306/breeze-tribe
-#    username: root
-#    password: 95515
-#    driver-class-name: com.mysql.cj.jdbc.Driver
+  #    url: jdbc:mysql://localhost:3306/breeze-tribe
+  #    username: root
+  #    password: 95515
+  #    driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     show-sql: false # 是否在控制台显示Hibernate执行的SQL语句
     hibernate:
@@ -40,6 +40,11 @@ spring:
       port: 6379
       password: cloudora100points
       database: 0
+
+baidu:
+  map:
+    ak: cX3Lu6F9cEcRr7M2K80G0Di49wvz4hY0
+
 #Sms
 sms:
   host: https://gyytz.market.alicloudapi.com

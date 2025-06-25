@@ -11,7 +11,7 @@ import org.whu.backend.dto.auth.LoginRequest;
 import org.whu.backend.dto.auth.LoginResponse;
 import org.whu.backend.dto.auth.RegisterRequest;
 import org.whu.backend.entity.accounts.*;
-import org.whu.backend.repository.AuthRepository;
+import org.whu.backend.repository.authRepo.AuthRepository;
 
 import java.util.Optional;
 

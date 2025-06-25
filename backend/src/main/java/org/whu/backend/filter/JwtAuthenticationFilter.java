@@ -5,7 +5,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.whu.backend.entity.accounts.Account;
 import org.whu.backend.entity.accounts.Role;
-import org.whu.backend.repository.AuthRepository;
+import org.whu.backend.repository.authRepo.AuthRepository;
 import org.whu.backend.service.JwtService;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
