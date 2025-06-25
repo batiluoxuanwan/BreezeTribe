@@ -1,4 +1,4 @@
-package org.whu.backend.repository;
+package org.whu.backend.repository.travelRepo;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -8,7 +8,6 @@ import org.whu.backend.entity.TravelPackage;
 
 import java.util.Optional;
 
-@Repository
 public interface TravelPackageRepository extends JpaRepository<TravelPackage, String> {
     /**
      * 根据状态查询旅行团（分页）

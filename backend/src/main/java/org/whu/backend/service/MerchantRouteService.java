@@ -12,8 +12,8 @@ import org.whu.backend.entity.Route;
 import org.whu.backend.entity.Spot;
 import org.whu.backend.entity.accounts.Merchant;
 import org.whu.backend.entity.association.RouteSpot;
-import org.whu.backend.repository.RouteRepository;
-import org.whu.backend.repository.SpotRepository;
+import org.whu.backend.repository.travelRepo.RouteRepository;
+import org.whu.backend.repository.travelRepo.SpotRepository;
 import org.whu.backend.repository.authRepo.MerchantRepository;
 
 import java.util.ArrayList;

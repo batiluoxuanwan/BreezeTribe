@@ -4,9 +4,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.Data;
+import org.whu.backend.entity.Favorite;
 
 @Data
 public class PageRequestDto {
+
     @Schema(description = "当前页码，从1开始", example = "1", defaultValue = "1")
     @Min(value = 1, message = "页码必须大于等于1")
     private int page = 1; // 默认第一页
