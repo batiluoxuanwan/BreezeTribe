@@ -1,4 +1,4 @@
-package org.whu.backend.dto.spot;
+package org.whu.backend.dto.baidumap;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
@@ -6,27 +6,27 @@ import lombok.Data;
 import java.util.List;
 
 @Data
-@JsonIgnoreProperties(ignoreUnknown = true) // 忽略我们不需要的字段
-public class BaiduPlaceDetailResponseDto {
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class BaiduSuggestionResponseDto {
     private int status;
     private String message;
-    private List<Result> results;
+    private List<SuggestionResult> results;
 
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class Result {
+    public static class SuggestionResult {
         private String name;
         private Location location;
-        private String address;
-        private String city;
-        private String area;
         private String uid;
+        private String province;
+        private String city;
+        private String district;
     }
 
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Location {
-        private double lng; // 经度
-        private double lat; // 纬度
+        private double lng;
+        private double lat;
     }
 }

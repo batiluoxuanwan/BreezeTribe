@@ -17,6 +17,9 @@ public class PackageSummaryDto {
     @Schema(description = "旅行团标题")
     private String title;
 
+    @Schema(description = "详细描述")
+    private String description;
+
     @Schema(description = "旅行团封面带签名的URL")
     private String coverImageUrl;
 
@@ -26,4 +29,7 @@ public class PackageSummaryDto {
 
     @Schema(description = "旅行团持续天数")
     private Integer durationInDays;
+
+    @Schema(description = "旅行团目前的状态")
+    private String status;
 }

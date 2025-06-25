@@ -1,10 +1,10 @@
 package org.whu.backend.common.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -109,30 +109,37 @@ public class GlobalExceptionHandler {
     public Result<?> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
         // 从异常中获取第一个校验错误信息作为提示
         String firstErrorMessage = e.getBindingResult().getFieldErrors().get(0).getDefaultMessage();
-        log.warn("请求参数校验失败: {}", firstErrorMessage, e); // 记录更详细的异常信息用于调试
-        return Result.failure(HttpStatus.BAD_REQUEST.value(), "参数校验失败");
+        log.warn("请求参数校验失败: {}", firstErrorMessage);
+        return Result.failure(HttpStatus.BAD_REQUEST.value(), "参数校验失败：" + firstErrorMessage);
     }
 
     // 处理其他常见的运行时异常 (可以根据需要细化)
     @ExceptionHandler(IllegalArgumentException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Result<?> handleIllegalArgumentException(IllegalArgumentException e) {
-        log.warn("非法参数异常: {}", e.getMessage(), e);
+        log.warn("非法参数异常: {}", e.getMessage());
         return Result.failure(HttpStatus.BAD_REQUEST.value(), "请求参数不合法: " + e.getMessage());
     }
 
     @ExceptionHandler(DateTimeParseException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Result<?> handleDateTimeParseException(DateTimeParseException e) {
-        log.warn("日期时间格式解析错误: {}", e.getMessage(), e);
+        log.warn("日期时间格式解析错误: {}", e.getMessage());
         return Result.failure(HttpStatus.BAD_REQUEST.value(), "日期时间格式无效，期望格式：yyyy-MM-dd HH:mm:ss");
     }
 
     @ExceptionHandler(NumberFormatException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Result<?> handleNumberFormatException(NumberFormatException e) {
-        log.warn("数字格式转换错误: {}", e.getMessage(), e);
+        log.warn("数字格式转换错误: {}", e.getMessage());
         return Result.failure(HttpStatus.BAD_REQUEST.value(), "提供的数字格式无效");
+    }
+
+    @ExceptionHandler(AuthorizationDeniedException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Result<?> handleAuthenticationException(AuthorizationDeniedException e) {
+        log.warn("未认证的用户 {}", e.getMessage());
+        return Result.failure(HttpStatus.UNAUTHORIZED.value(), "未认证的用户");
     }
 
     // --- JWT 相关异常处理 ---
