@@ -1,32 +1,209 @@
 <template>
-  <div class="tour-card">
-    <img :src="tour.image" alt="tour" class="img" />
-    <h3>{{ tour.title }}</h3>
-    <p>{{ tour.location }}</p>
-    <p class="price">¥{{ tour.price }}起</p>
+  <div class="travel-tour-card">
+    <div class="image-container">
+      <img :src="tour.image" :alt="tour.title" class="tour-image" />
+      <div v-if="tour.rating" class="rating-badge">
+        <el-icon><Star /></el-icon> {{ tour.rating.toFixed(1) }}
+      </div>
+      <div v-if="tour.isHot" class="hot-tag">热门</div>
+    </div>
+
+    <div class="tour-content">
+      <h3 class="tour-title">{{ tour.title }}</h3>
+      <p class="tour-location">
+        <el-icon><Location /></el-icon> {{ tour.location }}
+      </p>
+      <!-- 固定在卡片底部 -->
+      <div class="card-footer-fixed">
+        <div class="tour-meta">
+          <span class="duration">{{ tour.duration }}天</span>
+          <span class="departure-date">出发日期: {{ tour.startDate }}</span>
+        </div>
+        <div class="tour-price-wrapper">
+          <span class="tour-price">¥{{ tour.price }}</span>
+          <span class="price-unit">起</span>
+        </div>
+        <el-button type="primary" size="small" class="view-details-button">
+          查看详情 
+        </el-button>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
+import { defineProps } from 'vue';
+import { ElButton } from 'element-plus'; // 确保导入 ElButton
+
 defineProps({
-  tour: Object
-})
+  tour: {
+    type: Object,
+    required: true,
+  },
+});
 </script>
 
 <style scoped>
-.tour-card {
-  width: 200px;
-  border: 1px solid #eee;
-  border-radius: 8px;
+.travel-tour-card {
+  width: 240px; /* 稍微增加宽度 */
+  background: #ffffff;
+  border-radius: 12px; /* 更圆润的边角 */
   overflow: hidden;
-  padding: 10px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); /* 更明显的阴影 */
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  cursor: pointer;
 }
-.img {
+
+.travel-tour-card:hover {
+  transform: translateY(-8px); /* 悬停时向上浮动 */
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2); /* 悬停时阴影更深 */
+}
+
+.image-container {
   width: 100%;
-  height: 120px;
-  object-fit: cover;
+  height: 150px; /* 增加图片高度 */
+  overflow: hidden;
+  position: relative;
 }
-.price {
-  color: red;
+
+.tour-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease; /* 悬停时图片缩放效果 */
+}
+
+.travel-tour-card:hover .tour-image {
+  transform: scale(1.08); /* 悬停时图片轻微放大 */
+}
+
+.rating-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: rgba(255, 193, 7, 0.9); /* 亮黄色，略带透明 */
+  color: white;
+  padding: 4px 8px;
+  border-radius: 5px;
+  font-size: 0.85em;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  z-index: 2;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.hot-tag {
+  position: absolute;
+  top: 10px;
+  left: 0;
+  background: linear-gradient(to right, #ff7e5f, #feb47b); /* 渐变色背景 */
+  color: white;
+  padding: 4px 10px;
+  border-radius: 0 8px 8px 0;
+  font-size: 0.8em;
+  font-weight: 700;
+  z-index: 2;
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.tour-content {
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px; /* 增加内容间距 */
+  flex-grow: 1;
+}
+
+.tour-title {
+  font-size: 1.15rem; /* 标题字号略大 */
+  color: #333;
+  font-weight: 700; /* 加粗 */
+  line-height: 1.3;
+  margin-bottom: 5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* 标题限制为2行 */
+  -webkit-box-orient: vertical;
+}
+
+.tour-location {
+  font-size: 0.95rem; /* 地点信息字号 */
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.card-footer-fixed {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column; 
+  width: 100%; 
+  gap: 10px; 
+  padding-top: 10px; 
+  border-top: 1px solid #eee; 
+}
+
+.tour-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  color: #888;
+  margin-top: 5px;
+}
+
+.duration {
+  background-color: #ecf5ff; /* Element Plus light blue */
+  color: #409EFF;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.departure-date {
+  color: #909399;
+}
+
+.tour-price-wrapper {
+  display: flex;
+  align-items: baseline;
+  margin-top: 10px; /* 与上方的间距 */
+  margin-bottom: 10px;
+}
+
+.tour-price {
+  font-size: 1.8rem; /* 价格字号更大 */
+  color: #ff5722; /* 醒目的橙红色 */
+  font-weight: 800; /* 超粗字体 */
+  line-height: 1; /* 确保价格垂直居中 */
+}
+
+.price-unit {
+  font-size: 0.9em;
+  color: #ff5722;
+  margin-left: 3px;
+  font-weight: 600;
+}
+
+.view-details-button {
+  width: 100%;
+  background-color: #4caf91; 
+  border-color: #4caf91;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+/* 悬停 */
+.view-details-button:hover {
+  background-color: #35daa8; 
+  border-color: #35daa8;
+  transform: translateY(-2px);
 }
 </style>
