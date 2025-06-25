@@ -29,10 +29,10 @@ interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByPhone(String phone);
 }
 interface MerchantRepository extends JpaRepository<Merchant, UUID> {
-    // 获取所有审核已通过的商家
-    List<Merchant> findByApprovedTrue();
-    // 获取所有待审核的商家
-    List<Merchant> findByApprovedFalse();
+//    // 获取所有审核已通过的商家
+//    List<Merchant> findByApprovalTrue();
+//    // 获取所有待审核的商家
+//    List<Merchant> findByApprovalFalse();
     // 按邮箱获取某商家
     Optional<Merchant> findByEmail(String email);
     // 按手机号获取某商家

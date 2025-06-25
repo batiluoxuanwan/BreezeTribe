@@ -40,6 +40,10 @@ public class JwtService {
         return Role.valueOf(extractClaim(token, claims -> claims.get("role", String.class)));
     }
 
+    public String extractAccountId(String token) {
+        return parseClaims(token).getSubject();
+    }
+
     public boolean validateToken(String token, Account account) {
         final String subject = extractAccountIdentifier(token);
         return subject.equals(account.getEmail()) && !isTokenExpired(token);

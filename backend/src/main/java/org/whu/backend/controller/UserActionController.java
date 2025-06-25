@@ -12,6 +12,7 @@ import org.whu.backend.dto.favourite.FavoriteRequestDto;
 import org.whu.backend.dto.favourite.FavouriteDetailDto;
 import org.whu.backend.dto.order.OrderCreateRequestDto;
 import org.whu.backend.dto.order.OrderDetailDto;
+import org.whu.backend.util.SecurityUtil;
 
 @Tag(name = "用户-订单与收藏", description = "用户进行报名、收藏等操作的API")
 @RestController
@@ -24,6 +25,7 @@ public class UserActionController {
     public Result<OrderDetailDto> createOrder(@Valid @RequestBody OrderCreateRequestDto orderCreateRequestDto) {
         // TODO: 业务逻辑
         // 1. 获取当前登录用户的ID
+        String userId = SecurityUtil.getCurrentUserId();
         // 2. 验证旅行团ID是否存在且可报名
         // 3. (可选)检查库存或人数限制
         // 4. 创建新的Order实体并保存
