@@ -4,9 +4,7 @@
 
 
 #app {
-  max-width: 1280px;
   margin: 0 auto;
-  padding: 2rem;
   font-weight: normal;
 }
 
@@ -16,4 +14,30 @@ a,
   color: hsla(160, 100%, 37%, 1);
   transition: 0.4s;
   padding: 3px;
+}
+
+:root {
+  --el-color-primary: rgb(128, 203, 196); 
+
+  /* 定义 primary 颜色的深浅变体 */
+  --el-color-primary-light-3: rgb(153, 213, 207); /* 稍浅 */
+  --el-color-primary-light-5: rgb(178, 223, 219); 
+  --el-color-primary-light-7: rgb(204, 233, 230); /* 更浅 */
+  --el-color-primary-light-8: rgb(216, 240, 238);
+  --el-color-primary-light-9: rgb(229, 244, 242); /* 最浅 */
+
+  --el-color-primary-dark-2: rgb(102, 162, 156); /* 较深 */
+
+
+  --el-button-text-color: var(--el-text-color-regular); /* 默认按钮文字颜色 */
+  --el-button-border-color: var(--el-border-color-base); /* 默认按钮边框颜色 */
+  --el-button-bg-color: var(--el-fill-color-blank); /* 默认按钮背景色 */
+
+  --el-button-plain-hover-bg-color: var(--el-color-primary); /* plain 按钮悬停时背景变为主色 */
+  --el-button-plain-hover-text-color: #fff; /* plain 按钮悬停时文字变白 */
+  --el-button-plain-hover-border-color: var(--el-color-primary); /* plain 按钮悬停时边框变为主色 */
+
+  --el-border-radius-base: 8px; /* 默认的圆角 */
+  --el-border-radius-small: 6px;
+  --el-border-radius-round: 9999px; /* 用于圆形按钮 */
 }
