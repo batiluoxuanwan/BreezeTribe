@@ -10,10 +10,12 @@ import org.whu.backend.common.exception.BizException;
 import org.whu.backend.dto.auth.LoginRequest;
 import org.whu.backend.dto.auth.LoginResponse;
 import org.whu.backend.dto.auth.RegisterRequest;
-import org.whu.backend.entity.Accounts.*;
-import org.whu.backend.repository.AuthRepository;
+import org.whu.backend.entity.accounts.*;
+import org.whu.backend.repository.authRepo.AuthRepository;
 
 import java.util.Optional;
+
+import static org.whu.backend.entity.accounts.Merchant.status.PENDING;
 
 @Service
 public class AuthService {
@@ -80,6 +82,7 @@ public class AuthService {
                 merchant.setPassword(passwordEncoder.encode(request.getPassword()));
                 merchant.setRole(Role.ROLE_MERCHANT);
                 merchant.setEnabled(false);
+                merchant.setApproval(PENDING);
                 // 特有字段暂时不填，后续用接口补充
                 account = merchant;
                 break;

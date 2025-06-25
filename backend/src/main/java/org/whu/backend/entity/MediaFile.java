@@ -6,7 +6,7 @@ import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.SoftDelete;
 import org.hibernate.annotations.UpdateTimestamp;
-import org.whu.backend.entity.Accounts.Account;
+import org.whu.backend.entity.accounts.Account;
 
 import java.time.LocalDateTime;
 import java.util.UUID;

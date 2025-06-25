@@ -5,7 +5,7 @@ import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.SoftDelete;
 import org.hibernate.annotations.UpdateTimestamp;
-import org.whu.backend.entity.Accounts.Merchant;
+import org.whu.backend.entity.accounts.Merchant;
 import org.whu.backend.entity.association.PackageImage;
 import org.whu.backend.entity.association.PackageRoute;
 
@@ -30,6 +30,7 @@ public class TravelPackage {
     @Column(nullable = false)
     private String title; // 旅行团标题
 
+    // TODO: 注释掉，有关联表了
     private String coverImageUrl; // 封面的ObjectKey
 
     @Lob

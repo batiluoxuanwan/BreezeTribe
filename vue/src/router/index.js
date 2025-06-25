@@ -4,7 +4,7 @@ const routes =[
     {
         path:'/',
         name:'首页',
-        component:() =>import('../views/Public/home.vue')
+        component:() =>import('../views/Public/Home.vue')
     },
     {
         path:'/login',
@@ -17,14 +17,29 @@ const routes =[
         component:() =>import('../views/Public/Register.vue')
     },
     {
-        path:'/Merchant/Profile',
-        name:'团长个人中心',
+        path:'/square',
+        name:'旅行广场',
+        component:() =>import('../views/Public/Square.vue')
+    },
+    {
+        path:'/user/me',
+        name:'用户个人主页',
+        component:() =>import('../views/User/Profile.vue')
+    },
+    {
+        path:'/merchant/me',
+        name:'团长个人主页',
         component:() =>import('../views/Merchant/Profile.vue')
     },
     {
         path:'/Merchant/Newgroup',
         name:'发布新团',
         component:() =>import('../views/Merchant/Newgroup.vue')
+    },
+    {
+        path:'/administrator/me',
+        name:'管理员个人主页',
+        component:() =>import('../views/Administrator/Profile.vue')
     }
 ];
 

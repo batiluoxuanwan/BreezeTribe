@@ -3,10 +3,13 @@ package org.whu.backend.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Pattern;
 import lombok.Data;
+import org.whu.backend.entity.Favorite;
 
 @Data
 public class PageRequestDto {
+
     @Schema(description = "当前页码，从1开始", example = "1", defaultValue = "1")
     @Min(value = 1, message = "页码必须大于等于1")
     private int page = 1; // 默认第一页
@@ -20,6 +23,7 @@ public class PageRequestDto {
     private String sortBy = "createdTime"; // 默认按创建时间排序
 
     @Schema(description = "排序方式，ASC (升序) 或 DESC (降序)。默认为DESC", example = "DESC", defaultValue = "DESC", allowableValues = {"ASC", "DESC"})
+    @Pattern(regexp = "ASC|DESC", message = "排序方向只能是ASC或DESC")
     private String sortDirection = "DESC"; // 默认降序
 }
 

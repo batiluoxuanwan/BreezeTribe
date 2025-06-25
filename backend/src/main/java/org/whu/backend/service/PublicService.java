@@ -18,7 +18,7 @@ import org.whu.backend.dto.travelpack.PackageSummaryDto;
 import org.whu.backend.entity.Route;
 import org.whu.backend.entity.Spot;
 import org.whu.backend.entity.TravelPackage;
-import org.whu.backend.repository.TravelPackageRepository;
+import org.whu.backend.repository.travelRepo.TravelPackageRepository;
 import org.whu.backend.util.AliyunOssUtil;
 
 import java.util.List;
@@ -33,6 +33,7 @@ public class PublicService {
     private TravelPackageRepository travelPackageRepository;
 
     public static final long EXPIRE_TIME = 60 * 60 * 4;
+    public static final String IMAGE_PROCESS = "image/resize,l_1600/quality,q_50";
 
     /**
      * 获取已发布的旅行团列表（分页）
@@ -50,7 +51,7 @@ public class PublicService {
 
         // 3. 将查询到的 Page<Entity> 转换为 List<DTO>
         List<PackageSummaryDto> summaryDtos = packagePage.getContent().stream()
-                .map(this::convertToSummaryDto)
+                .map(this::convertPackageToSummaryDto)
                 .collect(Collectors.toList());
 
         // 4. 使用Builder模式构建分页响应对象
@@ -72,72 +73,77 @@ public class PublicService {
     public PackageDetailDto getPackageDetails(String id) {
         log.info("开始查询ID为 '{}' 的旅行团详情。", id);
 
-        // 1. 调用Repository中我们定义好的方法
+        // 1. 调用Repository中定义好的方法
         TravelPackage travelPackage = travelPackageRepository.findByIdAndStatus(id, TravelPackage.PackageStatus.PUBLISHED)
                 .orElseThrow(() -> {
                     log.warn("查询失败：找不到ID为 '{}' 的旅行团，或该旅行团尚未发布。", id);
                     return new BizException("找不到ID为 " + id + " 的旅行团，或该旅行团尚未发布。");
                 });
-
         log.info("成功查询到旅行团 '{}' 的详情。", travelPackage.getTitle());
         // 2. 将Entity转换为详细的DTO
-        return convertToDetailDto(travelPackage);
+        return convertPackageToDetailDto(travelPackage);
     }
 
 
     // --- 私有的转换方法 (Entity -> DTO) ---
-
-    private PackageSummaryDto convertToSummaryDto(TravelPackage entity) {
+    // 把旅游团实体TravelPackage转化为简略的信息PackageSummaryDto
+    public PackageSummaryDto convertPackageToSummaryDto(TravelPackage entity) {
         PackageSummaryDto dto = new PackageSummaryDto();
         dto.setId(entity.getId());
         dto.setTitle(entity.getTitle());
-        dto.setCoverImageUrl(entity.getCoverImageUrl());
+        if (entity.getCoverImageUrl() != null)
+            dto.setCoverImageUrl(AliyunOssUtil.generatePresignedGetUrl(entity.getCoverImageUrl(), EXPIRE_TIME, IMAGE_PROCESS));
         dto.setPrice(entity.getPrice());
+        dto.setDescription(entity.getDetailedDescription());
         dto.setDurationInDays(entity.getDurationInDays());
+        dto.setStatus(entity.getStatus().toString());
         return dto;
     }
 
-    private PackageDetailDto convertToDetailDto(TravelPackage entity) {
-        PackageDetailDto detailDto = new PackageDetailDto();
-        detailDto.setId(entity.getId());
-        detailDto.setTitle(entity.getTitle());
-        if (entity.getCoverImageUrl() != null)
-            detailDto.setCoverImageUrl(AliyunOssUtil.generatePresignedGetUrl(entity.getCoverImageUrl(), EXPIRE_TIME, "image/resize,l_1600/quality,q_50"));
-        detailDto.setPrice(entity.getPrice());
-        detailDto.setDurationInDays(entity.getDurationInDays());
-        detailDto.setDetailedDescription(entity.getDetailedDescription());
-
-        // 转换嵌套的路线列表
+    public PackageDetailDto convertPackageToDetailDto(TravelPackage entity) {
+        // 1. 先转换内部嵌套的路线和景点列表
         List<RouteDetailDto> routeDtos = entity.getRoutes().stream()
                 .map(packageRoute -> {
-                    Route routeEntity = packageRoute.getRoute(); // 从关联实体中获取真正的Route对象
-                    RouteDetailDto routeDto = new RouteDetailDto();
-                    routeDto.setId(routeEntity.getId());
-                    routeDto.setName(routeEntity.getName());
-                    routeDto.setDescription(routeEntity.getDescription());
+                    Route routeEntity = packageRoute.getRoute();
 
                     // 转换每个路线下的景点列表
                     List<SpotDetailDto> spotDtos = routeEntity.getSpots().stream()
                             .map(routeSpot -> {
-                                Spot spotEntity = routeSpot.getSpot(); // 从关联实体中获取真正的Spot对象
-                                SpotDetailDto spotDto = new SpotDetailDto();
-                                spotDto.setId(spotEntity.getId());
-                                spotDto.setMapProviderUid(spotEntity.getMapProviderUid());
-                                spotDto.setName(spotEntity.getName());
-                                spotDto.setCity(spotEntity.getCity());
-                                spotDto.setAddress(spotEntity.getAddress());
-                                spotDto.setLongitude(spotEntity.getLongitude());
-                                spotDto.setLatitude(spotEntity.getLatitude());
-                                return spotDto;
+                                Spot spotEntity = routeSpot.getSpot();
+                                return SpotDetailDto.builder()
+                                        .id(spotEntity.getId())
+                                        .mapProviderUid(spotEntity.getMapProviderUid())
+                                        .name(spotEntity.getName())
+                                        .city(spotEntity.getCity())
+                                        .address(spotEntity.getAddress())
+                                        .longitude(spotEntity.getLongitude())
+                                        .latitude(spotEntity.getLatitude())
+                                        .build();
                             })
                             .collect(Collectors.toList());
-                    routeDto.setSpots(spotDtos);
 
-                    return routeDto;
+                    return RouteDetailDto.builder()
+                            .id(routeEntity.getId())
+                            .name(routeEntity.getName())
+                            .description(routeEntity.getDescription())
+                            .spots(spotDtos)
+                            .build();
                 })
                 .collect(Collectors.toList());
-        detailDto.setRoutes(routeDtos);
 
-        return detailDto;
+        // 2. 构建最外层的PackageDetailDto
+        return PackageDetailDto.builder()
+                .id(entity.getId())
+                .title(entity.getTitle())
+                .coverImageUrl(
+                        entity.getCoverImageUrl() == null ? null :
+                        AliyunOssUtil.generatePresignedGetUrl(entity.getCoverImageUrl(), EXPIRE_TIME, IMAGE_PROCESS)
+                )
+                .price(entity.getPrice())
+                .durationInDays(entity.getDurationInDays())
+                .detailedDescription(entity.getDetailedDescription())
+                .status(entity.getStatus().toString())
+                .routes(routeDtos)
+                .build();
     }
 }
