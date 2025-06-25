@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.whu.backend.common.Result;
 import org.whu.backend.dto.PageRequestDto;
@@ -16,7 +17,7 @@ import org.whu.backend.dto.route.RouteUpdateRequestDto;
 @Tag(name = "经销商-路线管理", description = "经销商管理自己的路线模板")
 @RestController
 @RequestMapping("/api/dealer/routes")
-// @PreAuthorize("hasRole('DEALER')") // TODO: 可以在类级别上统一进行权限控制
+@PreAuthorize("hasRole('MERCHANT')") // TODO: 可以在类级别上统一进行权限控制
 public class DealerRouteController {
 
     @Operation(summary = "创建一条新路线")

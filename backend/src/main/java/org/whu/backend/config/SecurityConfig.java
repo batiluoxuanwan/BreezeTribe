@@ -34,7 +34,8 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/api/captcha/**",
-                                "/api/public/**").permitAll()
+                                "/api/public/**",
+                                "/api/hello/world").permitAll()
                         //放行swagger
                         .requestMatchers(
                                 "/v3/api-docs/**",
