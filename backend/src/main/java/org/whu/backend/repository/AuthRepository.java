@@ -1,7 +1,7 @@
 package org.whu.backend.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.whu.backend.entity.Accounts.*;
+import org.whu.backend.entity.accounts.*;
 
 import java.util.List;
 import java.util.Optional;

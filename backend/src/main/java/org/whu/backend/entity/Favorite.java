@@ -4,7 +4,7 @@ package org.whu.backend.entity;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
-import org.whu.backend.entity.Accounts.User;
+import org.whu.backend.entity.accounts.User;
 
 import java.time.LocalDateTime;
 import java.util.UUID;

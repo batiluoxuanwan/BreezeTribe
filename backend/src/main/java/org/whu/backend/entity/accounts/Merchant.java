@@ -1,4 +1,4 @@
-package org.whu.backend.entity.Accounts;
+package org.whu.backend.entity.accounts;
 
 import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
@@ -17,6 +17,9 @@ public class Merchant extends Account {
     private String idCardUrl1;
     private String idCardUrl2;
 
-    private boolean approved = false;   // 审核状态
+    // 审核状态
+    public enum  status {
+        APPROVED, REJECTED, PENDING
+    }
 
 }

@@ -1,4 +1,4 @@
-package org.whu.backend.entity.Accounts;
+package org.whu.backend.entity.accounts;
 
 import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
