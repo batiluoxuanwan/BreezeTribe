@@ -41,6 +41,11 @@ public class Order {
     @Column(nullable = false)
     private LocalDateTime updatedTime;
 
+    @Column(nullable = false)
+    private String contactName;
+    @Column(nullable = false)
+    private String contactPhone;
+
     public enum OrderStatus {
         PENDING_PAYMENT, // 待支付
         PAID, // 已支付

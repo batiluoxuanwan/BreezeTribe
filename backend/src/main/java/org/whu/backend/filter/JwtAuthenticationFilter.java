@@ -1,6 +1,8 @@
 package org.whu.backend.filter;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.whu.backend.entity.accounts.Account;
@@ -18,6 +20,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Optional;
 
 @Component
@@ -63,9 +66,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             Account account = accountOpt.get();
             // 检查 Token 合法性
             if (jwtService.validateToken(token, account)) {
+                List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(account.getRole().name()));
                 // 将账号对象构建为 Spring Security 所需要的 Authentication
                 var authToken = new UsernamePasswordAuthenticationToken(
-                        account, null, /* 可选：account.getAuthorities() */ null
+                        account, null, authorities
                 );
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 

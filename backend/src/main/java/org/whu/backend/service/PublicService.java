@@ -18,7 +18,7 @@ import org.whu.backend.dto.travelpack.PackageSummaryDto;
 import org.whu.backend.entity.Route;
 import org.whu.backend.entity.Spot;
 import org.whu.backend.entity.TravelPackage;
-import org.whu.backend.repository.TravelPackageRepository;
+import org.whu.backend.repository.travelRepo.TravelPackageRepository;
 import org.whu.backend.util.AliyunOssUtil;
 
 import java.util.List;
