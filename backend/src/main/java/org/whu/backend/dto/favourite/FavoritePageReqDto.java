@@ -1,7 +1,8 @@
-package org.whu.backend.dto;
+package org.whu.backend.dto.favourite;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
+import org.whu.backend.dto.PageRequestDto;
 import org.whu.backend.entity.Favorite;
 
 @Data

@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.whu.backend.common.Result;
 import org.whu.backend.dto.PageRequestDto;
@@ -24,7 +25,7 @@ import org.whu.backend.util.SecurityUtil;
 @RestController
 @Slf4j
 @RequestMapping("/api/dealer/travel-packages")
-// @PreAuthorize("hasRole('MERCHANT')") // TODO: 权限控制
+@PreAuthorize("hasRole('MERCHANT')")
 public class MerchantPackageController {
 
     @Autowired

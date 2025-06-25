@@ -9,22 +9,13 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.whu.backend.common.Result;
 import org.whu.backend.common.exception.BizException;
-import org.whu.backend.dto.FavoritePageReqDto;
-import org.whu.backend.dto.PageRequestDto;
+import org.whu.backend.dto.favourite.FavoritePageReqDto;
 import org.whu.backend.dto.PageResponseDto;
 import org.whu.backend.dto.favourite.FavoriteRequestDto;
 import org.whu.backend.dto.favourite.FavouriteDetailDto;
 import org.whu.backend.dto.order.OrderCreateRequestDto;
 import org.whu.backend.dto.order.OrderDetailDto;
-import org.whu.backend.entity.Order;
-import org.whu.backend.entity.TravelPackage;
-import org.whu.backend.entity.accounts.User;
 import org.whu.backend.service.UserService;
-import org.whu.backend.util.SecurityUtil;
-
-import java.math.BigDecimal;
-import java.util.Optional;
-import java.util.UUID;
 
 @Tag(name = "用户-订单与收藏", description = "用户进行报名、收藏等操作的API")
 @RestController

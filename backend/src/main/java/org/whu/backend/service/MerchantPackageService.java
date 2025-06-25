@@ -18,9 +18,9 @@ import org.whu.backend.entity.Route;
 import org.whu.backend.entity.TravelPackage;
 import org.whu.backend.entity.accounts.Merchant;
 import org.whu.backend.entity.association.PackageRoute;
-import org.whu.backend.repository.RouteRepository;
-import org.whu.backend.repository.TravelPackageRepository;
 import org.whu.backend.repository.authRepo.MerchantRepository;
+import org.whu.backend.repository.travelRepo.RouteRepository;
+import org.whu.backend.repository.travelRepo.TravelPackageRepository;
 
 import java.util.List;
 import java.util.stream.Collectors;
