@@ -15,7 +15,7 @@ import java.util.UUID;
  * delete(T entity) 等。
  */
 
-public interface AuthRepository extends JpaRepository<Account, UUID> {
+public interface AuthRepository extends JpaRepository<Account, String> {
     boolean existsByEmailAndRole(String email, Role role);
 
     boolean existsByPhoneAndRole(String phone, Role role);

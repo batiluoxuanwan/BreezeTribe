@@ -6,7 +6,7 @@ import org.whu.backend.entity.accounts.Admin;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface AdminRepository extends JpaRepository<Admin, UUID> {
+public interface AdminRepository extends JpaRepository<Admin, String> {
     // 按邮箱获取某商家
     Optional<Admin> findByEmail(String email);
 

@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.whu.backend.common.Result;
 import org.whu.backend.dto.PageRequestDto;
@@ -12,7 +13,15 @@ import org.whu.backend.dto.favourite.FavoriteRequestDto;
 import org.whu.backend.dto.favourite.FavouriteDetailDto;
 import org.whu.backend.dto.order.OrderCreateRequestDto;
 import org.whu.backend.dto.order.OrderDetailDto;
+import org.whu.backend.entity.Order;
+import org.whu.backend.entity.TravelPackage;
+import org.whu.backend.entity.accounts.User;
+import org.whu.backend.service.UserService;
 import org.whu.backend.util.SecurityUtil;
+
+import java.math.BigDecimal;
+import java.util.Optional;
+import java.util.UUID;
 
 @Tag(name = "用户-订单与收藏", description = "用户进行报名、收藏等操作的API")
 @RestController
@@ -20,17 +29,14 @@ import org.whu.backend.util.SecurityUtil;
 // @PreAuthorize("hasRole('USER')") // TODO: 在类级别上统一进行权限控制
 public class UserActionController {
 
+    @Autowired
+    UserService userService;
+
     @Operation(summary = "报名参加一个旅行团（创建订单）")
     @PostMapping("/orders")
     public Result<OrderDetailDto> createOrder(@Valid @RequestBody OrderCreateRequestDto orderCreateRequestDto) {
-        // TODO: 业务逻辑
-        // 1. 获取当前登录用户的ID
-        String userId = SecurityUtil.getCurrentUserId();
-        // 2. 验证旅行团ID是否存在且可报名
-        // 3. (可选)检查库存或人数限制
-        // 4. 创建新的Order实体并保存
-        // 5. 返回创建成功的订单详情
-        return Result.success();
+
+        return Result.success(userService.createOrder(orderCreateRequestDto));
     }
 
     @Operation(summary = "【模拟】假装已经成功支付一笔订单")
