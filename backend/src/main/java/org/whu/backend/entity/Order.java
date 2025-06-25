@@ -5,11 +5,15 @@ import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.SoftDelete;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.whu.backend.entity.accounts.User;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+/**
+ * 表示一个用户创建的加入旅游团的订单
+ */
 @Data
 @Entity
 @SoftDelete
@@ -18,12 +22,6 @@ public class Order {
     @Id
     @Column(length = 36)
     private String id;
-
-    @Column(length = 36, nullable = false)
-    private String userAccountId; // 下单用户 TODO: 改为 @ManyToOne UserAccount
-
-    @Column(length = 36, nullable = false)
-    private String packageId; // 关联的旅行团 TODO: 改为 @ManyToOne TravelPackage
 
     @Column(nullable = false)
     private Integer travelerCount; // 出行人数
@@ -43,12 +41,27 @@ public class Order {
     @Column(nullable = false)
     private LocalDateTime updatedTime;
 
+    @Column(nullable = false)
+    private String contactName;
+    @Column(nullable = false)
+    private String contactPhone;
+
     public enum OrderStatus {
         PENDING_PAYMENT, // 待支付
         PAID, // 已支付
         CANCELED, // 取消
         COMPLETED // 完成
     }
+
+    // 实体关联，表示订单所属的用户账号
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "user_account_id", referencedColumnName = "id", nullable = false)
+    private User user;
+
+    // 实体关联，该订单对应的旅行团
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "package_id", nullable = false)
+    private TravelPackage travelPackage;
 
     @PrePersist
     protected void onPrePersist() {

@@ -38,5 +38,26 @@ public class AdminApprovalController {
         return Result.success("操作成功，已驳回该旅行团");
     }
 
+    @Operation(summary = "获取待审核的商户列表（分页）")
+    @GetMapping("/merchants")
+    public Result<PageResponseDto<PackageSummaryDto>> getPendingMerchants(@Valid @ParameterObject PageRequestDto pageRequestDto) {
+        // TODO: 查询状态为 PENDING_APPROVAL 的商户
+        return Result.success();
+    }
+
+    @Operation(summary = "批准一个商户注册")
+    @PostMapping("/merchants/{packageId}/approve")
+    public Result<?> approveMerchants(@PathVariable String packageId) {
+        // TODO: 批准
+        return Result.success("操作成功");
+    }
+
+    @Operation(summary = "驳回一个商户注册")
+    @PostMapping("/merchants/{packageId}/reject")
+    public Result<?> rejectMerchants(@PathVariable String packageId, @RequestBody RejectionRequestDto rejectionDto) {
+        // TODO: 驳回
+        return Result.success("操作成功");
+    }
+
     // TODO: 未来可以增加经销商注册审核的相关接口
 }

@@ -6,8 +6,8 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.whu.backend.entity.Account;
-import org.whu.backend.entity.Role;
+import org.whu.backend.entity.accounts.Account;
+import org.whu.backend.entity.accounts.Role;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
@@ -38,6 +38,10 @@ public class JwtService {
 
     public Role extractAccountRole(String token) {
         return Role.valueOf(extractClaim(token, claims -> claims.get("role", String.class)));
+    }
+
+    public String extractAccountId(String token) {
+        return parseClaims(token).getSubject();
     }
 
     public boolean validateToken(String token, Account account) {
