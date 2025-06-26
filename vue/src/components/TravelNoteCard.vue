@@ -48,7 +48,6 @@ const defaultAvatar = '/assets/images/default_avatar.png';
 const viewNoteDetail = (id) => {
   // 导航到游记详情页
   console.log('查看游记详情:', id);
-  // 例如：router.push(`/travel-notes/${id}`);
 };
 </script>
 

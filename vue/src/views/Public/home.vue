@@ -5,9 +5,17 @@
       <div class="logo">BreezeTribe</div>
       <nav class="nav-center">
         <router-link to="/">首页</router-link>
-        <router-link to="/square">旅行广场</router-link>
-        <router-link to="/login">登录</router-link>
-        <router-link to="/register">注册</router-link>
+        <router-link to="/square" class="nav-link-button">旅行广场</router-link>
+        <!-- 未登录显示登录、注册 -->
+        <template v-if="!isLoggedIn">
+          <router-link to="/login" class="nav-link-button">登录</router-link>
+          <router-link to="/register" class="nav-link-button">注册</router-link>
+        </template>
+        <!-- 一登录显示个人主页、登出 -->
+        <template v-else>
+          <a @click="goToProfile" class="nav-link-button user-profile-button">个人主页</a>
+          <a @click="handleLogout" class="nav-link-button logout-button">登出</a>
+        </template>
       </nav>
       <div class="search-box">
         <input type="text" placeholder="请输入团名或景点...">
@@ -66,41 +74,17 @@ import TourCard from '@/components/Tour.vue'
 import NoteCard from '@/components/NoteCard.vue'
 import VideoText from '@/components/ui/video-text/VideoText.vue'
 
-const tours = [
-  {
-    id: 1,
-    title: '云南丽江大理6日精品游', // 可以稍微长一点测试标题截断
-    location: '丽江, 大理',
-    image: 'https://via.placeholder.com/300x200?text=LijiangTour', // 示例图片
-    price: 3200,
-    rating: 4.8, // 新增：评分
-    isHot: true, // 新增：是否热门
-    duration: 6, // 新增：天数
-    startDate: '2025-07-10', // 新增：出发日期
-  },
-  {
-    id: 2,
-    title: '川西秘境稻城亚丁7日深度探索之旅',
-    location: '稻城亚丁',
-    image: 'https://via.placeholder.com/300x200?text=DaochengTour',
-    price: 5800,
-    rating: 4.9,
-    isHot: false,
-    duration: 7,
-    startDate: '2025-08-01',
-  },
-  {
-    id: 3,
-    title: '海南三亚自由行5天4晚，海岛风情',
-    location: '三亚',
-    image: 'https://via.placeholder.com/300x200?text=SanyaTour',
-    price: 2800,
-    rating: 4.7,
-    isHot: true,
-    duration: 5,
-    startDate: '2025-09-05',
-  },
-]
+import { computed,ref ,onMounted} from 'vue';
+import { useRouter } from 'vue-router';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { useAuthStore } from '@/stores/auth'; 
+import { publicAxios } from "@/utils/request";
+
+const router = useRouter();
+const authStore = useAuthStore();
+
+// 定义一个响应式变量来存储旅行团数据，初始为空数组
+const tours = ref([]);
 
 
 const notes = [
@@ -130,6 +114,99 @@ const notes = [
   }
 ];
 
+// 判断用户是否已登录
+const isLoggedIn = computed(() => {
+  return !!authStore.token; // 根据 authStore 中是否有 token 来判断
+});
+
+// 按照身份跳转个人主页
+const goToProfile = () => {
+  console.log(authStore);
+  const userRole = authStore.role; 
+
+  switch (userRole) {
+    case 'ROLE_USER':
+      router.push('/user/me');
+      break;
+    case 'ROLE_MERCHANT':
+      router.push('/merchant/me');
+      break;
+    case 'ROLE_ADMIN':
+      router.push('/administrator/me');
+      break;
+    default:
+      ElMessage.warning('未知角色，无法跳转到个人主页。');
+      router.push('/');
+      break;
+  }
+};
+
+// 登出
+const handleLogout = () => {
+  // 弹出确认框，询问用户是否确定退出
+  ElMessageBox.confirm('确定要退出登录吗？', '提示', {
+    confirmButtonText: '确定', // 确认按钮文本
+    cancelButtonText: '取消', // 取消按钮文本
+    type: 'warning', 
+  })
+    .then(() => {
+      // 用户点击“确定”后执行的操作
+      authStore.logout();      // 调用 Pinia store 中的 `logout` 方法，清除 token 和 role
+      router.push('/login');   // 将用户重定向到登录页面
+      ElMessage.success('已成功退出登录！'); 
+    })
+    .catch(() => {
+      // 用户点击“取消”或关闭确认框时执行的操作
+      ElMessage.info('已取消退出操作。'); 
+    });
+};
+
+// 获取所有旅行团数据并随机选择4个
+const fetchAndSelectRandomTours = async () => {
+  try {
+    const response = await publicAxios.get('/public/travel-packages', {
+      params: {
+        page: 1, // 从第一页开始
+        size: 20 // 尝试获取足够多的旅行团，以便从中随机选择4个
+      }
+    });
+
+    if (response.data.code === 200 && response.data.data && response.data.data.content) {
+      const allTours = response.data.data.content;
+      
+      if (allTours.length > 0) {
+        // 如果旅行团数量小于或等于4，直接全部显示
+        if (allTours.length <= 4) {
+          tours.value = allTours;
+        } else {
+          // 随机选择4个旅行团
+          const selectedTours = [];
+          const tempTours = [...allTours]; // 创建一个临时数组，避免修改原始数据
+
+          for (let i = 0; i < 4; i++) {
+            const randomIndex = Math.floor(Math.random() * tempTours.length);
+            selectedTours.push(tempTours[randomIndex]);
+            tempTours.splice(randomIndex, 1); // 移除已选择的，避免重复
+          }
+          tours.value = selectedTours;
+        }
+      } else {
+        ElMessage.warning('未获取到任何旅行团数据。');
+      }
+    } else {
+      ElMessage.error(response.data.message || '获取旅行团数据失败。');
+    }
+  } catch (error) {
+    console.error('获取旅行团数据时发生错误:', error);
+    ElMessage.error('加载热门旅行团失败，请稍后再试。');
+  }
+};
+
+// 在组件挂载时调用获取数据的方法
+onMounted(() => {
+  fetchAndSelectRandomTours();
+});
+
 </script>
 
 <style scoped>
@@ -137,7 +214,7 @@ const notes = [
   font-family: 'Quicksand', 'Poppins', sans-serif;
   color: #444;
   
-  background-image: url('@/assets/background.png');
+  background-image: url('@/assets/bgh.png');
   background-size: cover;
   background-repeat: no-repeat;
   background-position: center;
@@ -174,6 +251,31 @@ const notes = [
   font-weight: 500;
   font-size: 1.2rem;
 }
+
+.nav-link-button {
+  display: inline-block; /* 使 padding 和 margin 生效 */
+  margin: 0 10px; /* 调整按钮间距 */
+  padding: 8px 15px;
+  border-radius: 5px;
+  text-decoration: none;
+  font-size: 1rem; /* 稍微小一点，更像按钮 */
+  font-weight: 500;
+  color: #fff; /* 按钮文字颜色 */
+  transition: all 0.3s ease;
+  cursor: pointer;
+  border: none; /* 移除默认按钮边框 */
+}
+
+.nav-link-button:hover {
+  background-color: #3cb8a7; /* 按钮悬停颜色 */
+  transform: translateY(-2px); /* 悬停效果 */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.logout-button:hover {
+  background-color: #e04f4f;
+}
+
 
 .nav-center {
   text-align:center;

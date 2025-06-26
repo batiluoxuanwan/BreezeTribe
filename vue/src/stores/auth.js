@@ -1,48 +1,60 @@
 import { defineStore } from 'pinia'
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 
 export const useAuthStore = defineStore('auth', () => {
   const isLoggedIn = ref(false)
   const token = ref('')
-  const imageIdMap = ref({})
+  const role = ref(null) // 新增：用于存储用户角色
 
-  // 登录
-  function login(authToken) {
+  // 登录，接受一个包含 token 和 role 的对象
+  function login(authToken,Role) {
     token.value = authToken
+    role.value = Role   
     isLoggedIn.value = true
-    // 将 token 存储到 localStorage
+
+    // 将 token 和 role 存储到 localStorage
     localStorage.setItem('token', authToken)
+    localStorage.setItem('role', Role ) 
   }
 
   // 登出
   function logout() {
     token.value = ''
+    role.value = null 
     isLoggedIn.value = false
-    // 删除 localStorage 中的 token
+
+    // 删除 localStorage 中的 token 和 role
     localStorage.removeItem('token')
+    localStorage.removeItem('role') 
   }
 
-  // 检查是否已登录
+  // checkAuth 函数仅用于初始化时从 localStorage 恢复状态
   function checkAuth() {
     const storedToken = localStorage.getItem('token')
-    if (storedToken) {
+    const storedRole = localStorage.getItem('role')
+
+    if (storedToken && storedRole) { 
       token.value = storedToken
+      role.value = storedRole 
       isLoggedIn.value = true
     } else {
+      token.value = ''
+      role.value = null 
       isLoggedIn.value = false
     }
   }
 
-  return { 
-    isLoggedIn, 
-    token, 
-    login, 
-    logout, 
-    checkAuth
+  return {
+    isLoggedIn,
+    token,
+    role,
+    login,
+    logout,
+    checkAuth,
   }
-},{
+}, {
+  // 配置 persist 插件以持久化 isLoggedIn, token, 和 role
   persist: {
-    paths: ['isLoggedIn', 'token'] 
+    paths: ['isLoggedIn', 'token', 'role'] 
   }
-}
-)
+})

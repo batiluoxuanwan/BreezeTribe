@@ -1,6 +1,9 @@
 <template>
   <div class="user-profile-page">
     <aside class="sidebar">
+      <el-button type="info" :icon="ArrowLeft" class="back-to-home-btn" @click="goToHome">
+        返回
+      </el-button>
       <el-avatar
         :src="user.avatarUrl || '/default-avatar.png'"
         :size="100"
@@ -165,7 +168,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import { Star, Tickets, EditPen, Comment, Bell } from '@element-plus/icons-vue'
+import { Star, Tickets, EditPen, Comment, Bell,ArrowLeft } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
 const user = ref({
@@ -230,7 +233,7 @@ function saveProfile() {
   min-height: 100vh;
   box-sizing: border-box;
   font-family: 'Poppins', sans-serif;
-  background-image: url('@/assets/background.png');
+  background-image: url('@/assets/bg1.jpg');
   background-size: cover;
   background-repeat: no-repeat;
   background-position: center;
@@ -251,6 +254,19 @@ function saveProfile() {
   position: sticky;
   top: 40px;
   align-self: flex-start;
+}
+
+.back-to-home-btn{
+  position:absolute;
+  top:10px;
+  left:10px;
+  padding:8px 15px;
+  font-size:0.9rem;
+  border-radius:8px;
+  background-color:#607d8b;
+  border-color:#607d8b;
+  color:#fff;
+  transition:all 0.3s ease;
 }
 
 .avatar {

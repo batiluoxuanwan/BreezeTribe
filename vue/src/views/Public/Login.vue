@@ -20,7 +20,7 @@
         <h4 style="text-align: center;">专业报团，放心出游，开启无忧旅行！</h4>
         <!-- 登录方式切换（用 Tabs 实现） -->
         <el-tabs v-model="mode" class="login-switch" stretch>
-          <el-tab-pane label="手机号登录" name="phone"></el-tab-pane>
+          <el-tab-pane label="手机号登录" name="phone" ></el-tab-pane>
           <el-tab-pane label="邮箱登录" name="email"></el-tab-pane>
         </el-tabs>
         <h3 style="text-align: center;"></h3>
@@ -40,9 +40,9 @@
 
         <el-form-item label="身份" prop="role">
           <el-select v-model="loginForm.role" placeholder="请选择登录身份">
-            <el-option label="用户" value="user" />
-            <el-option label="经销商" value="dealer" />
-            <el-option label="管理员" value="admin" />
+            <el-option label="普通用户" value="ROLE_USER" />
+            <el-option label="经销商" value="ROLE_MERCHANT" />
+            <el-option label="管理员" value="ROLE_ADMIN" />
           </el-select>
         </el-form-item>
 
@@ -74,14 +74,18 @@
 
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, watch } from 'vue' // 引入 watch
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { useAuthStore } from '@/stores/auth'
+import { publicAxios } from "@/utils/request"
 
 const router = useRouter()
+const authStore = useAuthStore()
+const loading = ref(false) // 控制加载状态
 
-// 当前登录模式：phone 
-const mode = ref('phone')
+// 当前登录模式：phone 或 email
+const mode = ref('phone') // 确保这个ref被用来控制UI上的切换
 
 // 表单引用，用于调用 validate 方法
 const loginFormRef = ref(null)
@@ -94,15 +98,56 @@ const loginForm = reactive({
   role: '',
 })
 
+// 监听 mode 变化，清空不相关的字段值和校验状态
+watch(mode, (newMode) => {
+  if (newMode === 'phone') {
+    loginForm.email = ''; // 切换到手机登录时清除邮箱值
+    if (loginFormRef.value) {
+      loginFormRef.value.clearValidate('email'); // 清除邮箱的校验信息
+    }
+  } else { // newMode === 'email'
+    loginForm.phone = ''; // 切换到邮箱登录时清除手机号值
+    if (loginFormRef.value) {
+      loginFormRef.value.clearValidate('phone'); // 清除手机的校验信息
+    }
+  }
+});
+
+
 // 表单校验规则
 const rules = {
   phone: [
-    { required: true, message: '请输入手机号', trigger: 'blur' },
-    { pattern: /^1[3-9]\d{9}$/, message: '手机号格式不正确', trigger: 'blur' }
+    {
+      validator: (rule, value, callback) => {
+        if (mode.value === 'phone') {
+          if (!value) {
+            return callback(new Error('请输入手机号'));
+          }
+          if (!/^1[3-9]\d{9}$/.test(value)) {
+            return callback(new Error('手机号格式不正确'));
+          }
+        }
+        callback(); // 非 phone 模式，或验证通过
+      },
+      trigger: 'blur'
+    }
   ],
   email: [
-    { required: true, message: '请输入邮箱', trigger: 'blur' },
-    { type: 'email', message: '邮箱格式不正确', trigger: 'blur' }
+    {
+      validator: (rule, value, callback) => {
+        if (mode.value === 'email') {
+          if (!value) {
+            return callback(new Error('请输入邮箱'));
+          }
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(value)) {
+            return callback(new Error('邮箱格式不正确'));
+          }
+        }
+        callback(); 
+      },
+      trigger: 'blur'
+    }
   ],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' },
@@ -113,29 +158,58 @@ const rules = {
   ]
 }
 
-// 登录处理逻辑
-// const handleLogin = () => {
-//   loginFormRef.value.validate((valid) => {
-//     if (valid) {
-//       // 模拟登录成功
-//       ElMessage.success('登录成功')
-//       // 登录后跳转主页或控制台
-//       router.push('/dashboard')
-//     } else {
-//       ElMessage.error('请完善表单信息')
-//     }
-//   })
-// }
+// 处理登录逻辑
+const handleLogin = () => {
+    // 在调用 validate 之前，确保 loginFormRef.value 存在
+    if (!loginFormRef.value) {
+        console.error('表单引用未初始化！请检查 <el-form> 上是否绑定了 ref="loginFormRef"。');
+        ElMessage.error('表单组件未准备好，请稍后再试。');
+        return;
+    }
+
+    loginFormRef.value.validate(async (valid) => { 
+        if (valid) {
+            loading.value = true;
+            try {
+                let payload = {};
+                if (mode.value === 'phone') { 
+                    payload = { identity: loginForm.phone, password: loginForm.password, role: loginForm.role };
+                } else { 
+                    payload = { identity: loginForm.email, password: loginForm.password, role: loginForm.role };
+                }
+
+                const response = await publicAxios.post('/auth/login', payload, {
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                if (response.data.code === 200) {
+                    ElMessage.success('登录成功！');
+                    console.log(response);
+                    authStore.login(response.data.data.token,loginForm.role);
+                    console.log(response.data.data,loginForm.role);
+                    router.push('/');
+                } else {
+                    ElMessage.error(response.data.message || '登录失败');
+                }
+            } catch (error) {
+                console.error(error);
+                ElMessage.error('用户名或密码错误');
+            } finally {
+                loading.value = false;
+            }
+        } else {
+            ElMessage.error('请填写完整登录信息！'); // 表单校验不通过时提示
+        }
+    });
+}
 
 // 取消处理逻辑
 const handleCancel = () => {
-  // 清空表单数据
-  loginForm.phone = ''
-  loginForm.email = ''
-  loginForm.password = ''
-  loginForm.role = ''
-  ElMessage.info('已取消登录')
-  router.push('/')
+    if (loginFormRef.value) {
+        loginFormRef.value.resetFields(); // <-- 使用 resetFields() 清空表单并移除校验提示
+    }
+    ElMessage.info('已取消登录');
+    router.push('/');
 }
 
 // 跳转注册页面
