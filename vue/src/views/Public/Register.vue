@@ -4,7 +4,7 @@
       <!-- 左侧 Logo -->
       <div class="register-left">
         <h2>Welcome to BreezeTribe</h2>
-        <img src="/Logo.jpg" alt="Logo" class="register-logo" />
+        <img src="@/assets//Logo.jpg" alt="Logo" class="register-logo" />
         <!-- 去登录 -->
           <el-form-item>
             <el-button type="text" @click="goLogin" style="width: 100%; text-align: center;">
