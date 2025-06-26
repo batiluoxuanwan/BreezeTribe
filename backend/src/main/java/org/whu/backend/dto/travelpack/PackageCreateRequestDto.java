@@ -37,9 +37,9 @@ public class PackageCreateRequestDto {
     @Schema(description = "行程天数")
     private Integer durationInDays;
 
-    @Schema(description = "组成旅行团的路线列表，按照顺序给")
+    @Schema(description = "每日行程安排列表")
     @NotEmpty
-    private List<String> routesIds;
+    private List<DayScheduleDto> dailySchedules;
 
     @Schema(description = "组成旅行团的图片集，按照顺序给，第一个默认是封面")
     @NotEmpty
