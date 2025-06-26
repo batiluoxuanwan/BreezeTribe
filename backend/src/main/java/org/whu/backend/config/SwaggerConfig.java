@@ -1,5 +1,7 @@
 package org.whu.backend.config;
 
+import io.swagger.v3.oas.annotations.OpenAPIDefinition;
+import io.swagger.v3.oas.annotations.servers.Server;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
@@ -9,6 +11,12 @@ import org.springframework.context.annotation.Configuration;
 
 //用于携带token
 @Configuration
+@OpenAPIDefinition(
+        servers = {
+                @Server(url = "http://localhost:8080", description = "Local DEV server"),
+                @Server(url = "https://frp-dad.com:36680", description = "sakura-frp DEV server")
+        }
+)
 public class SwaggerConfig {
     @Bean
     public OpenAPI customOpenAPI() {

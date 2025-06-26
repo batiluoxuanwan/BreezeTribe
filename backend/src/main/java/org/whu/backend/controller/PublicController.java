@@ -10,11 +10,14 @@ import org.springframework.web.bind.annotation.*;
 import org.whu.backend.common.Result;
 import org.whu.backend.dto.PageRequestDto;
 import org.whu.backend.dto.PageResponseDto;
-import org.whu.backend.dto.spot.SpotSearchResponseDto;
+import org.whu.backend.dto.baidumap.BaiduSuggestionResponseDto;
 import org.whu.backend.dto.travelpack.PackageDetailDto;
 import org.whu.backend.dto.travelpack.PackageSearchRequestDto;
 import org.whu.backend.dto.travelpack.PackageSummaryDto;
+import org.whu.backend.service.BaiduMapService;
 import org.whu.backend.service.PublicService;
+
+import java.util.List;
 
 @Tag(name = "公共接口 (Public)", description = "无需认证即可访问的API，可以获取旅行团列表，搜索旅行团，查看旅行团的详细，转发百度地图API请求查询景点")
 @Slf4j
@@ -24,7 +27,10 @@ public class PublicController {
 
     @Autowired
     private PublicService publicService;
+    @Autowired
+    private BaiduMapService baiduMapService;
 
+    // TODO: 分页查询要对排序字段进行检查
     @Operation(summary = "获取已发布的旅行团列表（分页）", description = "供所有用户浏览")
     @GetMapping("/travel-packages")
     public Result<PageResponseDto<PackageSummaryDto>> getPublishedPackages(@Valid @ParameterObject PageRequestDto pageRequestDto) {
@@ -51,10 +57,17 @@ public class PublicController {
         return Result.success(packageDetails);
     }
 
-    @Operation(summary = "搜索外部地图平台的景点", description = "用于前端景点选择功能，后端转发百度地图API请求，返回搜索到的一些地名以及详细的信息，例如百度地图uid等")
-    @GetMapping("/spots/search-external")
-    public Result<SpotSearchResponseDto> searchExternalSpots(@RequestParam String keyword) {
-        // TODO: 调用百度地图API，并返回一个简化的结果列表给前端
-        return Result.success();
+    /**
+     * [修改] 原来的 searchExternalSpots 接口功能不明确，我们把它替换成更具体的 "suggestions" 接口
+     */
+    @Operation(summary = "获取地点输入提示", description = "用于前端搜索框的实时输入提示，后端转发百度地图API请求")
+    @GetMapping("/spots/suggestions")
+    public Result<List<BaiduSuggestionResponseDto.SuggestionResult>> getSpotSuggestions(
+            @RequestParam String keyword,
+            @RequestParam String region
+    ) {
+        log.info("收到地点输入提示转发请求");
+        List<BaiduSuggestionResponseDto.SuggestionResult> suggestions = baiduMapService.getSuggestions(keyword, region);
+        return Result.success(suggestions);
     }
 }

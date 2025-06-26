@@ -32,6 +32,11 @@ const routes =[
         component:() =>import('../views/Merchant/Profile.vue')
     },
     {
+        path:'/Merchant/Newgroup',
+        name:'发布新团',
+        component:() =>import('../views/Merchant/Newgroup.vue')
+    },
+    {
         path:'/administrator/me',
         name:'管理员个人主页',
         component:() =>import('../views/Administrator/Profile.vue')
