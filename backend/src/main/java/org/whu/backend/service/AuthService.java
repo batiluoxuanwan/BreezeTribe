@@ -36,7 +36,7 @@ public class AuthService {
     }
 
     // 注册
-    public Result register(RegisterRequest request) {
+    public Result<?> register(RegisterRequest request) {
         String email = request.getEmail();
         String phone = request.getPhone();
         Role role = request.getRole();
@@ -72,7 +72,8 @@ public class AuthService {
                 user.setPhone(phone);
                 user.setPassword(passwordEncoder.encode(request.getPassword()));
                 user.setRole(Role.ROLE_USER);
-                user.setEnabled(true);
+                //user.setEnabled(true);
+                user.setBanDurationDays(0);
                 account = user;
                 break;
             case ROLE_MERCHANT:
@@ -81,7 +82,8 @@ public class AuthService {
                 merchant.setPhone(phone);
                 merchant.setPassword(passwordEncoder.encode(request.getPassword()));
                 merchant.setRole(Role.ROLE_MERCHANT);
-                merchant.setEnabled(false);
+                //merchant.setEnabled(false);
+                merchant.setBanDurationDays(-1);
                 merchant.setApproval(PENDING);
                 // 特有字段暂时不填，后续用接口补充
                 account = merchant;
@@ -92,7 +94,9 @@ public class AuthService {
                 admin.setPhone(phone);
                 admin.setPassword(passwordEncoder.encode(request.getPassword()));
                 admin.setRole(Role.ROLE_ADMIN);
-                admin.setEnabled(false);
+                //admin.setEnabled(false);
+                admin.setBanDurationDays(-1);
+                // 特有字段暂时不填，后续用接口补充
                 account = admin;
                 break;
             default:
@@ -106,7 +110,7 @@ public class AuthService {
     }
 
     // 登录
-    public Result login(LoginRequest request) {
+    public Result<?> login(LoginRequest request) {
         String identity = request.getIdentity();
         Role role = request.getRole();
 
@@ -127,7 +131,7 @@ public class AuthService {
             throw new BizException("账号不存在");
         }
         Account account = optionalAccount.get();
-        if (!account.isEnabled()) {
+        if (account.getBanDurationDays()!=0) {
             throw new BizException("账号暂时不可使用，请联系管理员");
         }
         if (!passwordEncoder.matches(request.getPassword(), account.getPassword())) {

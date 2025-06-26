@@ -24,4 +24,14 @@ public class JpaUtil {
     使用
     JpaUtil.ensureNotExists(userRepository, someUserId, "用户已经存在");
      */
+    public static void notNull(Object object, String errorMessage) {
+        if (object == null) {
+            throw new BizException(errorMessage);
+        }
+    }
+    public static void isTrue(boolean expression, String errorMessage) {
+        if (!expression) {
+            throw new BizException(errorMessage);
+        }
+    }
 }

@@ -35,10 +35,14 @@ public class Account {
 
     private String avatarUrl;
 
-    private boolean enabled = true;
+    //private boolean enabled = true;
+
+    private LocalDateTime banStartTime; // 封禁开始时间
+    private int banDurationDays;        // 封禁时长，0=未封禁，-1=永久封禁，正数=天数
 
     private LocalDateTime createdAt = LocalDateTime.now();
     private LocalDateTime updatedAt;
+    private String banReason;
 
     // 在保存和更新时自动修改时间
     @PrePersist

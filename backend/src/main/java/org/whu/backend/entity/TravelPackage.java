@@ -60,6 +60,7 @@ public class TravelPackage {
 
     public enum PackageStatus {DRAFT, PENDING_APPROVAL, PUBLISHED, REJECTED}
 
+    public String rejectionReason;//拒绝原因
     // 关联对应的经销商
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "dealer_account_id", referencedColumnName = "id", nullable = false)

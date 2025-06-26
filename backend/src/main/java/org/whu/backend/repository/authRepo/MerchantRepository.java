@@ -1,5 +1,7 @@
 package org.whu.backend.repository.authRepo;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.whu.backend.entity.accounts.Merchant;
 
@@ -17,4 +19,5 @@ public interface MerchantRepository extends JpaRepository<Merchant, String> {
     Optional<Merchant> findByPhone(String phone);
     // 按id获取
     //Optional<Merchant> findById(String id);
+    Page<Merchant> findByApproval(Merchant.status status,Pageable pageable);
 }

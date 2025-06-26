@@ -19,6 +19,7 @@ public class Merchant extends Account {
     private String idCardUrl1;
     private String idCardUrl2;
 
+    private String rejectionReason;
     // 审核状态
     public enum status {
         APPROVED, REJECTED, PENDING

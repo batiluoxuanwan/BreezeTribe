@@ -41,7 +41,7 @@ public class CaptchaService {
         String code = generateCode();
         //System.out.println(code);
         log.debug("REIDS里面的值为"+code);
-        System.out.println(toEmail);
+        //System.out.println(toEmail);
         //toEmail = toEmail.replace("\"", "");
         // 存Redis，设置过期时间5分钟
         redisTemplate.opsForValue().set(CODE_KEY_PREFIX + toEmail, code, 5, TimeUnit.MINUTES);

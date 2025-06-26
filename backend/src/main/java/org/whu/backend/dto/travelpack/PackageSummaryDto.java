@@ -2,6 +2,7 @@ package org.whu.backend.dto.travelpack;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
+import org.whu.backend.entity.TravelPackage;
 
 import java.math.BigDecimal;
 
