@@ -12,24 +12,26 @@ import org.springframework.transaction.annotation.Transactional;
 import org.whu.backend.common.exception.BizException;
 import org.whu.backend.dto.PageRequestDto;
 import org.whu.backend.dto.PageResponseDto;
+import org.whu.backend.dto.baidumap.BaiduPlaceDetailResponseDto;
 import org.whu.backend.dto.order.OrderSummaryForDealerDto;
+import org.whu.backend.dto.travelpack.DayScheduleDto;
 import org.whu.backend.dto.travelpack.PackageCreateRequestDto;
 import org.whu.backend.dto.travelpack.PackageSummaryDto;
 import org.whu.backend.dto.travelpack.PackageUpdateRequestDto;
-import org.whu.backend.entity.MediaFile;
-import org.whu.backend.entity.Order;
-import org.whu.backend.entity.Route;
-import org.whu.backend.entity.TravelPackage;
+import org.whu.backend.entity.*;
 import org.whu.backend.entity.accounts.Merchant;
 import org.whu.backend.entity.association.PackageImage;
 import org.whu.backend.entity.association.PackageRoute;
+import org.whu.backend.entity.association.RouteSpot;
 import org.whu.backend.repository.MediaFileRepository;
 import org.whu.backend.repository.authRepo.MerchantRepository;
 import org.whu.backend.repository.travelRepo.OrderRepository;
 import org.whu.backend.repository.travelRepo.RouteRepository;
+import org.whu.backend.repository.travelRepo.SpotRepository;
 import org.whu.backend.repository.travelRepo.TravelPackageRepository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 
@@ -44,11 +46,15 @@ public class MerchantPackageService {
     @Autowired
     private RouteRepository routeRepository;
     @Autowired
-    private PublicService publicService;
-    @Autowired
     private MediaFileRepository mediaFileRepository;
     @Autowired
     private OrderRepository orderRepository;
+    @Autowired
+    private SpotRepository spotRepository;
+    @Autowired
+    private BaiduMapService baiduMapService;
+    @Autowired
+    private DtoConverter dtoConverter;
 
     @Transactional
     public TravelPackage createPackage(PackageCreateRequestDto dto, String dealerId) {
@@ -98,21 +104,34 @@ public class MerchantPackageService {
             }
         }
 
-        // 3. 处理并关联路线
-        for (int i = 0; i < dto.getRoutesIds().size(); i++) {
-            String id = dto.getRoutesIds().get(i);
-            Route route = routeRepository.findById(id)
-                    .orElseThrow(() -> new BizException("找不到ID为 " + id + " 的路线"));
-            // 关键权限校验！确保该路线属于当前经销商
-            if (!route.getDealer().getId().equals(dealerId)) {
-                log.warn("权限拒绝：经销商ID '{}' 试图使用不属于自己的路线ID '{}'。", dealerId, route.getId());
-                throw new BizException("不能使用不属于自己的路线来创建旅行团");
+        // 2. [核心重构]处理每日行程，并隐式创建路线
+        for (DayScheduleDto scheduleDto : dto.getDailySchedules()) {
+            // 为每一天的行程，创建一个新的、私有的Route对象
+            Route dailyRoute = new Route();
+            dailyRoute.setName(scheduleDto.getRouteName());
+            dailyRoute.setDescription(scheduleDto.getRouteDescription());
+            dailyRoute.setDealer(dealer); // 路线的所有者也是这个经销商
+
+            // 为这条新路线填充景点
+            for (int i = 0; i < scheduleDto.getSpotUids().size(); i++) {
+                String uid = scheduleDto.getSpotUids().get(i);
+                Spot spot = findOrCreateSpotByBaiduUid(uid);
+
+                RouteSpot routeSpot = new RouteSpot();
+                routeSpot.setRoute(dailyRoute);
+                routeSpot.setSpot(spot);
+                routeSpot.setOrderColumn(i + 1);
+                dailyRoute.getSpots().add(routeSpot);
             }
-            // 创建关联实体并设置顺序
+
+            // 先保存这个新创建的Route，使其获得一个持久化的ID
+            Route savedRoute = routeRepository.save(dailyRoute);
+
+            // 再创建旅行团和这条新路线的关联
             PackageRoute packageRoute = new PackageRoute();
             packageRoute.setTravelPackage(newPackage);
-            packageRoute.setRoute(route);
-            packageRoute.setDayNumber(i + 1);// 顺序从1开始
+            packageRoute.setRoute(savedRoute);
+            packageRoute.setDayNumber(scheduleDto.getDayNumber());
             newPackage.getRoutes().add(packageRoute);
         }
 
@@ -144,16 +163,30 @@ public class MerchantPackageService {
         return updatedPackage;
     }
 
-    // 删除自己的一个旅行团（逻辑删除）
+    // [重构] 删除自己的一个旅行团（级联删除）
     @Transactional
     public void deletePackage(String packageId, String currentDealerId) {
         log.info("经销商ID '{}' 正在尝试删除旅行团ID '{}'...", currentDealerId, packageId);
-        // 调用之前写好的私有方法来查找并验证所有权
+
+        // 1. 查找并验证旅行团的所有权
         TravelPackage packageToDelete = findPackageByIdAndVerifyOwnership(packageId, currentDealerId);
 
-        // 执行逻辑删除
+        // 2. [核心修改] 在删除旅行团之前，先手动删除它关联的所有路线
+        log.info("正在级联删除旅行团 '{}' 关联的路线...", packageToDelete.getTitle());
+        for (PackageRoute packageRoute : packageToDelete.getRoutes()) {
+            Route routeToDelete = packageRoute.getRoute();
+            if (routeToDelete != null) {
+                // 因为Route与RouteSpot也是级联的，所以这里会一并删除RouteSpot的记录
+                routeRepository.delete(routeToDelete);
+                log.info(" -> 已删除路线ID: {}", routeToDelete.getId());
+            }
+        }
+
+        // 3. 最后，删除旅行团本身。
+        // @OneToMany的cascade和orphanRemoval会在这里生效，自动删除package_routes和package_images里的关联记录
         packageRepository.delete(packageToDelete);
-        log.info("旅行团ID '{}' 已被经销商ID '{}' 成功删除。", packageId, currentDealerId);
+
+        log.info("旅行团ID '{}' 及其所有关联数据已成功删除。", packageId);
     }
 
     // 获取自己创建的旅行团列表（分页）
@@ -168,7 +201,7 @@ public class MerchantPackageService {
 
         // 使用Lambda表达式来调用另一个Service中的方法，或者直接改成
         List<PackageSummaryDto> summaryDtos = packagePage.getContent().stream()
-                .map(entity -> publicService.convertPackageToSummaryDto(entity))
+                .map(dtoConverter::convertPackageToSummaryDto)
                 .collect(Collectors.toList());
 
         return PageResponseDto.<PackageSummaryDto>builder()
@@ -202,7 +235,7 @@ public class MerchantPackageService {
 
         // 4. 将实体列表转换为对经销商安全的DTO列表
         List<OrderSummaryForDealerDto> dtos = orderPage.getContent().stream()
-                .map(this::convertOrderToSummaryForDealerDto)
+                .map(dtoConverter::convertOrderToSummaryForDealerDto)
                 .collect(Collectors.toList());
 
         // 5. 封装并返回分页结果
@@ -218,30 +251,36 @@ public class MerchantPackageService {
                 .build();
     }
 
-    // 将Order实体转换为对经销商安全的摘要DTO的私有辅助方法
-    private OrderSummaryForDealerDto convertOrderToSummaryForDealerDto(Order order) {
-        return OrderSummaryForDealerDto.builder()
-                .orderId(order.getId())
-                .travelerCount(order.getTravelerCount())
-                .totalPrice(order.getTotalPrice())
-                .contactName(maskName(order.getContactName())) // 脱敏处理
-                .contactPhone(maskPhone(order.getContactPhone())) // 脱敏处理
-                .orderTime(order.getCreatedTime())
-                .build();
-    }
 
-    // 姓名脱敏辅助方法，例如 "张三" -> "张**"
-    private String maskName(String name) {
-        if (name == null || name.isEmpty()) return "";
-        return name.charAt(0) + "**";
-    }
+    // 核心方法，实现了“按需缓存”景点的逻辑，公共便于复用
+    public Spot findOrCreateSpotByBaiduUid(String uid) {
+        // 先尝试从我们自己的数据库里找
+        Optional<Spot> spotOptional = spotRepository.findByMapProviderUid(uid);
 
-    // 电话脱敏辅助方法，例如 "13812345678" -> "138****5678"
-    private String maskPhone(String phone) {
-        if (phone == null || phone.length() != 11) return "手机号格式错误";
-        return phone.substring(0, 3) + "****" + phone.substring(7);
-    }
+        if (spotOptional.isPresent()) {
+            log.info("景点缓存命中，Baidu UID: {}", uid);
+            return spotOptional.get();
+        } else {
+            // 如果没找到，就去请求百度API
+            log.warn("景点缓存未命中，Baidu UID: {}。正在从外部API获取...", uid);
+            BaiduPlaceDetailResponseDto.Result spotDetail = baiduMapService.getSpotDetailsByUid(uid)
+                    .orElseThrow(() -> new BizException("无法获取百度地图UID为 " + uid + " 的有效景点信息"));
 
+            // 将从百度获取的信息转换成我们自己的Spot实体并保存
+            Spot newSpot = new Spot();
+            newSpot.setMapProviderUid(spotDetail.getUid());
+            newSpot.setName(spotDetail.getName());
+            newSpot.setAddress(spotDetail.getAddress());
+            newSpot.setCity(spotDetail.getCity());
+            if (spotDetail.getLocation() != null) {
+                newSpot.setLongitude(spotDetail.getLocation().getLng());
+                newSpot.setLatitude(spotDetail.getLocation().getLat());
+            }
+            Spot savedSpot = spotRepository.save(newSpot);
+            log.info("新景点 '{}' 已成功入库，ID: {}", savedSpot.getName(), savedSpot.getId());
+            return savedSpot;
+        }
+    }
 
     // 一个私有辅助方法，用于查找旅行团并验证所有权
     private TravelPackage findPackageByIdAndVerifyOwnership(String packageId, String currentDealerId) {

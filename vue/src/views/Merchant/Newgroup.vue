@@ -20,6 +20,10 @@
             </div>
           </template>
           <el-form label-width="100px" label-position="left">
+            <el-form-item label="📝 标题">
+              <el-input v-model="title" placeholder="请输入旅行团的吸引人的标题，例如：魔都寻宝：上海经典三日游"></el-input>
+            </el-form-item>
+
             <el-form-item label="📍 目的地">
               <el-autocomplete
                 v-model="destination"
@@ -52,6 +56,22 @@
               />
             </el-form-item>
 
+            <el-form-item label="💰 价格">
+              <el-input-number v-model="price" :min="0" :precision="0" :step="1" placeholder="请输入每人价格"></el-input-number>
+            </el-form-item>
+            <el-form-item label="👥 容量">
+              <el-input-number v-model="capacity" :min="1" :step="1" placeholder="请输入最大参团人数"></el-input-number>
+            </el-form-item>
+
+            <el-form-item label="📃 详细描述">
+              <el-input
+                v-model="detailDescription"
+                type="textarea"
+                :rows="5"
+                placeholder="在这里详细描述旅行团的特色、包含服务、注意事项等"
+              ></el-input>
+            </el-form-item>
+
             <el-form-item label="🖼️ 团主图">
               <el-upload
                 action="#"
@@ -79,7 +99,7 @@
           </el-form>
         </el-card>
 
-        <el-card class="form-card itinerary-card" v-if="days.length > 0">
+        <el-card class="form-card itinerary-card" v-if="dailySchedules.length > 0">
           <template #header>
             <div class="card-header">
               <h3>行程安排</h3>
@@ -87,7 +107,7 @@
             </div>
           </template>
 
-          <div v-for="(day, index) in days" :key="index" class="day-section">
+          <div v-for="(day, index) in dailySchedules" :key="index" class="day-section">
             <div class="day-header">
               <h4>DAY {{ index + 1 }}</h4>
               <el-button type="primary" link @click="openSpotDialog(index)">
@@ -111,13 +131,13 @@
 
             <div class="spot-list">
               <el-empty
-                v-if="day.spots.length === 0"
+                v-if="day.length === 0"
                 description="点击右上方按钮，为这一天添加精彩的地点或活动！"
                 :image-size="60"
                 class="empty-spot-list"
               ></el-empty>
               <el-card
-                v-for="(spot, i) in day.spots"
+                v-for="(spot, i) in day"
                 :key="i"
                 class="spot-card"
                 shadow="hover"
@@ -154,7 +174,7 @@
           </div>
         </el-card>
 
-        <div class="submit-section" v-if="days.length > 0">
+        <div class="submit-section" v-if="dailySchedules.length > 0">
           <el-button type="success" size="large" :icon="Check" class="submit-button" @click="submitTourPackage">
             发布旅行团
           </el-button>
@@ -281,7 +301,7 @@ const goToProfile = () => {
 const destination = ref('')//目的地
 const startDate = ref(null)//开始日期
 const endDate = ref(null)//结束日期
-const dailySchedules = ref([]) // 存储每天的行程，每个元素是 { spots: [] }
+const dailySchedules = ref([]) // 存储每天的行程
 const detailDescription = ref(null) //详细描述
 const price = ref(null) // 价格
 const capacity = ref(null) // 容量
@@ -312,6 +332,68 @@ const handleSelectDestination = (item) => {
   ElMessage.success(`目的地已选择: ${item.name}`);
 };
 
+// 上传团主图
+const handleTourImageUpload = async (file) => {
+  // 基本校验 
+  const isJPGPNG = file.raw.type === 'image/jpeg' || file.raw.type === 'image/png';
+  const isLt500K = file.raw.size / 1024 < 500; // 500KB
+
+  if (!isJPGPNG) {
+    ElMessage.error('团主图只能是 JPG 或 PNG 格式！');
+    return false;
+  }
+  if (!isLt500K) {
+    ElMessage.error('团主图大小不能超过 500KB！');
+    return false;
+  }
+
+  // 前端预览 创建 FileReader 对象，以便立即在前端显示图片给用户看
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    tourImageUrls.value.push(e.target.result);
+  };
+  reader.readAsDataURL(file.raw); 
+
+  // 准备 FormData 用于后端上传
+  const formData = new FormData();
+  formData.append('file', file.raw);
+
+  // 发送文件到后端
+  try {
+    const response = await authAxios.post('/api/user/media/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+
+    // 5. 处理后端响应
+    if (response.data.code === 200) {
+      const uploadedId = response.data.data.fileId;
+      uploadedImgIds.value.push(uploadedId); // 存储后端返回的 ID
+
+      ElMessage.success('图片上传成功！');
+      return true; 
+    } else {
+      ElMessage.error(response.data.message || '图片上传失败，请稍后再试。');
+      const index = tourImageUrls.value.indexOf(reader.result);
+      if (index > -1) {
+        tourImageUrls.value.splice(index, 1);
+      }
+      return false;
+    }
+  } catch (error) {
+    // 网络错误或其他 Axios 错误
+    console.error('图片上传失败:', error);
+    ElMessage.error('图片上传失败，请检查网络或联系管理员。');
+    // 如果上传失败，从前端预览列表中移除该图片
+    const index = tourImageUrls.value.indexOf(reader.result);
+    if (index > -1) {
+      tourImageUrls.value.splice(index, 1);
+    }
+    return false;
+  }
+};
+
 // --- 行程生成 ---
 const generateDays = () => {
   if (!startDate.value || !endDate.value) {
@@ -330,7 +412,7 @@ const generateDays = () => {
   const diffTime = Math.abs(end.getTime() - start.getTime());
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 包含起始两天
 
-  days.value = Array.from({ length: diffDays }, () => ({ spots: [] }));
+  dailySchedules.value = Array.from({ length: diffDays }, () => ([]));
   ElMessage.success(`已为您生成 ${diffDays} 天的行程框架！现在可以开始添加内容了。`);
 };
 
@@ -366,7 +448,7 @@ const handleSpotSelect = (item) => {
   }
 
   // 检查是否已添加重复景点
-  const existingSpot = days.value[activeDayIndex.value].spots.find(s => s.uid === item.uid);
+  const existingSpot = dailySchedules.value[activeDayIndex.value].find(s => s.name === item.name);
   if (existingSpot) {
     ElMessage.warning(`"${item.name}" 已经添加到 DAY ${activeDayIndex.value + 1} 了，请勿重复添加。`);
     spotDialogVisible.value = false;
@@ -375,11 +457,9 @@ const handleSpotSelect = (item) => {
     return;
   }
 
-  dailySchedules.value[activeDayIndex.value].spots.push({
-    uid: item.uid,
-    note: '',
-    timeRange: [], 
-    imageUrl: '',
+  dailySchedules.value[activeDayIndex.value].push({
+    name: item.name,
+    uid: item.uid
   });
   console.log(item)
   ElMessage.success(`已将 "${item.name}" 添加到 DAY ${activeDayIndex.value + 1}。`);
@@ -389,15 +469,15 @@ const handleSpotSelect = (item) => {
 };
 
 const removeSpot = (dayIndex, spotIndex) => {
-  const spotName = days.value[dayIndex].spots[spotIndex].name;
-  days.value[dayIndex].spots.splice(spotIndex, 1);
+  const spotName = dailySchedules.value[dayIndex][spotIndex].name;
+  dailySchedules.value[dayIndex].splice(spotIndex, 1);
   ElMessage.info(`已将 "${spotName}" 从行程中移除。`);
 };
 
 // --- 景点详情/备注弹窗 ---
 const openSpotDetailDialog = (dayIndex, spotIndex) => {
   // 深拷贝景点数据，避免直接修改原始数据导致意外副作用
-  Object.assign(currentSpot, JSON.parse(JSON.stringify(days.value[dayIndex].spots[spotIndex])));
+  Object.assign(currentSpot, JSON.parse(JSON.stringify(dailySchedules.value[dayIndex][spotIndex])));
   currentSpot.dayIndex = dayIndex;
   currentSpot.spotIndex = spotIndex;
   spotDetailDialogVisible.value = true;
@@ -409,7 +489,7 @@ watch(spotDetailDialogVisible, (newVal) => {
     const dayIdx = currentSpot.dayIndex;
     const spotIdx = currentSpot.spotIndex;
     // 将 currentSpot 的属性更新到原始数据中
-    Object.assign(days.value[dayIdx].spots[spotIdx], {
+    Object.assign(dailySchedules.value[dayIdx][spotIdx], {
       note: currentSpot.note,
       timeRange: currentSpot.timeRange,
       imageUrl: currentSpot.imageUrl,
@@ -442,16 +522,62 @@ const handleImageUpload = (file) => {
 };
 
 // --- 最终提交 ---
-const submitTourPackage = () => {
-  console.log('即将提交的旅行团数据:', {
-    destination: destination.value,
-    startDate: startDate.value,
-    endDate: endDate.value,
-    itinerary: days.value
-  });
+const submitTourPackage = async () => {
+  // 数据校验
+  if (!title.value) { ElMessage.error('请输入旅行团标题。'); return; }
+  if (!destination.value) { ElMessage.error('请选择目的地。'); return; }
+  if (!startDate.value || !endDate.value) { ElMessage.error('请选择出发和返回日期。'); return; }
+  if (days.value.length === 0) { ElMessage.error('请生成行程框架并添加行程。'); return; }
+  if (price.value === null || price.value <= 0) { ElMessage.error('请输入有效的旅行团价格。'); return; }
+  if (capacity.value === null || capacity.value <= 0) { ElMessage.error('请输入有效的旅行团容量。'); return; }
+  if (uploadedImgIds.value.length === 0) { ElMessage.error('请上传至少一张团主图。'); return; }
 
-  // 模拟提交成功
-  ElMessage.success('恭喜！您的旅行团已成功发布！🎉');
+  // 计算 durationInDays
+  const start = new Date(startDate.value);
+  const end = new Date(endDate.value);
+  const diffTime = Math.abs(end.getTime() - start.getTime());
+  const durationInDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+  // 构建要提交的 dailySchedules 数组
+  const formattedDailySchedules = dailySchedules.value.map((day, index) => ({
+    dayNumber: index + 1,
+    routeName: dailySchedules.value[index]?.routeName || '',
+    routeDescription: dailySchedules.value[index]?.routeDescription || '',
+    spotUids: day.spots.map(spot => spot.uid) 
+  }));
+
+    // 构建提交数据对象
+  const tourPackageData = {
+    title: title.value,
+    detailedDescription: detailDescription.value,
+    price: price.value,
+    capacity: capacity.value,
+    departureDate: startDate.value, 
+    durationInDays: durationInDays,
+    dailySchedules: formattedDailySchedules,
+    imgIds: uploadedImgIds.value, 
+  };
+
+  console.log('即将提交的旅行团数据:', JSON.stringify(tourPackageData, null, 2));
+
+  try {
+    const response = await authAxios.post('/dealer/travel-packages', tourPackageData);
+
+    if (response.data.code === 200) {
+      ElMessage.success('恭喜！您的旅行团已成功发布！🎉');
+      // 发布成功后可以跳转到旅行团详情页或者我的旅行团列表
+      router.push('/merchant/me'); 
+    } else {
+      ElMessage.error(response.data.message || '旅行团发布失败，请重试。');
+    }
+  } catch (error) {
+    console.error('发布旅行团时发生错误:', error);
+    if (error.response && error.response.data && error.response.data.message) {
+        ElMessage.error(`发布失败: ${error.response.data.message}`);
+    } else {
+        ElMessage.error('网络错误或服务器问题，请稍后再试。');
+    }
+  }
 };
 
 </script>

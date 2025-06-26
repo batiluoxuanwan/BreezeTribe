@@ -16,7 +16,6 @@ import org.whu.backend.dto.route.RouteDetailDto;
 import org.whu.backend.dto.route.RouteSummaryDto;
 import org.whu.backend.dto.route.RouteUpdateRequestDto;
 import org.whu.backend.dto.baidumap.BaiduPlaceDetailResponseDto;
-import org.whu.backend.dto.spot.SpotDetailDto;
 import org.whu.backend.entity.Route;
 import org.whu.backend.entity.Spot;
 import org.whu.backend.entity.accounts.Merchant;
@@ -42,6 +41,8 @@ public class MerchantRouteService {
     private MerchantRepository merchantRepository; // 用于查找经销商
     @Autowired
     private BaiduMapService baiduMapService;
+    @Autowired
+    private DtoConverter dtoConverter;
 
     @Transactional // 整个方法是一个事务，保证数据一致性
     public RouteDetailDto createRoute(RouteCreateRequestDto dto, String dealerId) {
@@ -76,7 +77,7 @@ public class MerchantRouteService {
 
         Route savedRoute = routeRepository.save(newRoute);
         log.info("新路线 '{}' (ID: {}) 已成功创建。", savedRoute.getName(), savedRoute.getId());
-        return convertToDetailDto(savedRoute);
+        return dtoConverter.convertRouteToDetailDto(savedRoute);
     }
 
     /**
@@ -150,7 +151,7 @@ public class MerchantRouteService {
 
         Route updatedRoute = routeRepository.save(routeToUpdate);
         log.info("路线ID '{}' 已被成功更新。", routeId);
-        return convertToDetailDto(updatedRoute);
+        return dtoConverter.convertRouteToDetailDto(updatedRoute);
     }
 
 
@@ -168,7 +169,7 @@ public class MerchantRouteService {
 
         // 3. 将实体列表转换为DTO列表
         List<RouteSummaryDto> summaryDtos = routePage.getContent().stream()
-                .map(this::convertToSummaryDto)
+                .map(dtoConverter::convertRouteToSummaryDto)
                 .collect(Collectors.toList());
 
         // 4. 封装成自定义的分页响应对象返回
@@ -193,7 +194,7 @@ public class MerchantRouteService {
         Route route = findRouteByIdAndVerifyOwnership(routeId, currentDealerId);
 
         // 2. [修改] 调用公共服务中的转换方法，将实体转换为DTO
-        return convertToDetailDto(route);
+        return dtoConverter.convertRouteToDetailDto(route);
     }
 
 
@@ -227,45 +228,5 @@ public class MerchantRouteService {
             routeSpot.setOrderColumn(i + 1); // 设置顺序
             route.getSpots().add(routeSpot);
         }
-    }
-
-
-    // --- 私有的转换方法 (Entity -> DTO) ---
-    // 把旅游团实体Route转化为简略的信息RouteSummaryDto
-    public RouteSummaryDto convertToSummaryDto(Route entity) {
-        return RouteSummaryDto
-                .builder()
-                .id(entity.getId())
-                .name(entity.getName())
-                .description(entity.getDescription())
-                .numOfSpots(entity.getSpots() != null ? entity.getSpots().size() : 0)
-                .build();
-    }
-
-    //  把旅游团实体Route转化为详细的信息RouteDetailDto
-    public RouteDetailDto convertToDetailDto(Route route) {
-        // 先转换内部嵌套的Spot列表
-        List<SpotDetailDto> spotDtos = route.getSpots().stream()
-                .map(routeSpot -> {
-                    Spot spotEntity = routeSpot.getSpot();
-                    return SpotDetailDto.builder()
-                            .id(spotEntity.getId())
-                            .mapProviderUid(spotEntity.getMapProviderUid())
-                            .name(spotEntity.getName())
-                            .city(spotEntity.getCity())
-                            .address(spotEntity.getAddress())
-                            .longitude(spotEntity.getLongitude())
-                            .latitude(spotEntity.getLatitude())
-                            .build();
-                })
-                .collect(Collectors.toList());
-
-        // 使用Builder模式构建并返回RouteDetailDto
-        return RouteDetailDto.builder()
-                .id(route.getId())
-                .name(route.getName())
-                .description(route.getDescription())
-                .spots(spotDtos)
-                .build();
     }
 }

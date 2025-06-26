@@ -18,10 +18,28 @@ import org.whu.backend.dto.route.RouteUpdateRequestDto;
 import org.whu.backend.service.MerchantRouteService;
 import org.whu.backend.util.AccountUtil;
 
+// 该接口暂时废弃不可用
+// 该接口暂时废弃不可用
+// 该接口暂时废弃不可用
+// 该接口暂时废弃不可用
+// 该接口暂时废弃不可用
+// 该接口暂时废弃不可用
+// 该接口暂时废弃不可用
+// 该接口暂时废弃不可用
+// 该接口暂时废弃不可用
+// 该接口暂时废弃不可用
+// 该接口暂时废弃不可用
+// 该接口暂时废弃不可用
+// 该接口暂时废弃不可用
+// 该接口暂时废弃不可用
+// 该接口暂时废弃不可用
+// 该接口暂时废弃不可用
+// 该接口暂时废弃不可用
+
 @Tag(name = "经销商-路线管理", description = "经销商管理自己的路线模板")
 @RestController
 @RequestMapping("/api/dealer/routes")
-@PreAuthorize("hasRole('MERCHANT')")   // TODO: 待鉴权模块完成后，从SecurityContext获取当前登录的经销商ID
+@PreAuthorize("hasRole('DISABLED')")
 @Slf4j
 public class MerchantRouteController {
 
