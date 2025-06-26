@@ -32,7 +32,7 @@ const routes =[
         component:() =>import('../views/Merchant/Profile.vue')
     },
     {
-        path:'/Merchant/Newgroup',
+        path:'/merchant/newgroup',
         name:'发布新团',
         component:() =>import('../views/Merchant/Newgroup.vue')
     },

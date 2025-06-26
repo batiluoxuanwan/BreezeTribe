@@ -1,22 +1,16 @@
 <template>
   <div class="travel-tour-card">
     <div class="image-container">
-      <img :src="tour.image" :alt="tour.title" class="tour-image" />
-      <div v-if="tour.rating" class="rating-badge">
-        <el-icon><Star /></el-icon> {{ tour.rating.toFixed(1) }}
-      </div>
+      <img :src="tour.coverImageUrl" :alt="tour.title" class="tour-image" />
       <div v-if="tour.isHot" class="hot-tag">热门</div>
     </div>
 
     <div class="tour-content">
       <h3 class="tour-title">{{ tour.title }}</h3>
-      <p class="tour-location">
-        <el-icon><Location /></el-icon> {{ tour.location }}
-      </p>
       <!-- 固定在卡片底部 -->
       <div class="card-footer-fixed">
         <div class="tour-meta">
-          <span class="duration">{{ tour.duration }}天</span>
+          <span class="duration">{{ tour.durationInDays }}天</span>
           <span class="departure-date">出发日期: {{ tour.startDate }}</span>
         </div>
         <div class="tour-price-wrapper">
@@ -160,8 +154,8 @@ defineProps({
 }
 
 .duration {
-  background-color: #ecf5ff; /* Element Plus light blue */
-  color: #409EFF;
+  background-color: rgb(229, 244, 242); /* Element Plus light blue */
+  color: rgb(102, 162, 156);
   padding: 3px 8px;
   border-radius: 4px;
   font-weight: 600;
