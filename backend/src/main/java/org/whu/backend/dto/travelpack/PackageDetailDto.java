@@ -22,8 +22,8 @@ public class PackageDetailDto {
     @Schema(description = "旅行团标题")
     private String title;
 
-    @Schema(description = "旅行团封面") // TODO: 后续可能是封面列表
-    private String coverImageUrl;
+    @Schema(description = "旅行团图集")
+    private List<String> coverImageUrls;
 
     @Schema(description = "旅行团价格")
     private BigDecimal price;

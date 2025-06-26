@@ -30,7 +30,6 @@ public class TravelPackage {
     @Column(nullable = false)
     private String title; // 旅行团标题
 
-    // TODO: 注释掉，有关联表了
     private String coverImageUrl; // 封面的ObjectKey
 
     @Lob
