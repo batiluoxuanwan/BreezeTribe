@@ -137,7 +137,7 @@ const notes = [
   font-family: 'Quicksand', 'Poppins', sans-serif;
   color: #444;
   
-  background-image: url('@/assets/background.png');
+  background-image: url('@/assets/bgh.png');
   background-size: cover;
   background-repeat: no-repeat;
   background-position: center;

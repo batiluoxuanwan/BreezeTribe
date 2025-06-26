@@ -35,7 +35,13 @@ const routes =[
         path:'/administrator/me',
         name:'管理员个人主页',
         component:() =>import('../views/Administrator/Profile.vue')
-    }
+    },
+    {
+        path: '/travel-group/:id', 
+        name: 'TravelGroupDetail', 
+        component:() =>import('../views/Public/TravelGroupDetail.vue'),
+        props: true, 
+    },
 ];
 
 const router = createRouter({
