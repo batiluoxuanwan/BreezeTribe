@@ -20,9 +20,8 @@ import org.whu.backend.dto.mediafile.FileUploadResponseDto;
 import org.whu.backend.dto.mediafile.MediaFileDto;
 import org.whu.backend.entity.MediaFile;
 import org.whu.backend.service.MediaService;
+import org.whu.backend.util.AccountUtil;
 import org.whu.backend.util.AliyunOssUtil;
-import org.whu.backend.util.SecurityUtil;
-
 import java.io.IOException;
 
 @Tag(name = "用户/经销商-个人媒体库", description = "用户/经销商管理自己上传的图片和视频")
@@ -53,7 +52,7 @@ public class MediaController {
     )
     @PostMapping("/upload")
     public Result<FileUploadResponseDto> uploadFile(@Valid FileUploadRequestDto dto) throws IOException {
-        String currentUserId = SecurityUtil.getCurrentUserId();
+        String currentUserId = AccountUtil.getCurrentAccountId();
         log.info("用户ID '{}' 访问文件上传接口", currentUserId);
 
         // 1. 调用Service完成上传和数据库保存
@@ -71,7 +70,7 @@ public class MediaController {
     @Operation(summary = "获取我的媒体库文件列表（分页）")
     @GetMapping
     public Result<PageResponseDto<MediaFileDto>> getMyMediaFiles(@Valid @ParameterObject PageRequestDto pageRequestDto) {
-        String currentUserId = SecurityUtil.getCurrentUserId();
+        String currentUserId = AccountUtil.getCurrentAccountId();
         log.info("用户ID '{}' 访问获取自己的媒体库列表接口", currentUserId);
 
         PageResponseDto<MediaFileDto> resultPage = userMediaService.getMyMediaFiles(currentUserId, pageRequestDto);
@@ -82,7 +81,7 @@ public class MediaController {
     @Operation(summary = "从我的媒体库删除一个文件")
     @DeleteMapping("/{fileId}")
     public Result<?> deleteMediaFile(@PathVariable String fileId) {
-        String currentUserId = SecurityUtil.getCurrentUserId();
+        String currentUserId = AccountUtil.getCurrentAccountId();
         log.info("用户ID '{}' 访问删除媒体文件接口, File ID: {}", currentUserId, fileId);
 
         userMediaService.deleteMediaFile(fileId, currentUserId);
