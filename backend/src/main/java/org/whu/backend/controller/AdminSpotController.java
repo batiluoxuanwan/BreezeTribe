@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.whu.backend.common.Result;
 import org.whu.backend.dto.PageRequestDto;
@@ -19,7 +20,7 @@ import org.whu.backend.util.JpaUtil;
 @Tag(name = "管理员-景点管理", description = "管理员维护平台景点缓存数据库")
 @RestController
 @RequestMapping("/api/admin/spots")
-// @PreAuthorize("hasRole('ADMIN')") // TODO: 权限控制
+@PreAuthorize("hasRole('ADMIN')")
 public class AdminSpotController {
     @Autowired
     private AdminService adminService;
@@ -52,6 +53,6 @@ public class AdminSpotController {
     public Result<PageResponseDto<SpotSummaryDto>> getSpots(@Valid @ParameterObject PageRequestDto pageRequestDto) {
         PageResponseDto<SpotSummaryDto> result = adminService.getSpots(pageRequestDto);
         JpaUtil.notNull(result, "查询失败");
-        return Result.success();
+        return Result.success("查询完毕",result);
     }
 }

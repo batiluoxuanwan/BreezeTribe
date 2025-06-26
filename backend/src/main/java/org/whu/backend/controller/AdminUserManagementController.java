@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.whu.backend.common.Result;
 import org.whu.backend.dto.PageRequestDto;
@@ -17,7 +18,7 @@ import org.whu.backend.util.JpaUtil;
 @Tag(name = "管理员-用户管理", description = "管理平台所有类型的账户")
 @RestController
 @RequestMapping("/api/admin/users")
-// @PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasRole('ADMIN')")
 public class AdminUserManagementController {
 
     @Autowired
@@ -28,9 +29,10 @@ public class AdminUserManagementController {
     public Result<PageResponseDto<UserManagementDto>> getAllUsers(
             @RequestParam(required = false) String role, // e.g., USER, DEALER
             @Valid @ParameterObject PageRequestDto pageRequestDto) {
+        pageRequestDto.setSortBy("createdAt");
         PageResponseDto<UserManagementDto> result = adminService.getAllUsers(pageRequestDto,role);
         JpaUtil.notNull(result, "查询失败");
-        return Result.success();
+        return Result.success("查询成功", result);
     }
 
     @Operation(summary = "封禁一个用户或经销商的账户")

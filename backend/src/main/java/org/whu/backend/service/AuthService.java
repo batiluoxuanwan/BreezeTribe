@@ -13,6 +13,7 @@ import org.whu.backend.dto.auth.RegisterRequest;
 import org.whu.backend.entity.accounts.*;
 import org.whu.backend.repository.authRepo.AuthRepository;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.whu.backend.entity.accounts.Merchant.status.PENDING;
@@ -132,7 +133,9 @@ public class AuthService {
         }
         Account account = optionalAccount.get();
         if (account.getBanDurationDays()!=0) {
-            throw new BizException("账号暂时不可使用，请联系管理员");
+            //throw new BizException("账号暂时不可使用，请联系管理员");
+            LocalDateTime banEndTime = account.getBanStartTime().plusDays(account.getBanDurationDays());
+            throw new BizException("账号暂时不可使用，被封禁至"+banEndTime+"如有疑问请联系管理员");
         }
         if (!passwordEncoder.matches(request.getPassword(), account.getPassword())) {
             throw new BizException("密码错误");
