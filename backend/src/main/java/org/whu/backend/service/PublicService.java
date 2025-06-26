@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.whu.backend.common.exception.BizException;
@@ -14,11 +15,13 @@ import org.whu.backend.dto.PageResponseDto;
 import org.whu.backend.dto.post.PostDetailDto;
 import org.whu.backend.dto.post.PostSummaryDto;
 import org.whu.backend.dto.travelpack.PackageDetailDto;
+import org.whu.backend.dto.travelpack.PackageSearchRequestDto;
 import org.whu.backend.dto.travelpack.PackageSummaryDto;
 import org.whu.backend.entity.TravelPackage;
 import org.whu.backend.entity.travelpost.TravelPost;
 import org.whu.backend.repository.TravelPostRepository;
 import org.whu.backend.repository.travelRepo.TravelPackageRepository;
+import org.whu.backend.service.specification.TravelPackageSpecification;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -33,14 +36,8 @@ public class PublicService {
     private DtoConverter dtoConverter;
     @Autowired
     private TravelPostRepository travelPostRepository;
-//    @Autowired
-//    private TravelPostRepository travelPostRepository;
-//    @Autowired
-//    private UserPostService userPostService;
 
-    /**
-     * 获取已发布的旅行团列表（分页）
-     */
+    // 获取已发布的旅行团列表（分页）
     public PageResponseDto<PackageSummaryDto> getPublishedPackages(PageRequestDto pageRequestDto) {
         log.info("开始查询已发布的旅行团列表，分页参数: {}", pageRequestDto);
 
@@ -70,9 +67,7 @@ public class PublicService {
                 .build();
     }
 
-    /**
-     * 获取单个旅行团的详情
-     */
+    // 获取单个旅行团的详情
     public PackageDetailDto getPackageDetails(String id) {
         log.info("开始查询ID为 '{}' 的旅行团详情。", id);
 
@@ -114,7 +109,40 @@ public class PublicService {
                 .build();
     }
 
-    // [新增] 获取单篇已发布的游记详情
+    // 实现复杂的、多条件的搜索逻辑
+    public PageResponseDto<PackageSummaryDto> searchPackages(PackageSearchRequestDto searchDto) {
+        log.info("开始复杂条件搜索旅行团, 搜索条件: {}", searchDto);
+
+        // 1. 使用 Specification 构建动态查询条件
+        Specification<TravelPackage> spec = TravelPackageSpecification.from(searchDto);
+
+        // 2. 创建分页和排序对象
+        Sort sort = Sort.by(Sort.Direction.fromString(searchDto.getSortDirection()), searchDto.getSortBy());
+        Pageable pageable = PageRequest.of(searchDto.getPage() - 1, searchDto.getSize(), sort);
+
+        // 3. 执行查询！
+        Page<TravelPackage> packagePage = travelPackageRepository.findAll(spec, pageable);
+
+        log.info("查询到 {} 条记录，总共 {} 页。", packagePage.getNumberOfElements(), packagePage.getTotalPages());
+
+        // 4. 转换并返回结果 (这部分逻辑不变)
+        List<PackageSummaryDto> summaryDtos = packagePage.getContent().stream()
+                .map(dtoConverter::convertPackageToSummaryDto)
+                .collect(Collectors.toList());
+
+        return PageResponseDto.<PackageSummaryDto>builder()
+                .content(summaryDtos)
+                .pageNumber(packagePage.getNumber() + 1)
+                .pageSize(packagePage.getSize())
+                .totalElements(packagePage.getTotalElements())
+                .totalPages(packagePage.getTotalPages())
+                .first(packagePage.isFirst())
+                .last(packagePage.isLast())
+                .numberOfElements(packagePage.getNumberOfElements())
+                .build();
+    }
+
+    // 获取单篇已发布的游记详情
     public PostDetailDto getPostDetails(String postId) {
         log.info("正在获取公共游记详情, ID: {}", postId);
 

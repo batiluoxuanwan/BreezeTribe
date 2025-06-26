@@ -45,11 +45,9 @@ public class PublicController {
     @Operation(summary = "搜索旅行团（复杂条件）", description = "根据多种条件组合搜索旅行团")
     @GetMapping("/travel-packages/search")
     public Result<PageResponseDto<PackageSummaryDto>> searchPackages(@Valid @ParameterObject PackageSearchRequestDto searchRequestDto) {
-        // 后端实现提示:
-        // 在Service层，可以使用JPA的Specification或Criteria API来动态构建查询条件
-        // 这样可以优雅地处理searchRequestDto中各种可选的搜索参数
-        // TODO: 实现复杂的、多条件的搜索逻辑
-        return Result.success();
+        log.info("访问搜索公共游记列表接口,关键词: {}，城市: {}", searchRequestDto.getKeyword(), searchRequestDto.getCity());
+        PageResponseDto<PackageSummaryDto> resultPage = publicService.searchPackages(searchRequestDto);
+        return Result.success(resultPage);
     }
 
     @Operation(summary = "获取单个旅行团的公开详情", description = "包含其所有的路线和景点信息")
@@ -59,9 +57,7 @@ public class PublicController {
         return Result.success(packageDetails);
     }
 
-    /**
-     * [修改] 原来的 searchExternalSpots 接口功能不明确，把它替换成更具体的 "suggestions" 接口
-     */
+    // 原来的 searchExternalSpots 接口功能不明确，把它替换成更具体的 "suggestions" 接口
     @Operation(summary = "获取地点输入提示", description = "用于前端搜索框的实时输入提示，后端转发百度地图API请求")
     @GetMapping("/spots/suggestions")
     public Result<List<BaiduSuggestionResponseDto.SuggestionResult>> getSpotSuggestions(
