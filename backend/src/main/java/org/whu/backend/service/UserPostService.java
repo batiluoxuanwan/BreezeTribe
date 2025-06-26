@@ -12,12 +12,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.whu.backend.common.exception.BizException;
 import org.whu.backend.dto.PageRequestDto;
 import org.whu.backend.dto.PageResponseDto;
-import org.whu.backend.dto.accounts.AuthorDto;
 import org.whu.backend.dto.post.PostCreateRequestDto;
 import org.whu.backend.dto.post.PostDetailDto;
 import org.whu.backend.dto.post.PostSummaryDto;
 import org.whu.backend.dto.post.PostUpdateRequestDto;
-import org.whu.backend.dto.spot.SpotDetailDto;
 import org.whu.backend.entity.MediaFile;
 import org.whu.backend.entity.Spot;
 import org.whu.backend.entity.accounts.User;
@@ -26,7 +24,6 @@ import org.whu.backend.entity.travelpost.TravelPost;
 import org.whu.backend.repository.MediaFileRepository;
 import org.whu.backend.repository.TravelPostRepository;
 import org.whu.backend.repository.authRepo.UserRepository;
-import org.whu.backend.util.AliyunOssUtil;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -42,9 +39,8 @@ public class UserPostService {
     private MediaFileRepository mediaFileRepository;
     @Autowired
     private MerchantPackageService merchantPackageService;
-
-    public static final long EXPIRE_TIME = 60 * 60 * 4 * 1000;
-    public static final String IMAGE_PROCESS = "image/resize,l_1600/quality,q_50";
+    @Autowired
+    private DtoConverter dtoConverter;
 
     @Transactional
     public TravelPost createPost(PostCreateRequestDto dto, String currentUserId) {
@@ -104,7 +100,7 @@ public class UserPostService {
         Page<TravelPost> postPage = postRepository.findByAuthorId(currentUserId, pageable);
 
         List<PostSummaryDto> dtos = postPage.getContent().stream()
-                .map(this::convertToSummaryDto)
+                .map(dtoConverter::convertPostToSummaryDto)
                 .collect(Collectors.toList());
 
         return PageResponseDto.<PostSummaryDto>builder()
@@ -126,7 +122,7 @@ public class UserPostService {
 
         TravelPost post = findPostByIdAndVerifyOwnership(postId, currentUserId);
 
-        return convertToDetailDto(post);
+        return dtoConverter.convertPostToDetailDto(post);
     }
 
 
@@ -198,92 +194,5 @@ public class UserPostService {
             throw new BizException(HttpStatus.UNAUTHORIZED.value(), "无权操作此游记");
         }
         return post;
-    }
-
-    // 将景点Spot实体转换为景点SpotDetailDto
-    public SpotDetailDto SpotConvertToDetailDto(Spot spot) {
-        return SpotDetailDto.builder()
-                .id(spot.getId())
-                .mapProviderUid(spot.getMapProviderUid())
-                .name(spot.getName())
-                .city(spot.getCity())
-                .address(spot.getAddress())
-                .longitude(spot.getLongitude())
-                .latitude(spot.getLatitude())
-                .build();
-    }
-
-    // 将TravelPost实体转换为摘要DTO
-    public PostSummaryDto convertToSummaryDto(TravelPost post) {
-        // 获取封面图URL
-        String coverUrl = null;
-        if (post.getImages() != null && !post.getImages().isEmpty()) {
-            // 取第一张图作为封面
-            String objectKey = post.getImages().get(0).getMediaFile().getObjectKey();
-            coverUrl = AliyunOssUtil.generatePresignedGetUrl(objectKey, EXPIRE_TIME, IMAGE_PROCESS);
-        }
-
-        // 景点信息
-        SpotDetailDto spotDto = null;
-        if (post.getSpot() != null) {
-            spotDto = SpotConvertToDetailDto(post.getSpot());
-        }
-
-        return PostSummaryDto.builder()
-                .id(post.getId())
-                .title(post.getTitle())
-                .coverImageUrl(coverUrl)
-                .author(AuthorDto.builder()
-                        .id(post.getAuthor().getId())
-                        .username(post.getAuthor().getUsername())
-                        .build())
-                .spot(spotDto)
-                .likeCount(post.getLikeCount())
-                .favoriteCount(post.getFavoriteCount())
-                .commentCount(post.getCommentCount())
-                .createdTime(post.getCreatedTime())
-                .build();
-    }
-
-    // 将TravelPost实体转换为详细的DTO
-    public PostDetailDto convertToDetailDto(TravelPost post) {
-        // 转换作者信息
-        String url = post.getAuthor().getAvatarUrl();
-        if (url != null) {
-            url = AliyunOssUtil.generatePresignedGetUrl(url, EXPIRE_TIME, IMAGE_PROCESS);
-        }
-        AuthorDto authorDto = AuthorDto.builder()
-                .id(post.getAuthor().getId())
-                .username(post.getAuthor().getUsername())
-                .avatarUrl(url)
-                .build();
-
-        // 转换景点信息 (如果存在)
-        SpotDetailDto spotDto = null;
-        if (post.getSpot() != null) {
-            spotDto = SpotConvertToDetailDto(post.getSpot());
-        }
-
-        // 转换图片URL列表
-        List<String> imageUrls = post.getImages().stream()
-                .map(postImage -> {
-                    String objectKey = postImage.getMediaFile().getObjectKey();
-                    return AliyunOssUtil.generatePresignedGetUrl(objectKey, EXPIRE_TIME, IMAGE_PROCESS);
-                })
-                .collect(Collectors.toList());
-
-        // 构建最终的DTO
-        return PostDetailDto.builder()
-                .id(post.getId())
-                .title(post.getTitle())
-                .content(post.getContent())
-                .author(authorDto)
-                .spot(spotDto)
-                .imageUrls(imageUrls)
-                .likeCount(post.getLikeCount())
-                .favoriteCount(post.getFavoriteCount())
-                .commentCount(post.getCommentCount())
-                .createdTime(post.getCreatedTime())
-                .build();
     }
 }

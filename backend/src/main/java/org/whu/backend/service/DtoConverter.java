@@ -2,14 +2,18 @@ package org.whu.backend.service;
 
 
 import org.springframework.stereotype.Component;
+import org.whu.backend.dto.accounts.AuthorDto;
 import org.whu.backend.dto.mediafile.MediaFileDto;
 import org.whu.backend.dto.order.OrderSummaryForDealerDto;
+import org.whu.backend.dto.post.PostDetailDto;
+import org.whu.backend.dto.post.PostSummaryDto;
 import org.whu.backend.dto.route.RouteDetailDto;
 import org.whu.backend.dto.route.RouteSummaryDto;
 import org.whu.backend.dto.spot.SpotDetailDto;
 import org.whu.backend.dto.travelpack.PackageDetailDto;
 import org.whu.backend.dto.travelpack.PackageSummaryDto;
 import org.whu.backend.entity.*;
+import org.whu.backend.entity.travelpost.TravelPost;
 import org.whu.backend.util.AliyunOssUtil;
 
 import java.util.List;
@@ -40,6 +44,93 @@ public class DtoConverter {
                 .build();
     }
 
+    // 将TravelPost实体转换为摘要DTO
+    public PostSummaryDto convertPostToSummaryDto(TravelPost post) {
+        // 获取封面图URL
+        String coverUrl = null;
+        if (post.getImages() != null && !post.getImages().isEmpty()) {
+            // 取第一张图作为封面
+            String objectKey = post.getImages().get(0).getMediaFile().getObjectKey();
+            coverUrl = AliyunOssUtil.generatePresignedGetUrl(objectKey, EXPIRE_TIME, IMAGE_PROCESS);
+        }
+
+        // 景点信息
+        SpotDetailDto spotDto = null;
+        if (post.getSpot() != null) {
+            spotDto = ConvertSpotToDetailDto(post.getSpot());
+        }
+
+        return PostSummaryDto.builder()
+                .id(post.getId())
+                .title(post.getTitle())
+                .coverImageUrl(coverUrl)
+                .author(AuthorDto.builder()
+                        .id(post.getAuthor().getId())
+                        .username(post.getAuthor().getUsername())
+                        .build())
+                .spot(spotDto)
+                .likeCount(post.getLikeCount())
+                .favoriteCount(post.getFavoriteCount())
+                .commentCount(post.getCommentCount())
+                .createdTime(post.getCreatedTime())
+                .build();
+    }
+
+    // 将TravelPost实体转换为详细的DTO
+    public PostDetailDto convertPostToDetailDto(TravelPost post) {
+        // 转换作者信息
+        String url = post.getAuthor().getAvatarUrl();
+        if (url != null) {
+            url = AliyunOssUtil.generatePresignedGetUrl(url, EXPIRE_TIME, IMAGE_PROCESS);
+        }
+        AuthorDto authorDto = AuthorDto.builder()
+                .id(post.getAuthor().getId())
+                .username(post.getAuthor().getUsername())
+                .avatarUrl(url)
+                .build();
+
+        // 转换景点信息 (如果存在)
+        SpotDetailDto spotDto = null;
+        if (post.getSpot() != null) {
+            spotDto = ConvertSpotToDetailDto(post.getSpot());
+        }
+
+        // 转换图片URL列表
+        List<String> imageUrls = post.getImages().stream()
+                .map(postImage -> {
+                    String objectKey = postImage.getMediaFile().getObjectKey();
+                    return AliyunOssUtil.generatePresignedGetUrl(objectKey, EXPIRE_TIME, IMAGE_PROCESS);
+                })
+                .collect(Collectors.toList());
+
+        // 构建最终的DTO
+        return PostDetailDto.builder()
+                .id(post.getId())
+                .title(post.getTitle())
+                .content(post.getContent())
+                .author(authorDto)
+                .spot(spotDto)
+                .imageUrls(imageUrls)
+                .likeCount(post.getLikeCount())
+                .favoriteCount(post.getFavoriteCount())
+                .commentCount(post.getCommentCount())
+                .createdTime(post.getCreatedTime())
+                .build();
+    }
+
+
+    // 将景点Spot实体转换为景点SpotDetailDto
+    public SpotDetailDto ConvertSpotToDetailDto(Spot spot) {
+        return SpotDetailDto.builder()
+                .id(spot.getId())
+                .mapProviderUid(spot.getMapProviderUid())
+                .name(spot.getName())
+                .city(spot.getCity())
+                .address(spot.getAddress())
+                .longitude(spot.getLongitude())
+                .latitude(spot.getLatitude())
+                .build();
+    }
 
     // 把旅游团路线实体Route转化为简略的信息RouteSummaryDto
     public RouteSummaryDto convertRouteToSummaryDto(Route entity) {

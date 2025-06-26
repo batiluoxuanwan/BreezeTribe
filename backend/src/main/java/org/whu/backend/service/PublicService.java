@@ -11,9 +11,13 @@ import org.springframework.transaction.annotation.Transactional;
 import org.whu.backend.common.exception.BizException;
 import org.whu.backend.dto.PageRequestDto;
 import org.whu.backend.dto.PageResponseDto;
+import org.whu.backend.dto.post.PostDetailDto;
+import org.whu.backend.dto.post.PostSummaryDto;
 import org.whu.backend.dto.travelpack.PackageDetailDto;
 import org.whu.backend.dto.travelpack.PackageSummaryDto;
 import org.whu.backend.entity.TravelPackage;
+import org.whu.backend.entity.travelpost.TravelPost;
+import org.whu.backend.repository.TravelPostRepository;
 import org.whu.backend.repository.travelRepo.TravelPackageRepository;
 
 import java.util.List;
@@ -27,6 +31,8 @@ public class PublicService {
     private TravelPackageRepository travelPackageRepository;
     @Autowired
     private DtoConverter dtoConverter;
+    @Autowired
+    private TravelPostRepository travelPostRepository;
 //    @Autowired
 //    private TravelPostRepository travelPostRepository;
 //    @Autowired
@@ -82,41 +88,41 @@ public class PublicService {
     }
 
 
-//    // 获取已发布的游记列表（分页）
-//    public PageResponseDto<PostSummaryDto> getPublishedPosts(PageRequestDto pageRequestDto) {
-//        log.info("正在获取公共游记列表, 分页参数: {}", pageRequestDto);
-//
-//        Sort sort = Sort.by(Sort.Direction.fromString(pageRequestDto.getSortDirection()), pageRequestDto.getSortBy());
-//        Pageable pageable = PageRequest.of(pageRequestDto.getPage() - 1, pageRequestDto.getSize(), sort);
-//
-//        // JpaRepository自带的findAll(pageable)即可
-//        Page<TravelPost> postPage = travelPostRepository.findAll(pageable);
-//
-//        List<PostSummaryDto> dtos = postPage.getContent().stream()
-//                .map(userPostService::convertToSummaryDto)
-//                .collect(Collectors.toList());
-//
-//        return PageResponseDto.<PostSummaryDto>builder()
-//                .content(dtos)
-//                .pageNumber(postPage.getNumber() + 1)
-//                .pageSize(postPage.getSize())
-//                .totalElements(postPage.getTotalElements())
-//                .totalPages(postPage.getTotalPages())
-//                .first(postPage.isFirst())
-//                .last(postPage.isLast())
-//                .numberOfElements(postPage.getNumberOfElements())
-//                .build();
-//    }
-//
-//    // [新增] 获取单篇已发布的游记详情
-//    public PostDetailDto getPostDetails(String postId) {
-//        log.info("正在获取公共游记详情, ID: {}", postId);
-//
-//        TravelPost post = travelPostRepository.findById(postId)
-//                .orElseThrow(() -> new BizException("找不到ID为 " + postId + " 的游记"));
-//
-//        // TODO: 可以在这里增加一个状态判断，比如只返回状态为“已发布”的游记，还有只查询公共权限的游记
-//
-//        return userPostService.convertToDetailDto(post);
-//    }
+    // 获取已发布的游记列表（分页）
+    public PageResponseDto<PostSummaryDto> getPublishedPosts(PageRequestDto pageRequestDto) {
+        log.info("正在获取公共游记列表, 分页参数: {}", pageRequestDto);
+
+        Sort sort = Sort.by(Sort.Direction.fromString(pageRequestDto.getSortDirection()), pageRequestDto.getSortBy());
+        Pageable pageable = PageRequest.of(pageRequestDto.getPage() - 1, pageRequestDto.getSize(), sort);
+
+        // JpaRepository自带的findAll(pageable)即可
+        Page<TravelPost> postPage = travelPostRepository.findAll(pageable);
+
+        List<PostSummaryDto> dtos = postPage.getContent().stream()
+                .map(dtoConverter::convertPostToSummaryDto)
+                .collect(Collectors.toList());
+
+        return PageResponseDto.<PostSummaryDto>builder()
+                .content(dtos)
+                .pageNumber(postPage.getNumber() + 1)
+                .pageSize(postPage.getSize())
+                .totalElements(postPage.getTotalElements())
+                .totalPages(postPage.getTotalPages())
+                .first(postPage.isFirst())
+                .last(postPage.isLast())
+                .numberOfElements(postPage.getNumberOfElements())
+                .build();
+    }
+
+    // [新增] 获取单篇已发布的游记详情
+    public PostDetailDto getPostDetails(String postId) {
+        log.info("正在获取公共游记详情, ID: {}", postId);
+
+        TravelPost post = travelPostRepository.findById(postId)
+                .orElseThrow(() -> new BizException("找不到ID为 " + postId + " 的游记"));
+
+        // TODO: 可以在这里增加一个状态判断，比如只返回状态为“已发布”的游记，还有只查询公共权限的游记
+
+        return dtoConverter.convertPostToDetailDto(post);
+    }
 }

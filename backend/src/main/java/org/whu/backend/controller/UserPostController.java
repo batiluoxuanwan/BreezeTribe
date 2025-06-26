@@ -16,6 +16,7 @@ import org.whu.backend.dto.post.PostDetailDto;
 import org.whu.backend.dto.post.PostSummaryDto;
 import org.whu.backend.dto.post.PostUpdateRequestDto;
 import org.whu.backend.entity.travelpost.TravelPost;
+import org.whu.backend.service.DtoConverter;
 import org.whu.backend.service.UserPostService;
 import org.whu.backend.util.AccountUtil;
 
@@ -28,6 +29,8 @@ public class UserPostController {
 
     @Autowired
     private UserPostService userPostService;
+    @Autowired
+    private DtoConverter dtoConverter;
 
     // TODO: 注入一个公共的转换服务
 
@@ -39,7 +42,7 @@ public class UserPostController {
 
         TravelPost createdPost = userPostService.createPost(createRequestDto, currentUserId);
 
-        PostDetailDto dto = userPostService.convertToDetailDto(createdPost);
+        PostDetailDto dto = dtoConverter.convertPostToDetailDto(createdPost);
 
         return Result.success(dto);
     }
@@ -76,7 +79,7 @@ public class UserPostController {
         log.info("用户ID '{}' 访问更新游记接口, Post ID: {}", currentUserId, id);
 
         TravelPost updatedPost = userPostService.updatePost(id, updateRequestDto, currentUserId);
-        PostDetailDto dto = userPostService.convertToDetailDto(updatedPost);
+        PostDetailDto dto = dtoConverter.convertPostToDetailDto(updatedPost);
 
         return Result.success(dto);
     }
