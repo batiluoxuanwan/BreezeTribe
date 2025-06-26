@@ -11,16 +11,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.whu.backend.common.exception.BizException;
 import org.whu.backend.dto.PageRequestDto;
 import org.whu.backend.dto.PageResponseDto;
-import org.whu.backend.dto.post.PostDetailDto;
-import org.whu.backend.dto.post.PostSummaryDto;
-import org.whu.backend.dto.route.RouteDetailDto;
 import org.whu.backend.dto.travelpack.PackageDetailDto;
 import org.whu.backend.dto.travelpack.PackageSummaryDto;
 import org.whu.backend.entity.TravelPackage;
-import org.whu.backend.entity.travelpost.TravelPost;
-import org.whu.backend.repository.TravelPostRepository;
 import org.whu.backend.repository.travelRepo.TravelPackageRepository;
-import org.whu.backend.util.AliyunOssUtil;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -31,11 +25,6 @@ import java.util.stream.Collectors;
 public class PublicService {
     @Autowired
     private TravelPackageRepository travelPackageRepository;
-    @Autowired
-    private MerchantRouteService merchantRouteService;
-
-    public static final long EXPIRE_TIME = 60 * 60 * 4 * 1000;
-    public static final String IMAGE_PROCESS = "image/resize,l_1600/quality,q_50";
     @Autowired
     private DtoConverter dtoConverter;
 //    @Autowired

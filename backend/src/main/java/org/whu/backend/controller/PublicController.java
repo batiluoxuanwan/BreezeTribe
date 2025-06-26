@@ -11,8 +11,6 @@ import org.whu.backend.common.Result;
 import org.whu.backend.dto.PageRequestDto;
 import org.whu.backend.dto.PageResponseDto;
 import org.whu.backend.dto.baidumap.BaiduSuggestionResponseDto;
-import org.whu.backend.dto.post.PostDetailDto;
-import org.whu.backend.dto.post.PostSummaryDto;
 import org.whu.backend.dto.travelpack.PackageDetailDto;
 import org.whu.backend.dto.travelpack.PackageSearchRequestDto;
 import org.whu.backend.dto.travelpack.PackageSummaryDto;

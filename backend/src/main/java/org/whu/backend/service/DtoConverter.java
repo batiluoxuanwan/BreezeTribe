@@ -2,19 +2,14 @@ package org.whu.backend.service;
 
 
 import org.springframework.stereotype.Component;
-import org.whu.backend.dto.accounts.AuthorDto;
 import org.whu.backend.dto.mediafile.MediaFileDto;
 import org.whu.backend.dto.order.OrderSummaryForDealerDto;
-import org.whu.backend.dto.post.PostDetailDto;
-import org.whu.backend.dto.post.PostSummaryDto;
 import org.whu.backend.dto.route.RouteDetailDto;
 import org.whu.backend.dto.route.RouteSummaryDto;
 import org.whu.backend.dto.spot.SpotDetailDto;
-import org.whu.backend.dto.spot.SpotSummaryDto;
 import org.whu.backend.dto.travelpack.PackageDetailDto;
 import org.whu.backend.dto.travelpack.PackageSummaryDto;
 import org.whu.backend.entity.*;
-import org.whu.backend.entity.travelpost.TravelPost;
 import org.whu.backend.util.AliyunOssUtil;
 
 import java.util.List;

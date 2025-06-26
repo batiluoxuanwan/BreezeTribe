@@ -46,8 +46,6 @@ public class MerchantPackageService {
     @Autowired
     private RouteRepository routeRepository;
     @Autowired
-    private PublicService publicService;
-    @Autowired
     private MediaFileRepository mediaFileRepository;
     @Autowired
     private OrderRepository orderRepository;

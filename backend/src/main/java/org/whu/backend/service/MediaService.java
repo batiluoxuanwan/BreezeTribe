@@ -33,9 +33,6 @@ public class MediaService {
     private MediaFileRepository mediaFileRepository;
     @Autowired
     private AuthRepository accountRepository; // 用于查找上传者
-
-    public static final long EXPIRE_TIME = 60 * 60 * 4 * 1000;
-    public static final String IMAGE_PROCESS = "image/resize,l_400/quality,q_50";
     @Autowired
     private PackageImageRepository packageImageRepository;
     @Autowired

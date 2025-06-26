@@ -19,7 +19,6 @@ import org.whu.backend.dto.travelpack.PackageUpdateRequestDto;
 import org.whu.backend.entity.TravelPackage;
 import org.whu.backend.service.DtoConverter;
 import org.whu.backend.service.MerchantPackageService;
-import org.whu.backend.service.PublicService;
 import org.whu.backend.util.AccountUtil;
 
 @Tag(name = "经销商-旅行团管理", description = "经销商管理自己的旅行团商品")
@@ -31,8 +30,6 @@ public class MerchantPackageController {
 
     @Autowired
     MerchantPackageService merchantPackageService;
-    @Autowired
-    PublicService publicService;
     @Autowired
     private DtoConverter dtoConverter;
 
