@@ -26,7 +26,6 @@ import org.whu.backend.entity.travelpost.TravelPost;
 import org.whu.backend.repository.MediaFileRepository;
 import org.whu.backend.repository.TravelPostRepository;
 import org.whu.backend.repository.authRepo.UserRepository;
-import org.whu.backend.repository.travelRepo.SpotRepository;
 import org.whu.backend.util.AliyunOssUtil;
 
 import java.util.List;
