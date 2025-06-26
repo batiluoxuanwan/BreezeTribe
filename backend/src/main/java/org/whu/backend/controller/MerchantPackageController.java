@@ -70,6 +70,7 @@ public class MerchantPackageController {
         return Result.success("旅行团删除成功");
     }
 
+    // TODO: 后续要细化已发布的，待审核的，驳回的
     @Operation(summary = "获取自己创建的旅行团列表（分页）")
     @GetMapping
     public Result<PageResponseDto<PackageSummaryDto>> getMyPackages(@Valid @ParameterObject PageRequestDto pageRequestDto) {

@@ -46,7 +46,7 @@ public class MediaController {
                     required = true,
                     content = @Content(
                             mediaType = MediaType.MULTIPART_FORM_DATA_VALUE,
-                            // schema 指向你的DTO，Swagger会根据DTO中的@Schema注解来渲染表单字段
+                            // schema 指向DTO，Swagger会根据DTO中的@Schema注解来渲染表单字段
                             schema = @Schema(implementation = FileUploadRequestDto.class)
                     )
             )

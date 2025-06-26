@@ -252,8 +252,8 @@ public class MerchantPackageService {
     }
 
 
-    // 这是一个核心的私有方法，实现了“按需缓存”景点的逻辑
-    private Spot findOrCreateSpotByBaiduUid(String uid) {
+    // 核心方法，实现了“按需缓存”景点的逻辑，公共便于复用
+    public Spot findOrCreateSpotByBaiduUid(String uid) {
         // 先尝试从我们自己的数据库里找
         Optional<Spot> spotOptional = spotRepository.findByMapProviderUid(uid);
 
