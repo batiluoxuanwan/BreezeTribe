@@ -2,14 +2,14 @@ spring:
   application:
     name: backend
   datasource:
-#    url: jdbc:mysql://rm-cn-9me4964qo001148o.rwlb.rds.aliyuncs.com:3306/breeze-tribe
-#    username: root
-#    password: H2v4uZwDpBVv4ysHy5wy
-#    driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/breeze-tribe
+    url: jdbc:mysql://rm-cn-9me4964qo001148o.rwlb.rds.aliyuncs.com:3306/breeze-tribe
     username: root
-    password: 95515
+    password: H2v4uZwDpBVv4ysHy5wy
     driver-class-name: com.mysql.cj.jdbc.Driver
+  #    url: jdbc:mysql://localhost:3306/breeze-tribe
+  #    username: root
+  #    password: 95515
+  #    driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     show-sql: false # 是否在控制台显示Hibernate执行的SQL语句
     hibernate:
