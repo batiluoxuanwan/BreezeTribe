@@ -17,6 +17,7 @@ import org.whu.backend.dto.travelpack.PackageDetailDto;
 import org.whu.backend.dto.travelpack.PackageSummaryDto;
 import org.whu.backend.dto.travelpack.PackageUpdateRequestDto;
 import org.whu.backend.entity.TravelPackage;
+import org.whu.backend.service.DtoConverter;
 import org.whu.backend.service.MerchantPackageService;
 import org.whu.backend.service.PublicService;
 import org.whu.backend.util.AccountUtil;
@@ -32,6 +33,8 @@ public class MerchantPackageController {
     MerchantPackageService merchantPackageService;
     @Autowired
     PublicService publicService;
+    @Autowired
+    private DtoConverter dtoConverter;
 
     @Operation(summary = "创建一个新旅行团", description = "填写一个新的旅行团的相关信息，创建后状态为待审核，其中有一个id列表，按顺序填写所包含的路线")
     @PostMapping
@@ -42,7 +45,7 @@ public class MerchantPackageController {
         TravelPackage createdPackage = merchantPackageService.createPackage(packageCreateRequestDto, currentDealerId);
 
         // 调用公共服务的方法将实体转换为DTO
-        PackageDetailDto dto = publicService.convertPackageToDetailDto(createdPackage);
+        PackageDetailDto dto = dtoConverter.convertPackageToDetailDto(createdPackage);
 
         return Result.success("旅行团创建成功，请等待管理员审核", dto);
     }
@@ -56,7 +59,7 @@ public class MerchantPackageController {
 
         TravelPackage updatedPackage = merchantPackageService.updatePackage(id, packageUpdateRequestDto, currentDealerId);
 
-        PackageDetailDto dto = publicService.convertPackageToDetailDto(updatedPackage);
+        PackageDetailDto dto = dtoConverter.convertPackageToDetailDto(updatedPackage);
 
         return Result.success("旅行团信息更新成功，请等待管理员审核", dto);
     }

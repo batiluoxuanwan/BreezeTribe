@@ -10,4 +10,5 @@ import org.whu.backend.entity.travelpost.TravelPost;
 public interface TravelPostRepository extends JpaRepository<TravelPost, String> {
     // 根据作者ID分页查询游记
     Page<TravelPost> findByAuthorId(String authorId, Pageable pageable);
+
 }

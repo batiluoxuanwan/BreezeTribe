@@ -38,6 +38,8 @@ public class MediaService {
     public static final String IMAGE_PROCESS = "image/resize,l_400/quality,q_50";
     @Autowired
     private PackageImageRepository packageImageRepository;
+    @Autowired
+    private DtoConverter dtoConverter;
 
     @Transactional
     public MediaFile uploadAndSaveFile(MultipartFile file, String uploaderId) throws IOException {
@@ -75,7 +77,7 @@ public class MediaService {
         Page<MediaFile> mediaFilePage = mediaFileRepository.findByUploaderId(currentUserId, pageable);
 
         List<MediaFileDto> dtos = mediaFilePage.getContent().stream()
-                .map(this::convertMediaFileToDto)
+                .map(dtoConverter::convertMediaFileToDto)
                 .collect(Collectors.toList());
 
         return PageResponseDto.<MediaFileDto>builder()
@@ -125,20 +127,5 @@ public class MediaService {
         mediaFileRepository.delete(mediaFile);
 
         log.info("文件ID '{}' 已被用户ID '{}' 成功从媒体库和OSS中删除。", fileId, currentUserId);
-    }
-
-
-    // 将MediaFile实体转换为DTO的私有辅助方法
-    private MediaFileDto convertMediaFileToDto(MediaFile entity) {
-        // 在转换时动态生成带签名的URL
-        String signedUrl = AliyunOssUtil.generatePresignedGetUrl(entity.getObjectKey(), EXPIRE_TIME, IMAGE_PROCESS);
-
-        return MediaFileDto.builder()
-                .id(entity.getId())
-                .url(signedUrl)
-                .fileType(entity.getFileType())
-                .fileSize(entity.getFileSize())
-                .createdTime(entity.getCreatedTime())
-                .build();
     }
 }

@@ -11,6 +11,8 @@ import org.whu.backend.common.Result;
 import org.whu.backend.dto.PageRequestDto;
 import org.whu.backend.dto.PageResponseDto;
 import org.whu.backend.dto.baidumap.BaiduSuggestionResponseDto;
+import org.whu.backend.dto.post.PostDetailDto;
+import org.whu.backend.dto.post.PostSummaryDto;
 import org.whu.backend.dto.travelpack.PackageDetailDto;
 import org.whu.backend.dto.travelpack.PackageSearchRequestDto;
 import org.whu.backend.dto.travelpack.PackageSummaryDto;
@@ -58,7 +60,7 @@ public class PublicController {
     }
 
     /**
-     * [修改] 原来的 searchExternalSpots 接口功能不明确，我们把它替换成更具体的 "suggestions" 接口
+     * [修改] 原来的 searchExternalSpots 接口功能不明确，把它替换成更具体的 "suggestions" 接口
      */
     @Operation(summary = "获取地点输入提示", description = "用于前端搜索框的实时输入提示，后端转发百度地图API请求")
     @GetMapping("/spots/suggestions")
@@ -70,4 +72,20 @@ public class PublicController {
         List<BaiduSuggestionResponseDto.SuggestionResult> suggestions = baiduMapService.getSuggestions(keyword, region);
         return Result.success(suggestions);
     }
+
+//    @Operation(summary = "获取已发布的游记列表（分页）")
+//    @GetMapping
+//    public Result<PageResponseDto<PostSummaryDto>> getPublishedPosts(@Valid @ParameterObject PageRequestDto pageRequestDto) {
+//        log.info("访问获取公共游记列表接口, 分页参数: {}", pageRequestDto);
+//        PageResponseDto<PostSummaryDto> resultPage = publicService.getPublishedPosts(pageRequestDto);
+//        return Result.success(resultPage);
+//    }
+//
+//    @Operation(summary = "获取单篇已发布的游记详情")
+//    @GetMapping("/{id}")
+//    public Result<PostDetailDto> getPostDetails(@PathVariable String id) {
+//        log.info("访问获取公共游记详情接口, ID: {}", id);
+//        PostDetailDto postDetails = publicService.getPostDetails(id);
+//        return Result.success(postDetails);
+//    }
 }

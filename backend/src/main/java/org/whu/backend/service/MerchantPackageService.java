@@ -55,6 +55,8 @@ public class MerchantPackageService {
     private SpotRepository spotRepository;
     @Autowired
     private BaiduMapService baiduMapService;
+    @Autowired
+    private DtoConverter dtoConverter;
 
     @Transactional
     public TravelPackage createPackage(PackageCreateRequestDto dto, String dealerId) {
@@ -201,7 +203,7 @@ public class MerchantPackageService {
 
         // 使用Lambda表达式来调用另一个Service中的方法，或者直接改成
         List<PackageSummaryDto> summaryDtos = packagePage.getContent().stream()
-                .map(entity -> publicService.convertPackageToSummaryDto(entity))
+                .map(dtoConverter::convertPackageToSummaryDto)
                 .collect(Collectors.toList());
 
         return PageResponseDto.<PackageSummaryDto>builder()
@@ -235,7 +237,7 @@ public class MerchantPackageService {
 
         // 4. 将实体列表转换为对经销商安全的DTO列表
         List<OrderSummaryForDealerDto> dtos = orderPage.getContent().stream()
-                .map(this::convertOrderToSummaryForDealerDto)
+                .map(dtoConverter::convertOrderToSummaryForDealerDto)
                 .collect(Collectors.toList());
 
         // 5. 封装并返回分页结果
@@ -281,31 +283,6 @@ public class MerchantPackageService {
             return savedSpot;
         }
     }
-
-    // 将Order实体转换为对经销商安全的摘要DTO的私有辅助方法
-    private OrderSummaryForDealerDto convertOrderToSummaryForDealerDto(Order order) {
-        return OrderSummaryForDealerDto.builder()
-                .orderId(order.getId())
-                .travelerCount(order.getTravelerCount())
-                .totalPrice(order.getTotalPrice())
-                .contactName(maskName(order.getContactName())) // 脱敏处理
-                .contactPhone(maskPhone(order.getContactPhone())) // 脱敏处理
-                .orderTime(order.getCreatedTime())
-                .build();
-    }
-
-    // 姓名脱敏辅助方法，例如 "张三" -> "张**"
-    private String maskName(String name) {
-        if (name == null || name.isEmpty()) return "";
-        return name.charAt(0) + "**";
-    }
-
-    // 电话脱敏辅助方法，例如 "13812345678" -> "138****5678"
-    private String maskPhone(String phone) {
-        if (phone == null || phone.length() != 11) return "手机号格式错误";
-        return phone.substring(0, 3) + "****" + phone.substring(7);
-    }
-
 
     // 一个私有辅助方法，用于查找旅行团并验证所有权
     private TravelPackage findPackageByIdAndVerifyOwnership(String packageId, String currentDealerId) {

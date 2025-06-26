@@ -11,10 +11,14 @@ import org.springframework.transaction.annotation.Transactional;
 import org.whu.backend.common.exception.BizException;
 import org.whu.backend.dto.PageRequestDto;
 import org.whu.backend.dto.PageResponseDto;
+import org.whu.backend.dto.post.PostDetailDto;
+import org.whu.backend.dto.post.PostSummaryDto;
 import org.whu.backend.dto.route.RouteDetailDto;
 import org.whu.backend.dto.travelpack.PackageDetailDto;
 import org.whu.backend.dto.travelpack.PackageSummaryDto;
 import org.whu.backend.entity.TravelPackage;
+import org.whu.backend.entity.travelpost.TravelPost;
+import org.whu.backend.repository.TravelPostRepository;
 import org.whu.backend.repository.travelRepo.TravelPackageRepository;
 import org.whu.backend.util.AliyunOssUtil;
 
@@ -32,6 +36,12 @@ public class PublicService {
 
     public static final long EXPIRE_TIME = 60 * 60 * 4 * 1000;
     public static final String IMAGE_PROCESS = "image/resize,l_1600/quality,q_50";
+    @Autowired
+    private DtoConverter dtoConverter;
+//    @Autowired
+//    private TravelPostRepository travelPostRepository;
+//    @Autowired
+//    private UserPostService userPostService;
 
     /**
      * 获取已发布的旅行团列表（分页）
@@ -49,7 +59,7 @@ public class PublicService {
 
         // 3. 将查询到的 Page<Entity> 转换为 List<DTO>
         List<PackageSummaryDto> summaryDtos = packagePage.getContent().stream()
-                .map(this::convertPackageToSummaryDto)
+                .map(dtoConverter::convertPackageToSummaryDto)
                 .collect(Collectors.toList());
 
         // 4. 使用Builder模式构建分页响应对象
@@ -79,52 +89,45 @@ public class PublicService {
                 });
         log.info("成功查询到旅行团 '{}' 的详情。", travelPackage.getTitle());
         // 2. 将Entity转换为详细的DTO
-        return convertPackageToDetailDto(travelPackage);
+        return dtoConverter.convertPackageToDetailDto(travelPackage);
     }
 
 
-    // --- 私有的转换方法 (Entity -> DTO) ---
-    // 把旅游团实体TravelPackage转化为简略的信息PackageSummaryDto
-    public PackageSummaryDto convertPackageToSummaryDto(TravelPackage entity) {
-        PackageSummaryDto dto = new PackageSummaryDto();
-        dto.setId(entity.getId());
-        dto.setTitle(entity.getTitle());
-        if (entity.getCoverImageUrl() != null)
-            dto.setCoverImageUrl(AliyunOssUtil.generatePresignedGetUrl(entity.getCoverImageUrl(), EXPIRE_TIME, IMAGE_PROCESS));
-        dto.setPrice(entity.getPrice());
-        dto.setDescription(entity.getDetailedDescription());
-        dto.setDurationInDays(entity.getDurationInDays());
-        dto.setStatus(entity.getStatus().toString());
-        return dto;
-    }
-
-    public PackageDetailDto convertPackageToDetailDto(TravelPackage entity) {
-        // 1. 先转换内部嵌套的路线和景点列表
-        List<RouteDetailDto> routeDtos = entity.getRoutes().stream()
-                // 直接调用MerchantRouteService中已经写好的、公共的转换方法
-                .map(packageRoute -> merchantRouteService.convertToDetailDto(packageRoute.getRoute()))
-                .collect(Collectors.toList());
-
-        // 2. 转换并生成签名的图片URL列表
-        List<String> signedImageUrls = entity.getImages().stream()
-                .map(packageImage -> {
-                    String objectKey = packageImage.getMediaFile().getObjectKey();
-                    return AliyunOssUtil.generatePresignedGetUrl(objectKey, EXPIRE_TIME, IMAGE_PROCESS);
-                })
-                .collect(Collectors.toList());
-
-        // 3. 构建最外层的PackageDetailDto
-        return PackageDetailDto.builder()
-                .id(entity.getId())
-                .title(entity.getTitle())
-                .coverImageUrls(signedImageUrls)
-                .price(entity.getPrice())
-                .durationInDays(entity.getDurationInDays())
-                .detailedDescription(entity.getDetailedDescription())
-                .status(entity.getStatus().name())
-                .routes(routeDtos)
-                .build();
-    }
-
-
+//    // 获取已发布的游记列表（分页）
+//    public PageResponseDto<PostSummaryDto> getPublishedPosts(PageRequestDto pageRequestDto) {
+//        log.info("正在获取公共游记列表, 分页参数: {}", pageRequestDto);
+//
+//        Sort sort = Sort.by(Sort.Direction.fromString(pageRequestDto.getSortDirection()), pageRequestDto.getSortBy());
+//        Pageable pageable = PageRequest.of(pageRequestDto.getPage() - 1, pageRequestDto.getSize(), sort);
+//
+//        // JpaRepository自带的findAll(pageable)即可
+//        Page<TravelPost> postPage = travelPostRepository.findAll(pageable);
+//
+//        List<PostSummaryDto> dtos = postPage.getContent().stream()
+//                .map(userPostService::convertToSummaryDto)
+//                .collect(Collectors.toList());
+//
+//        return PageResponseDto.<PostSummaryDto>builder()
+//                .content(dtos)
+//                .pageNumber(postPage.getNumber() + 1)
+//                .pageSize(postPage.getSize())
+//                .totalElements(postPage.getTotalElements())
+//                .totalPages(postPage.getTotalPages())
+//                .first(postPage.isFirst())
+//                .last(postPage.isLast())
+//                .numberOfElements(postPage.getNumberOfElements())
+//                .build();
+//    }
+//
+//    // [新增] 获取单篇已发布的游记详情
+//    public PostDetailDto getPostDetails(String postId) {
+//        log.info("正在获取公共游记详情, ID: {}", postId);
+//
+//        TravelPost post = travelPostRepository.findById(postId)
+//                .orElseThrow(() -> new BizException("找不到ID为 " + postId + " 的游记"));
+//
+//        // TODO: 可以在这里增加一个状态判断，比如只返回状态为“已发布”的游记，还有只查询公共权限的游记
+//
+//        return userPostService.convertToDetailDto(post);
+//    }
 }

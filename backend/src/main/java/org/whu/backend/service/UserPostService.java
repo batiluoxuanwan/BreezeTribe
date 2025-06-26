@@ -201,7 +201,7 @@ public class UserPostService {
     }
 
     // 将景点Spot实体转换为景点SpotDetailDto
-    private SpotDetailDto SpotConvertToDetailDto(Spot spot) {
+    public SpotDetailDto SpotConvertToDetailDto(Spot spot) {
         return SpotDetailDto.builder()
                 .id(spot.getId())
                 .mapProviderUid(spot.getMapProviderUid())
@@ -214,7 +214,7 @@ public class UserPostService {
     }
 
     // 将TravelPost实体转换为摘要DTO
-    private PostSummaryDto convertToSummaryDto(TravelPost post) {
+    public PostSummaryDto convertToSummaryDto(TravelPost post) {
         // 获取封面图URL
         String coverUrl = null;
         if (post.getImages() != null && !post.getImages().isEmpty()) {
