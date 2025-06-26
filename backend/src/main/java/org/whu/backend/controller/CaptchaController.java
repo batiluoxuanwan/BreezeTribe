@@ -20,7 +20,12 @@ public class CaptchaController {
         captchaService.sendVerificationEmail(email);
         return Result.success("验证码已发送，请查收邮件");
     }
-
+    @PostMapping("/resetEmail")
+    public Result<?> resetEmail(@RequestParam String email) {
+        log.info("发送验证码请求，邮箱: {}", email);
+        captchaService.resetVerificationEmail(email);
+        return Result.success("验证码已发送，请查收邮件");
+    }
 
 
 

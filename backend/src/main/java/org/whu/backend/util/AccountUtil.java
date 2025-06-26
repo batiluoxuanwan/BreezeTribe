@@ -8,15 +8,17 @@ import org.whu.backend.common.exception.BizException;
 import org.whu.backend.entity.accounts.Account;
 import org.whu.backend.entity.accounts.User;
 import org.whu.backend.repository.authRepo.UserRepository;
-
+import org.whu.backend.repository.authRepo.AuthRepository;
 import java.util.Optional;
 
 @Component
-public class SecurityUtil {
+public class AccountUtil {
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private AuthRepository AuthRepository;
 
-    public static String getCurrentUserId() {
+    public static String getCurrentAccountId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !(authentication.getPrincipal() instanceof Account account)) {
             return null;
@@ -28,10 +30,19 @@ public class SecurityUtil {
      * String userId = SecurityUtil.getCurrentUserId();
      * 获取用户ID
     */
-    public User getCurrentUser() {
-        if (SecurityUtil.getCurrentUserId() == null)
+    public Account getCurrentAccount() {
+        if (AccountUtil.getCurrentAccountId() == null)
             throw new BizException("用户未登录");
-        Optional<User> userOpt = userRepository.findById(SecurityUtil.getCurrentUserId());
+        Optional<Account> accountOpt = AuthRepository.findById(AccountUtil.getCurrentAccountId());
+        if (accountOpt.isEmpty()) {
+            throw new BizException("用户不存在");
+        }
+        return accountOpt.get();
+    }
+    public User getCurrentUser() {
+        if (AccountUtil.getCurrentAccountId() == null)
+            throw new BizException("用户未登录");
+        Optional<User> userOpt = userRepository.findById(AccountUtil.getCurrentAccountId());
         if (userOpt.isEmpty()) {
             throw new BizException("用户不存在");
         }

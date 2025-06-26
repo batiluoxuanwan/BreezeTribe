@@ -14,21 +14,31 @@
         <span>人数: {{ group.members }}人</span>
         <span>评分: {{ group.rating }}</span>
       </div>
-      <el-button type="primary" size="small" class="detail-button">查看详情</el-button>
+      <el-button type="primary" size="small" class="detail-button" @click.stop="goToDetail">查看详情</el-button>
     </div>
   </el-card>
 </template>
 
 <script setup>
 import { defineProps } from 'vue';
-import { ElCard, ElButton, ElTag } from 'element-plus'; // 导入 ElTag
+import { ElCard, ElButton, ElTag } from 'element-plus'; 
+import {useRouter} from 'vue-router';
 
-defineProps({
+const props = defineProps({
   group: {
     type: Object,
     required: true
   }
 });
+
+const router = useRouter();
+
+// 跳转详情页并传递旅行团id
+const goToDetail = () => {
+  console.log('查看旅行团详情:', props.group.id);
+  router.push({ name: 'TravelGroupDetail', params: { id: props.group.id } });
+};
+
 </script>
 
 <style scoped>

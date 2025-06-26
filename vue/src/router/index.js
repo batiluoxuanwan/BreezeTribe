@@ -32,7 +32,7 @@ const routes =[
         component:() =>import('../views/Merchant/Profile.vue')
     },
     {
-        path:'/Merchant/Newgroup',
+        path:'/merchant/newgroup',
         name:'发布新团',
         component:() =>import('../views/Merchant/Newgroup.vue')
     },
@@ -40,7 +40,13 @@ const routes =[
         path:'/administrator/me',
         name:'管理员个人主页',
         component:() =>import('../views/Administrator/Profile.vue')
-    }
+    },
+    {
+        path: '/travel-group/:id', 
+        name: 'TravelGroupDetail', 
+        component:() =>import('../views/Public/TravelGroupDetail.vue'),
+        props: true, 
+    },
 ];
 
 const router = createRouter({

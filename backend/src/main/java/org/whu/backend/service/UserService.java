@@ -24,8 +24,8 @@ import org.whu.backend.repository.travelRepo.RouteRepository;
 import org.whu.backend.repository.travelRepo.SpotRepository;
 import org.whu.backend.repository.travelRepo.TravelPackageRepository;
 import org.whu.backend.repository.authRepo.UserRepository;
+import org.whu.backend.util.AccountUtil;
 import org.whu.backend.util.JpaUtil;
-import org.whu.backend.util.SecurityUtil;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -49,7 +49,7 @@ public class UserService {
     @Autowired
     private FavoriteRepository favoriteRepository;
     @Autowired
-    private SecurityUtil securityUtil;
+    private AccountUtil securityUtil;
 
     public OrderDetailDto createOrder(OrderCreateRequestDto orderCreateRequestDto) {
         // 1. 获取当前登录用户

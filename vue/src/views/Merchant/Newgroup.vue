@@ -1,300 +1,924 @@
 <template>
-    <div class="create-package" style="padding: 24px; max-width: 900px; margin: auto;">
-    <h2>发布新的旅游团</h2>
-  
-    <!-- 目的地输入 -->
-    <el-form :inline="true" label-width="80px" style="margin-bottom: 12px;">
-    <el-form-item label="📍目的地">
-      <el-autocomplete
-        v-model="destination"
-        :fetch-suggestions="querySearchdestination"
-        placeholder="请输入目的地"
-        clearable
-        :prefix-icon="Search"
-        style="width: 400px"
-        @select="handleSelect"
-      />
-    </el-form-item>
-    </el-form>
-          
-    <!-- 时间选择 -->
-    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 24px;">
-    <el-form-item label="出发时间" label-width="80px" style="margin-bottom: 0;">
-        <el-date-picker v-model="startDate" type="date" placeholder="开始日期" />
-    </el-form-item>
+  <div class="newgroup">
+    <div class="create-tour-package-page">
+      <div class="header-section">
+        <h2 class="page-title">
+          <el-icon><Plus /></el-icon> 发布新的旅行团
+        </h2>
+        <p class="page-subtitle">在这里创建您独一无二的旅行团行程，让更多人发现精彩！</p>
+        <el-button type="info" :icon="ArrowLeft" class="back-to-profile-btn" @click="goToProfile">
+          返回
+        </el-button>
+      </div>
 
-    <el-form-item label="返回时间" label-width="80px" style="margin-bottom: 0;">
-        <el-date-picker v-model="endDate" type="date" placeholder="结束日期" />
-    </el-form-item>
+      <div class="form-sections-container">
+        <el-card class="form-card basic-info-card">
+          <template #header>
+            <div class="card-header">
+              <h3>基本信息</h3>
+              <el-icon><InfoFilled /></el-icon>
+            </div>
+          </template>
+          <el-form label-width="100px" label-position="left">
+            <el-form-item label="📍 目的地">
+              <el-autocomplete
+                v-model="destination"
+                :fetch-suggestions="querySearchSpots"
+                placeholder="请输入旅行团的主要目的地，例如：上海、云南"
+                clearable
+                :prefix-icon="Search"
+                style="width: 100%;"
+                @select="handleSelectDestination"
+              />
+            </el-form-item>
 
-    <el-button type="primary" @click="generateDays">生成行程</el-button>
-    </div>
+            <el-form-item label="📅 出发日期">
+              <el-date-picker
+                v-model="startDate"
+                type="date"
+                placeholder="选择旅行团的开始日期"
+                value-format="YYYY-MM-DD"
+                style="width: 100%;"
+              />
+            </el-form-item>
 
-    <div v-for="(day, index) in days" :key="index" class="day-card">
-      <h3>DAY {{ index + 1 }}</h3>
-      <el-button type="primary" @click="spotDialogVisible = true">+ 添加地点/活动</el-button>
+            <el-form-item label="🔚 返回日期">
+              <el-date-picker
+                v-model="endDate"
+                type="date"
+                placeholder="选择旅行团的结束日期"
+                value-format="YYYY-MM-DD"
+                style="width: 100%;"
+              />
+            </el-form-item>
 
-    <!--景点搜索框-->
-      <el-dialog v-model="spotDialogVisible" title="搜索景点" width="600px">
+            <el-form-item label="🖼️ 团主图">
+              <el-upload
+                action="#"
+                list-type="picture-card"
+                :auto-upload="false"
+                :on-change="handleTourImageUpload"
+                :on-remove="handleTourImageRemove"
+                :file-list="tourImageUrls.map(url => ({ url: url }))"
+                :limit="5" accept="image/jpeg,image/png"
+              >
+                <el-icon><Plus /></el-icon>
+                <template #tip>
+                  <div class="el-upload__tip">
+                    上传旅行团主封面图片，最多可上传5张 (JPG/PNG格式，单张不超过 500KB)
+                  </div>
+                </template>
+              </el-upload>
+            </el-form-item>
+
+            <el-form-item>
+              <el-button type="primary" @click="generateDays" :disabled="!startDate || !endDate" class="generate-btn">
+                <el-icon><Calendar /></el-icon> 生成行程框架
+              </el-button>
+            </el-form-item>
+          </el-form>
+        </el-card>
+
+        <el-card class="form-card itinerary-card" v-if="days.length > 0">
+          <template #header>
+            <div class="card-header">
+              <h3>行程安排</h3>
+              <el-icon><List /></el-icon>
+            </div>
+          </template>
+
+          <div v-for="(day, index) in days" :key="index" class="day-section">
+            <div class="day-header">
+              <h4>DAY {{ index + 1 }}</h4>
+              <el-button type="primary" link @click="openSpotDialog(index)">
+                <el-icon><Plus /></el-icon> 添加地点/活动
+              </el-button>
+            </div>
+
+            <el-form label-width="90px" label-position="left" class="daily-route-form">
+              <el-form-item label="路线名称">
+                <el-input v-model="dailySchedules.routeName" placeholder="例如：上海市区经典一日游"></el-input>
+              </el-form-item>
+              <el-form-item label="路线描述">
+                <el-input
+                  v-model="dailySchedules.routeDescription"
+                  type="textarea"
+                  :rows="2"
+                  placeholder="简述当天行程亮点或交通方式"
+                ></el-input>
+              </el-form-item>
+            </el-form>
+
+            <div class="spot-list">
+              <el-empty
+                v-if="day.spots.length === 0"
+                description="点击右上方按钮，为这一天添加精彩的地点或活动！"
+                :image-size="60"
+                class="empty-spot-list"
+              ></el-empty>
+              <el-card
+                v-for="(spot, i) in day.spots"
+                :key="i"
+                class="spot-card"
+                shadow="hover"
+              >
+                <div class="spot-card-content">
+                  <div class="spot-main-info">
+                    <span class="spot-index">{{ i + 1 }}.</span>
+                    <div class="spot-title-text">{{ spot.name }}</div>
+                    <el-button type="danger" :icon="Delete" circle size="small" class="delete-spot-btn" @click="removeSpot(index, i)"></el-button>
+                  </div>
+
+                  <div class="note-preview" @click="openSpotDetailDialog(index, i)">
+                    <el-icon><Edit /></el-icon>
+                    <div class="note-content">
+                      <div v-if="spot.timeRange && spot.timeRange.length === 2 && spot.timeRange[0] && spot.timeRange[1]" class="time-range-display">
+                        <el-icon><Clock /></el-icon> {{ spot.timeRange[0] }} - {{ spot.timeRange[1] }}
+                      </div>
+                      <div v-if="spot.note" class="actual-note">{{ spot.note }}</div>
+                      <el-image
+                        v-if="spot.imageUrl"
+                        :src="spot.imageUrl"
+                        :preview-src-list="[spot.imageUrl]"
+                        fit="cover"
+                        class="spot-image-preview"
+                      />
+                      <div v-if="!spot.note && (!spot.timeRange || spot.timeRange.length === 0) && !spot.imageUrl" class="empty-note">
+                        点击此处，为该地点添加时间、备注或图片
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </el-card>
+            </div>
+          </div>
+        </el-card>
+
+        <div class="submit-section" v-if="days.length > 0">
+          <el-button type="success" size="large" :icon="Check" class="submit-button" @click="submitTourPackage">
+            发布旅行团
+          </el-button>
+        </div>
+      </div>
+
+      <el-dialog v-model="spotDialogVisible" title="搜索并添加景点/活动" width="600px" class="spot-search-dialog">
         <el-autocomplete
-            v-model="spotKeyword"
-            :fetch-suggestions="querySearchSpots"
-            placeholder="输入关键词搜索"
-            clearable
-            @select="handleSpotSelect"
-            style="width: 100%"
-        />
+          v-model="spotKeyword"
+          :fetch-suggestions="querySearchSpots"
+          placeholder="输入关键词搜索景点或活动，例如：外滩、上海迪士尼"
+          clearable
+          @select="handleSpotSelect"
+          style="width: 100%"
+        >
+          <template #prefix>
+            <el-icon><Search /></el-icon>
+          </template>
+          <template #loading>
+            <div class="loading-text">加载中...</div>
+          </template>
+          <template #default="{ item }">
+            <div class="autocomplete-item">
+              <div class="item-name">{{ item.name }}</div>
+              <div class="item-location">{{ item.province }} {{ item.city }} {{ item.district }}</div>
+            </div>
+          </template>
+        </el-autocomplete>
 
-        <div v-if="spotResults.length" style="margin-top: 20px;">
-            <el-card
-            v-for="(item, index) in spotResults"
-            :key="index"
+        <div v-if="spotResults.length" class="search-results-list">
+          <el-card
+            v-for="(item, idx) in spotResults"
+            :key="idx"
             class="result-card"
             shadow="hover"
             @click="handleSpotSelect(item)"
-            style="margin-bottom: 10px; cursor: pointer;"
-            >
-            <div><strong>{{ item.name }}</strong></div>
-            <div style="font-size: 12px; color: gray;">
-                {{ item.province }} {{ item.city }} {{ item.district }}
+          >
+            <strong>{{ item.name }}</strong>
+            <div class="result-location">
+              <el-icon><Location /></el-icon> {{ item.province }} {{ item.city }} {{ item.district }}
             </div>
-            </el-card>
+          </el-card>
         </div>
-        <div v-if="loading" style="margin-top: 20px;">搜索中...</div>
+        <div v-if="loading" class="loading-status">搜索中...</div>
 
         <template #footer>
-            <el-button @click="spotDialogVisible = false">取消</el-button>
+          <el-button @click="spotDialogVisible = false">取消</el-button>
         </template>
-        </el-dialog>
+      </el-dialog>
 
-        <!-- 景点卡片列表 -->
-        <div class="spot-list">
-            <el-card
-            v-for="(spot, i) in day.spots"
-            :key="i"
-            class="spot-card"
-            shadow="hover"
-            >
-            <!-- 景点名称 -->
-            <div class="spot-title">{{ spot.name }}</div>
-
-            <!-- 备注预览框 -->
-            <div class="note-preview" @click="spot.editing = true">
-                <el-icon><Edit /></el-icon>
-                <div class="note-content">
-                <div v-if="spot.timeRange.length">{{ spot.timeRange[0] }} - {{ spot.timeRange[1] }}</div>
-                <div v-if="spot.note">{{ spot.note }}</div>
-                <el-image
-                    v-if="spot.imageUrl"
-                    :src="spot.imageUrl"
-                    :preview-src-list="[spot.imageUrl]"
-                    style="width: 60px; height: 60px"
-                />
-                <div v-if="!spot.note && !spot.timeRange.length && !spot.imageUrl" class="empty-note">
-                    点击添加备注
-                </div>
-                </div>
-            </div>
-
-            <!-- 备注弹窗 -->
-            <el-dialog v-model="spot.editing" :title="spot.name" width="400px">
-                <el-input
-                v-model="spot.note"
-                type="textarea"
-                placeholder="输入备注"
-                rows="3"
-                style="margin-bottom: 12px"
-                />
-                <el-time-picker
-                is-range
-                v-model="spot.timeRange"
-                range-separator="至"
-                start-placeholder="开始"
-                end-placeholder="结束"
-                format="HH:mm"
-                value-format="HH:mm"
-                style="width: 100%; margin-bottom: 12px"
-                />
-                <el-upload
-                class="upload-demo"
+      <el-dialog v-model="spotDetailDialogVisible" :title="currentSpot.name || '编辑地点/活动详情'" width="500px" class="spot-detail-dialog">
+        <el-form label-width="80px">
+          <el-form-item label="备注">
+            <el-input
+              v-model="currentSpot.note"
+              type="textarea"
+              placeholder="输入此地点/活动的详细备注或介绍，例如：推荐午餐地点、最佳观景时间"
+              rows="4"
+            />
+          </el-form-item>
+          <el-form-item label="时间段">
+            <el-time-picker
+              is-range
+              v-model="currentSpot.timeRange"
+              range-separator="至"
+              start-placeholder="开始时间"
+              end-placeholder="结束时间"
+              format="HH:mm"
+              value-format="HH:mm"
+              style="width: 100%;"
+            />
+          </el-form-item>
+          <el-form-item label="图片">
+            <div class="image-upload-wrapper">
+              <el-upload
+                class="image-uploader"
                 action="#"
                 :auto-upload="false"
-                :on-change="(file) => handleImageUpload(file, day, i)"
-                >
-                <el-button icon="Upload" size="small">添加图片</el-button>
-                </el-upload>
-                <template #footer>
-                <el-button @click="spot.editing = false">完成</el-button>
-                </template>
-            </el-dialog>
-            </el-card>
-        </div>
-
+                :show-file-list="false"
+                :on-change="(file) => handleImageUpload(file)"
+                accept="image/jpeg,image/png"
+              >
+                <img v-if="currentSpot.imageUrl" :src="currentSpot.imageUrl" class="uploaded-image" />
+                <el-icon v-else class="uploader-icon"><Plus /></el-icon>
+              </el-upload>
+              <el-button
+                v-if="currentSpot.imageUrl"
+                type="danger"
+                :icon="Delete"
+                circle
+                size="small"
+                class="remove-image-btn"
+                @click="currentSpot.imageUrl = ''"
+                title="移除图片"
+              ></el-button>
+            </div>
+            <div class="el-upload__tip">
+              点击上传图片 (JPG/PNG格式，大小不超过 500KB)
+            </div>
+          </el-form-item>
+        </el-form>
+        <template #footer>
+          <el-button type="primary" @click="spotDetailDialogVisible = false">确定</el-button>
+        </template>
+      </el-dialog>
     </div>
-    
-  
-    </div>
+  </div>
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
-import { Search, Edit, Upload } from '@element-plus/icons-vue'
-import {publicAxios} from '@/utils/request'
+import { ref, reactive, watch, useId } from 'vue'
+import { Search, Edit, Upload, Plus, InfoFilled, Calendar, List, Location, Check, Clock, Delete, ArrowLeft } from '@element-plus/icons-vue'
+import { publicAxios } from '@/utils/request'
+import { ElMessage } from 'element-plus'
+import { useRouter } from 'vue-router'
 
-const destination = ref('')
+const router = useRouter()
 
-const startDate = ref(null)
-const endDate = ref(null)
-const days = ref([])
+const goToProfile = () => {
+  router.push('/merchant/me')
+}
 
+// 旅行团整体信息
+const destination = ref('')//目的地
+const startDate = ref(null)//开始日期
+const endDate = ref(null)//结束日期
+const dailySchedules = ref([]) // 存储每天的行程，每个元素是 { spots: [] }
+const detailDescription = ref(null) //详细描述
+const price = ref(null) // 价格
+const capacity = ref(null) // 容量
+const activeDayIndex = ref(null) // 当前操作的是哪一天的行程
+
+const tourImageUrls = ref([]) // 用于前端预览的旅行团整体图片
+const uploadedImgIds = ref([]) // 存储已上传图片的ID，最终提交给后端
+
+// 景点搜索弹窗相关
 const spotDialogVisible = ref(false)
 const spotKeyword = ref('')
 const spotResults = ref([])
 const loading = ref(false)
 
-const cities = [
-  { name: '北京', province: '北京市', city: '北京市', district: '' },
-  { name: '上海', province: '上海市', city: '上海市', district: '' },
-  { name: '武汉', province: '湖北省', city: '武汉市', district: '' },
-  { name: '广州', province: '广东省', city: '广州市', district: '' },
-  { name: '深圳', province: '广东省', city: '深圳市', district: '' },
-  { name: '南京', province: '江苏省', city: '南京市', district: '' }
-]
+// 景点详情/备注弹窗相关
+const spotDetailDialogVisible = ref(false)
+const currentSpot = reactive({
+  name: '',
+  note: '',
+  timeRange: [],
+  imageUrl: '',
+  dayIndex: null, // 记录当前编辑的景点属于哪一天
+  spotIndex: null, // 记录当前编辑的景点是当天的第几个
+})
 
-const mockSpots = [
-  { name: '故宫', province: '北京市', city: '北京市', district: '东城区' },
-  { name: '外滩', province: '上海市', city: '上海市', district: '黄浦区' },
-  { name: '黄鹤楼', province: '湖北省', city: '武汉市', district: '武昌区' },
-  { name: '南京路', province: '上海市', city: '上海市', district: '黄浦区' }
-]
-// //模拟搜索
-// function querySearchdestination(queryString, cb) {
-//   if (!queryString) {
-//     cb([])
-//     return
-//   }
-//   const results = cities.filter(city =>
-//     city.name.includes(queryString) || city.province.includes(queryString)
-//   ).map(city => ({
-//     value: city.name,
-//     ...city
-//   }))
-//   cb(results)
-// }
+const handleSelectDestination = (item) => {
+  destination.value = item.name;
+  ElMessage.success(`目的地已选择: ${item.name}`);
+};
 
-const querySearchdestination = async (queryString, cb) => {
+// --- 行程生成 ---
+const generateDays = () => {
+  if (!startDate.value || !endDate.value) {
+    ElMessage.warning('请选择完整的出发日期和返回日期。');
+    return;
+  }
+
+  const start = new Date(startDate.value);
+  const end = new Date(endDate.value);
+
+  if (start.getTime() > end.getTime()) {
+    ElMessage.error('出发日期不能晚于返回日期！请重新选择。');
+    return;
+  }
+
+  const diffTime = Math.abs(end.getTime() - start.getTime());
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 包含起始两天
+
+  days.value = Array.from({ length: diffDays }, () => ({ spots: [] }));
+  ElMessage.success(`已为您生成 ${diffDays} 天的行程框架！现在可以开始添加内容了。`);
+};
+
+// --- 景点搜索与管理 ---
+const openSpotDialog = (dayIndex) => {
+  activeDayIndex.value = dayIndex; // 记录当前操作是哪一天
+  spotKeyword.value = ''; // 清空搜索关键词
+  spotResults.value = []; // 清空上次搜索结果
+  spotDialogVisible.value = true;
+};
+
+const querySearchSpots =async (queryString, cb) => {
   if (!queryString) return cb([])
   try {
     const res = await publicAxios.get('/public/spots/suggestions', {
       params: {
         keyword: queryString,
-        region: '中国' // 或你设定的默认值
+        region: '全球' 
       }
     })
     const results = res.data?.data || []
-    // el-autocomplete 要求数组中的对象有 `value` 字段
     cb(results.map(item => ({ ...item, value: item.name })))
   } catch (err) {
     console.error('获取目的地建议失败', err)
     cb([])
   }
-}
-
-const handleSelect = (item) => {
-  destination.value = item.name
-  // 可以存储经纬度、UID 之类信息
-  console.log('选中目的地:', item)
-}
-
-const generateDays = () => {
-  if (!startDate.value || !endDate.value) return
-  const start = new Date(startDate.value)
-  const end = new Date(endDate.value)
-  const diff = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1
-  days.value = Array.from({ length: diff }, () => ({ spots: [] }))
-}
-//模拟搜索景点
-function querySearchSpots(query, cb) {
-  if (!query) return cb([])
-  loading.value = true
-  setTimeout(() => {
-    const results = mockSpots.filter(spot =>
-      spot.name.includes(query) || spot.city.includes(query)
-    )
-    spotResults.value = results
-    loading.value = false
-    cb(results.map(r => ({ value: r.name, ...r })))
-  }, 500)
-}
-
-const handleSpotSelect = (item) => {
-  if (activeDayIndex.value == null) return;
-
-  days.value[activeDayIndex.value].spots.push({
-    name: item.name,
-    note: '',
-    timeRange: [],
-    imageUrl: '',
-    editing: false,
-  });
-
-  spotDialogVisible.value = false;
-  spotKeyword.value = '';
-  spotResults.value = [];
 };
 
-function openSpotDialog(dayIndex) {
-  currentDayIndex.value = dayIndex
-  spotKeyword.value = ''
-  spotResults.value = []
-  spotDialogVisible.value = true
-}
-
-const handleImageUpload = (file, day, i) => {
-  const reader = new FileReader()
-  reader.onload = () => {
-    day.spots[i].imageUrl = reader.result
+const handleSpotSelect = (item) => {
+  if (activeDayIndex.value === null) {
+    ElMessage.error('请先点击某天的“添加地点/活动”按钮来选择日期。');
+    return;
   }
-  reader.readAsDataURL(file.raw)
-}
+
+  // 检查是否已添加重复景点
+  const existingSpot = days.value[activeDayIndex.value].spots.find(s => s.uid === item.uid);
+  if (existingSpot) {
+    ElMessage.warning(`"${item.name}" 已经添加到 DAY ${activeDayIndex.value + 1} 了，请勿重复添加。`);
+    spotDialogVisible.value = false;
+    spotKeyword.value = '';
+    spotResults.value = [];
+    return;
+  }
+
+  dailySchedules.value[activeDayIndex.value].spots.push({
+    uid: item.uid,
+    note: '',
+    timeRange: [], 
+    imageUrl: '',
+  });
+  console.log(item)
+  ElMessage.success(`已将 "${item.name}" 添加到 DAY ${activeDayIndex.value + 1}。`);
+  spotDialogVisible.value = false; // 关闭搜索弹窗
+  spotKeyword.value = ''; 
+  spotResults.value = []; 
+};
+
+const removeSpot = (dayIndex, spotIndex) => {
+  const spotName = days.value[dayIndex].spots[spotIndex].name;
+  days.value[dayIndex].spots.splice(spotIndex, 1);
+  ElMessage.info(`已将 "${spotName}" 从行程中移除。`);
+};
+
+// --- 景点详情/备注弹窗 ---
+const openSpotDetailDialog = (dayIndex, spotIndex) => {
+  // 深拷贝景点数据，避免直接修改原始数据导致意外副作用
+  Object.assign(currentSpot, JSON.parse(JSON.stringify(days.value[dayIndex].spots[spotIndex])));
+  currentSpot.dayIndex = dayIndex;
+  currentSpot.spotIndex = spotIndex;
+  spotDetailDialogVisible.value = true;
+};
+
+// 监听弹窗关闭事件，将 currentSpot 的修改同步回原始数据
+watch(spotDetailDialogVisible, (newVal) => {
+  if (!newVal && currentSpot.dayIndex !== null && currentSpot.spotIndex !== null) {
+    const dayIdx = currentSpot.dayIndex;
+    const spotIdx = currentSpot.spotIndex;
+    // 将 currentSpot 的属性更新到原始数据中
+    Object.assign(days.value[dayIdx].spots[spotIdx], {
+      note: currentSpot.note,
+      timeRange: currentSpot.timeRange,
+      imageUrl: currentSpot.imageUrl,
+    });
+    // 重置 currentSpot 状态
+    Object.assign(currentSpot, { name: '', note: '', timeRange: [], imageUrl: '', dayIndex: null, spotIndex: null });
+  }
+});
+
+const handleImageUpload = (file) => {
+  const isJPGPNG = file.raw.type === 'image/jpeg' || file.raw.type === 'image/png';
+  const isLt500K = file.raw.size / 1024 < 500; // 小于 500KB
+
+  if (!isJPGPNG) {
+    ElMessage.error('图片只能是 JPG 或 PNG 格式！');
+    return false;
+  }
+  if (!isLt500K) {
+    ElMessage.error('图片大小不能超过 500KB！');
+    return false;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    currentSpot.imageUrl = e.target.result;
+    ElMessage.success('图片已成功预览，点击“确定”保存到行程。');
+  };
+  reader.readAsDataURL(file.raw);
+  return true;
+};
+
+// --- 最终提交 ---
+const submitTourPackage = () => {
+  console.log('即将提交的旅行团数据:', {
+    destination: destination.value,
+    startDate: startDate.value,
+    endDate: endDate.value,
+    itinerary: days.value
+  });
+
+  // 模拟提交成功
+  ElMessage.success('恭喜！您的旅行团已成功发布！🎉');
+};
+
 </script>
 
 <style scoped>
-.day-card {
-  margin-bottom: 24px;
-  border: 1px solid #eee;
-  padding: 16px;
-  border-radius: 8px;
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
+.newgroup{
+  background-image: url('@/assets/bg1.jpg');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  min-height: 100vh;
+  align-items: center;
+  padding: 40px 0;
 }
-.spot-list {
+
+.create-tour-package-page {
+  padding: 40px;
+  max-width: 1000px; 
+  margin: auto;
+  font-family: 'Poppins', sans-serif;
+  background-color: #f0f2f5; 
+  border-radius: 18px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08); 
+}
+
+.header-section {
+  text-align: center;
+  margin-bottom: 40px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e0e0e0; /* 分隔线 */
+}
+
+.page-title {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 10px;
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 12px;
+  align-items: center;
+  justify-content: center;
 }
-.spot-card {
-  width: 300px;
-  padding: 12px;
+
+.page-title .el-icon {
+  font-size: 2.2rem;
+  margin-right: 10px;
+  color: #00796b; 
+}
+
+.page-subtitle {
+  font-size: 1.1rem;
+  color: #666;
+  font-weight: 400;
+}
+
+.back-to-profile-btn{
+  position:absolute;
+  top:10px;
+  left:10px;
+  padding:8px 15px;
+  font-size:0.9rem;
+  border-radius:8px;
+  background-color:#607d8b;
+  border-color:#607d8b;
+  color:#fff;
+  transition:all 0.3s ease;
+}
+
+.form-sections-container {
+  display: flex;
+  flex-direction: column;
+  gap: 30px; /* 卡片之间的间距 */
+}
+
+.form-card {
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+  background-color: #ffffff;
+  padding: 25px 30px;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: 20px;
+}
+
+.card-header h3 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.card-header .el-icon {
+  font-size: 1.5rem;
+  color: #909399; /* 标题图标颜色 */
+}
+
+/* 基本信息卡片 */
+.basic-info-card .el-form-item {
+  margin-bottom: 20px;
+}
+
+.basic-info-card .el-form-item__label {
+  font-weight: 500;
+  color: #555;
+}
+
+.generate-btn {
+  width: 100%;
+  padding: 12px 0;
+  font-size: 1rem;
+  letter-spacing: 1px;
   border-radius: 8px;
+  background-color: #4CAF50; /* 绿色 */
+  border-color: #4CAF50;
+  transition: all 0.3s ease;
 }
-.spot-title {
-  font-weight: bold;
-  margin-bottom: 8px;
+
+.generate-btn:hover {
+  background-color: #43A047;
+  border-color: #43A047;
+  transform: translateY(-2px);
 }
+
+.generate-btn .el-icon {
+  margin-right: 8px;
+}
+
+/* 行程安排卡片 */
+.itinerary-card {
+  margin-top: 20px;
+}
+
+.day-section {
+  border: 1px solid #e8e8e8;
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 25px;
+  background-color: #fdfdfd;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s ease;
+}
+
+.day-section:hover {
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+.day-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  border-bottom: 1px dashed #f0f0f0; /* 虚线分隔 */
+  padding-bottom: 10px;
+}
+
+.day-header h4 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #555;
+  letter-spacing: 0.5px;
+}
+
+.day-header .el-button {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #00796b; /* 主题色 */
+}
+
+.day-header .el-button:hover {
+  text-decoration: underline;
+}
+
+.spot-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); /* 响应式网格布局 */
+  gap: 15px;
+  margin-top: 15px;
+}
+
+.empty-spot-list {
+  grid-column: 1 / -1; /* 横跨所有列 */
+  margin: 20px 0;
+  font-size: 0.95rem;
+  color: #999;
+}
+
+.spot-card {
+  border-radius: 10px;
+  background-color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease-in-out;
+  display: flex;
+  flex-direction: column;
+}
+
+.spot-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.spot-card-content {
+  padding: 15px;
+}
+
+.spot-main-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.spot-index {
+  font-weight: 700;
+  color: #00796b; /* 主题色 */
+  font-size: 1.1rem;
+  margin-right: 8px;
+}
+
+.spot-title-text {
+  flex-grow: 1;
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.delete-spot-btn {
+  color: #f56c6c; /* 红色 */
+  border-color: #f56c6c;
+  opacity: 0.7;
+}
+
+.delete-spot-btn:hover {
+  opacity: 1;
+  background-color: #fef0f0;
+}
+
 .note-preview {
   display: flex;
-  gap: 8px;
-  background-color: #f9f9f9;
-  padding: 8px;
-  border-radius: 6px;
+  align-items: flex-start; /* 图标与文本顶部对齐 */
+  gap: 10px;
+  background-color: #f9fbfb; /* 预览框浅色背景 */
+  padding: 12px;
+  border-radius: 8px;
   cursor: pointer;
+  border: 1px dashed #e0e0e0;
+  min-height: 70px; /* 确保最小高度 */
+  transition: all 0.2s ease;
 }
+
+.note-preview:hover {
+  background-color: #e0f2f1; /* 鼠标悬停时浅主题色 */
+  border-color: #b2dfdb;
+}
+
+.note-preview .el-icon {
+  font-size: 1.2rem;
+  color: #909399; /* 编辑图标颜色 */
+  margin-top: 2px;
+}
+
 .note-content {
   flex: 1;
-  font-size: 14px;
+  font-size: 0.9rem;
+  color: #666;
+  line-height: 1.4;
+  word-break: break-word; /* 自动换行 */
 }
+
+.time-range-display {
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 5px;
+  display: flex;
+  align-items: center;
+}
+
+.time-range-display .el-icon {
+  font-size: 0.9rem;
+  margin-right: 5px;
+  color: #606266;
+}
+
+.actual-note {
+  margin-bottom: 5px;
+}
+
 .empty-note {
   color: #aaa;
   font-style: italic;
+  font-size: 0.85rem;
+}
+
+.spot-image-preview {
+  width: 80px;
+  height: 80px;
+  border-radius: 6px;
+  margin-top: 8px;
+  object-fit: cover;
+  border: 1px solid #eee;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* 提交按钮区域 */
+.submit-section {
+  text-align: center;
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.submit-button {
+  padding: 15px 30px;
+  font-size: 1.2rem;
+  font-weight: 600;
+  border-radius: 10px;
+  background-color: #2196F3; /* 蓝色作为主要操作按钮 */
+  border-color: #2196F3;
+  transition: all 0.3s ease;
+}
+
+.submit-button:hover {
+  background-color: #1976D2;
+  border-color: #1976D2;
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+}
+
+.submit-button .el-icon {
+  margin-right: 10px;
+}
+
+/* 弹窗样式覆盖 */
+.spot-search-dialog .el-dialog__header,
+.spot-detail-dialog .el-dialog__header {
+  border-bottom: 1px solid #e0e0e0;
+  padding-bottom: 15px;
+  margin-bottom: 20px;
+}
+
+.spot-search-dialog .el-dialog__title,
+.spot-detail-dialog .el-dialog__title {
+  font-weight: 600;
+  color: #333;
+}
+
+.autocomplete-item {
+  line-height: normal;
+  padding: 7px;
+}
+.autocomplete-item .item-name {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  font-size: 14px;
+  color: #333;
+}
+.autocomplete-item .item-location {
+  font-size: 12px;
+  color: #999;
+}
+.loading-text, .loading-status {
+  text-align: center;
+  color: #999;
+  font-size: 0.9rem;
+  padding: 10px 0;
+}
+
+.search-results-list {
+  margin-top: 20px;
+  max-height: 300px; /* 限制搜索结果列表的高度 */
+  overflow-y: auto; /* 超出部分滚动 */
+  padding-right: 10px; /* 为滚动条留出空间 */
+}
+
+.search-results-list .result-card {
+  margin-bottom: 10px;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  padding: 15px;
+}
+
+.search-results-list .result-card:hover {
+  background-color: #e3f2fd; /* 浅蓝色背景 */
+  border-color: #bbdefb;
+  transform: translateX(5px);
+}
+
+.result-location {
+  font-size: 0.85rem;
+  color: #777;
+  display: flex;
+  align-items: center;
+  margin-top: 5px;
+}
+
+.result-location .el-icon {
+  margin-right: 5px;
+  font-size: 0.9rem;
+  color: #606266;
+}
+
+/* 图片上传组件样式 */
+.image-upload-wrapper {
+  position: relative;
+  width: 120px; /* 统一尺寸 */
+  height: 120px;
+}
+
+.image-uploader {
+  width: 100%;
+  height: 100%;
+  border: 1px dashed #d9d9d9;
+  border-radius: 6px;
+  cursor: pointer;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: border-color 00.3s ease;
+}
+.image-uploader:hover {
+  border-color: #409eff;
+}
+.uploader-icon {
+  font-size: 28px;
+  color: #8c939d;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.uploaded-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.el-upload__tip {
+  font-size: 0.8rem;
+  color: #999;
+  margin-top: 5px;
+}
+.remove-image-btn {
+  position: absolute;
+  top: -8px; /* 调整位置 */
+  right: -8px; /* 调整位置 */
+  z-index: 10;
+  background-color: rgba(255, 0, 0, 0.7);
+  border-color: rgba(255, 0, 0, 0.7);
+  color: #fff;
+  transition: all 0.2s ease;
+}
+.remove-image-btn:hover {
+  background-color: red;
+  border-color: red;
+  transform: scale(1.1);
 }
 </style>

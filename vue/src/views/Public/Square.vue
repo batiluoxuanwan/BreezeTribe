@@ -302,12 +302,13 @@ onMounted(() => {
   background-position: center;
   background-attachment: fixed;
 }
+
 .travel-plaza-container {
   padding: 20px 40px;
   max-width: 1200px; /* 限制内容最大宽度，使页面更居中美观 */
   margin: 0 auto; /* 居中显示 */
 }
-/* 新增的顶部区域样式 */
+
 .header-area {
   display: flex;
   flex-direction: column; /* 标题和口号垂直排列 */
