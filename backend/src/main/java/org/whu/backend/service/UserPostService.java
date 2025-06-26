@@ -40,8 +40,6 @@ public class UserPostService {
     @Autowired
     private UserRepository userRepository;
     @Autowired
-    private SpotRepository spotRepository;
-    @Autowired
     private MediaFileRepository mediaFileRepository;
     @Autowired
     private MerchantPackageService merchantPackageService;
