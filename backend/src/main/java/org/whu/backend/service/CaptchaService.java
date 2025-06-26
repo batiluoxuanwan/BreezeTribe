@@ -9,6 +9,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.whu.backend.common.exception.BizException;
 
 import java.util.Random;
@@ -36,11 +37,7 @@ public class CaptchaService {
 
     public void sendVerificationEmail(String toEmail) {
         String code = generateCode();
-        //System.out.println(code);
         log.debug("REIDS里面的值为" + code);
-        //System.out.println(toEmail);
-        //toEmail = toEmail.replace("\"", "");
-        // 存Redis，设置过期时间5分钟
         redisTemplate.opsForValue().set(CODE_KEY_PREFIX + toEmail, code, 5, TimeUnit.MINUTES);
         try {
 
