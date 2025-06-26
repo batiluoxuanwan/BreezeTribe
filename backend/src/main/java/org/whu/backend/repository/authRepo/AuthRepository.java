@@ -1,5 +1,7 @@
 package org.whu.backend.repository.authRepo;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.whu.backend.entity.accounts.Account;
 import org.whu.backend.entity.accounts.Role;
@@ -25,5 +27,6 @@ public interface AuthRepository extends JpaRepository<Account, String> {
     Optional<Account> findByPhoneAndRole(String phone, Role role);
 
     Optional<Account> findByUsername(String username);
+    Page<Account> findByRole(Role enumRole, Pageable pageable);
 }
 

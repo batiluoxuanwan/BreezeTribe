@@ -232,7 +232,7 @@ public class MerchantRouteService {
 
     // --- 私有的转换方法 (Entity -> DTO) ---
     // 把旅游团实体Route转化为简略的信息RouteSummaryDto
-    private RouteSummaryDto convertToSummaryDto(Route entity) {
+    public RouteSummaryDto convertToSummaryDto(Route entity) {
         return RouteSummaryDto
                 .builder()
                 .id(entity.getId())

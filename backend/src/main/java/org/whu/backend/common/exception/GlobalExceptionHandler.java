@@ -1,7 +1,10 @@
 package org.whu.backend.common.exception;
 
+import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.mapping.PropertyReferenceException;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
@@ -18,6 +21,7 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.whu.backend.common.Result;
 
 import java.time.format.DateTimeParseException;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -113,6 +117,14 @@ public class GlobalExceptionHandler {
         return Result.failure(HttpStatus.BAD_REQUEST.value(), "参数校验失败：" + firstErrorMessage);
     }
 
+    // 处理 JWT过期 的异常
+    @ExceptionHandler(ExpiredJwtException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED) // 参数校验失败，返回HTTP 401
+    public Result<?> handleExpiredJwtException(ExpiredJwtException e) {
+        log.warn("请求携带的JWT过期: {}", e.getMessage());
+        return Result.failure(HttpStatus.UNAUTHORIZED.value(), "请求携带的JWT过期");
+    }
+
     // 处理其他常见的运行时异常 (可以根据需要细化)
     @ExceptionHandler(IllegalArgumentException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
@@ -136,7 +148,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(AuthorizationDeniedException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
     public Result<?> handleAuthenticationException(AuthorizationDeniedException e) {
         log.warn("未认证的用户 {}", e.getMessage());
         return Result.failure(HttpStatus.UNAUTHORIZED.value(), "未认证的用户");
@@ -156,6 +168,50 @@ public class GlobalExceptionHandler {
 //        logger.warn("无效的JWT: {}", e.getMessage());
 //        return Result.failure(HttpStatus.UNAUTHORIZED.value(), "无效的身份认证信息");
 //    }
+
+    //SQL
+    // 1. 属性查询错误
+    @ExceptionHandler(PropertyReferenceException.class)
+    public ResponseEntity<?> handlePropertyReferenceException(PropertyReferenceException ex) {
+        return ResponseEntity.badRequest().body(
+                Map.of(
+                        "code", 400,
+                        "message", "查询属性不存在，请检查字段名是否匹配！",
+                        "errorDetail", ex.getMessage()
+                )
+        );
+    }
+
+    // 2. 完整性错误，例如违反外键或唯一键约束
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<?> handleDataIntegrityViolationException(DataIntegrityViolationException ex) {
+        // 可根据 ex.getRootCause() 获取更详细错误
+        String rootMessage = ex.getRootCause() != null
+                ? ex.getRootCause().getMessage()
+                : ex.getMessage();
+        return ResponseEntity.badRequest().body(
+                Map.of(
+                        "code", 400,
+                        "message", "数据库操作错误，请检查数据完整性或引用对象是否存在！",
+                        "errorDetail", rootMessage
+                )
+        );
+    }
+
+    // 可选：针对 JPA 层产生的其他数据库异常
+    @ExceptionHandler(org.springframework.dao.DataAccessException.class)
+    public ResponseEntity<?> handleDataAccessException(org.springframework.dao.DataAccessException ex) {
+        return ResponseEntity.internalServerError().body(
+                Map.of(
+                        "code", 500,
+                        "message", "数据库访问错误，请稍后再试！",
+                        "errorDetail", ex.getRootCause() != null
+                                ? ex.getRootCause().getMessage()
+                                : ex.getMessage()
+                )
+        );
+    }
+
 
     // --- 通用运行时异常处理器 (作为最后的防线) ---
     @ExceptionHandler(RuntimeException.class)

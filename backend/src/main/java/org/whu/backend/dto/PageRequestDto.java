@@ -5,7 +5,6 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Pattern;
 import lombok.Data;
-import org.whu.backend.entity.Favorite;
 
 @Data
 public class PageRequestDto {

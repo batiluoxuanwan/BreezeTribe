@@ -47,7 +47,7 @@ public class MediaFile {
     // 上传者的账户ID。用于权限校验和追踪。
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_account_id", referencedColumnName = "id",nullable = false)
-    private Account uploaderId;
+    private Account uploader;
 
     @PrePersist
     protected void onPrePersist() {

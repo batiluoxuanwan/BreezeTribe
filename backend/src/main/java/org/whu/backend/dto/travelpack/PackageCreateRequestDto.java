@@ -23,7 +23,7 @@ public class PackageCreateRequestDto {
 
     @Schema(description = "价格")
     @NotNull
-    @DecimalMin(value = "0.00", inclusive = true, message = "价格不能为负数")
+    @DecimalMin(value = "0.00", message = "价格不能为负数")
     @Digits(integer = 10, fraction = 2, message = "价格最多保留两位小数")
     private BigDecimal price;
 
@@ -40,4 +40,8 @@ public class PackageCreateRequestDto {
     @Schema(description = "组成旅行团的路线列表，按照顺序给")
     @NotEmpty
     private List<String> routesIds;
+
+    @Schema(description = "组成旅行团的图片集，按照顺序给，第一个默认是封面")
+    @NotEmpty
+    private List<String> imgIds;
 }

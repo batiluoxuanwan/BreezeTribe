@@ -6,19 +6,26 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.whu.backend.common.exception.BizException;
 import org.whu.backend.dto.PageRequestDto;
 import org.whu.backend.dto.PageResponseDto;
+import org.whu.backend.dto.order.OrderSummaryForDealerDto;
 import org.whu.backend.dto.travelpack.PackageCreateRequestDto;
 import org.whu.backend.dto.travelpack.PackageSummaryDto;
 import org.whu.backend.dto.travelpack.PackageUpdateRequestDto;
+import org.whu.backend.entity.MediaFile;
+import org.whu.backend.entity.Order;
 import org.whu.backend.entity.Route;
 import org.whu.backend.entity.TravelPackage;
 import org.whu.backend.entity.accounts.Merchant;
+import org.whu.backend.entity.association.PackageImage;
 import org.whu.backend.entity.association.PackageRoute;
+import org.whu.backend.repository.MediaFileRepository;
 import org.whu.backend.repository.authRepo.MerchantRepository;
+import org.whu.backend.repository.travelRepo.OrderRepository;
 import org.whu.backend.repository.travelRepo.RouteRepository;
 import org.whu.backend.repository.travelRepo.TravelPackageRepository;
 
@@ -38,6 +45,10 @@ public class MerchantPackageService {
     private RouteRepository routeRepository;
     @Autowired
     private PublicService publicService;
+    @Autowired
+    private MediaFileRepository mediaFileRepository;
+    @Autowired
+    private OrderRepository orderRepository;
 
     @Transactional
     public TravelPackage createPackage(PackageCreateRequestDto dto, String dealerId) {
@@ -59,8 +70,33 @@ public class MerchantPackageService {
         newPackage.setDealer(dealer);
         newPackage.setStatus(TravelPackage.PackageStatus.PENDING_APPROVAL); // 初始状态为待审核
 
+        // 2.a. 处理并关联图片集
+        if (dto.getImgIds() != null && !dto.getImgIds().isEmpty()) {
+            for (int i = 0; i < dto.getImgIds().size(); i++) {
+                String imgId = dto.getImgIds().get(i);
+                MediaFile mediaFile = mediaFileRepository.findById(imgId)
+                        .orElseThrow(() -> new BizException("找不到ID为 " + imgId + " 的媒体文件"));
 
-        // TODO: 旅行团图册处理关联还没实现
+                // 权限校验：确保经销商只能用自己上传的图片
+                if (!mediaFile.getUploader().getId().equals(dealerId)) {
+                    log.warn("权限拒绝：经销商ID '{}' 试图使用不属于自己的图片ID '{}'。", dealerId, imgId);
+                    throw new BizException(HttpStatus.UNAUTHORIZED.value(),"不能使用不属于自己的图片");
+                }
+
+                // 创建关联实体
+                PackageImage packageImage = new PackageImage();
+                packageImage.setTravelPackage(newPackage);
+                packageImage.setMediaFile(mediaFile);
+                packageImage.setSortOrder(i + 1); // 按前端给的顺序排序
+                newPackage.getImages().add(packageImage);
+
+                // 将列表中的第一张图设置为封面图
+                if (i == 0) {
+                    // 我们直接使用静态工具类来获取URL
+                    newPackage.setCoverImageUrl(mediaFile.getObjectKey());
+                }
+            }
+        }
 
         // 3. 处理并关联路线
         for (int i = 0; i < dto.getRoutesIds().size(); i++) {
@@ -69,7 +105,7 @@ public class MerchantPackageService {
                     .orElseThrow(() -> new BizException("找不到ID为 " + id + " 的路线"));
             // 关键权限校验！确保该路线属于当前经销商
             if (!route.getDealer().getId().equals(dealerId)) {
-                log.error("权限拒绝：经销商ID '{}' 试图使用不属于自己的路线ID '{}'。", dealerId, route.getId());
+                log.warn("权限拒绝：经销商ID '{}' 试图使用不属于自己的路线ID '{}'。", dealerId, route.getId());
                 throw new BizException("不能使用不属于自己的路线来创建旅行团");
             }
             // 创建关联实体并设置顺序
@@ -148,13 +184,72 @@ public class MerchantPackageService {
     }
 
 
+
+    // 获取指定旅行团的订单列表（分页）
+    @Transactional(readOnly = true)
+    public PageResponseDto<OrderSummaryForDealerDto> getPackageOrders(String packageId, String currentDealerId, PageRequestDto pageRequestDto) {
+        log.info("经销商ID '{}' 正在获取旅行团ID '{}'的订单列表, 分页参数: {}", currentDealerId, packageId, pageRequestDto);
+
+        // 1. 验证该旅行团是否属于当前经销商
+        findPackageByIdAndVerifyOwnership(packageId, currentDealerId);
+
+        // 2. 创建分页和排序对象
+        Sort sort = Sort.by(Sort.Direction.fromString(pageRequestDto.getSortDirection()), pageRequestDto.getSortBy());
+        Pageable pageable = PageRequest.of(pageRequestDto.getPage() - 1, pageRequestDto.getSize(), sort);
+
+        // 3. 查询状态为“已支付”的订单
+        Page<Order> orderPage = orderRepository.findByTravelPackageIdAndStatus(packageId, Order.OrderStatus.PAID, pageable);
+
+        // 4. 将实体列表转换为对经销商安全的DTO列表
+        List<OrderSummaryForDealerDto> dtos = orderPage.getContent().stream()
+                .map(this::convertOrderToSummaryForDealerDto)
+                .collect(Collectors.toList());
+
+        // 5. 封装并返回分页结果
+        return PageResponseDto.<OrderSummaryForDealerDto>builder()
+                .content(dtos)
+                .pageNumber(orderPage.getNumber() + 1)
+                .pageSize(orderPage.getSize())
+                .totalElements(orderPage.getTotalElements())
+                .totalPages(orderPage.getTotalPages())
+                .first(orderPage.isFirst())
+                .last(orderPage.isLast())
+                .numberOfElements(orderPage.getNumberOfElements())
+                .build();
+    }
+
+    // 将Order实体转换为对经销商安全的摘要DTO的私有辅助方法
+    private OrderSummaryForDealerDto convertOrderToSummaryForDealerDto(Order order) {
+        return OrderSummaryForDealerDto.builder()
+                .orderId(order.getId())
+                .travelerCount(order.getTravelerCount())
+                .totalPrice(order.getTotalPrice())
+                .contactName(maskName(order.getContactName())) // 脱敏处理
+                .contactPhone(maskPhone(order.getContactPhone())) // 脱敏处理
+                .orderTime(order.getCreatedTime())
+                .build();
+    }
+
+    // 姓名脱敏辅助方法，例如 "张三" -> "张**"
+    private String maskName(String name) {
+        if (name == null || name.isEmpty()) return "";
+        return name.charAt(0) + "**";
+    }
+
+    // 电话脱敏辅助方法，例如 "13812345678" -> "138****5678"
+    private String maskPhone(String phone) {
+        if (phone == null || phone.length() != 11) return "手机号格式错误";
+        return phone.substring(0, 3) + "****" + phone.substring(7);
+    }
+
+
     // 一个私有辅助方法，用于查找旅行团并验证所有权
     private TravelPackage findPackageByIdAndVerifyOwnership(String packageId, String currentDealerId) {
         TravelPackage travelPackage = packageRepository.findById(packageId)
                 .orElseThrow(() -> new BizException("找不到ID为 " + packageId + " 的旅行团"));
 
         if (!travelPackage.getDealer().getId().equals(currentDealerId)) {
-            log.error("权限拒绝：经销商ID '{}' 试图操作不属于自己的旅行团ID '{}'。", currentDealerId, packageId);
+            log.warn("权限拒绝：经销商ID '{}' 试图操作不属于自己的旅行团ID '{}'。", currentDealerId, packageId);
             throw new BizException("无权操作此旅行团");
         }
         return travelPackage;
