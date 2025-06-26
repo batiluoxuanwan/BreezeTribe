@@ -1,5 +1,6 @@
 package org.whu.backend.common.exception;
 
+import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -113,6 +114,14 @@ public class GlobalExceptionHandler {
         return Result.failure(HttpStatus.BAD_REQUEST.value(), "参数校验失败：" + firstErrorMessage);
     }
 
+    // 处理 JWT过期 的异常
+    @ExceptionHandler(ExpiredJwtException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED) // 参数校验失败，返回HTTP 401
+    public Result<?> handleExpiredJwtException(ExpiredJwtException e) {
+        log.warn("请求携带的JWT过期: {}", e.getMessage());
+        return Result.failure(HttpStatus.UNAUTHORIZED.value(), "请求携带的JWT过期");
+    }
+
     // 处理其他常见的运行时异常 (可以根据需要细化)
     @ExceptionHandler(IllegalArgumentException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
@@ -136,7 +145,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(AuthorizationDeniedException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
     public Result<?> handleAuthenticationException(AuthorizationDeniedException e) {
         log.warn("未认证的用户 {}", e.getMessage());
         return Result.failure(HttpStatus.UNAUTHORIZED.value(), "未认证的用户");

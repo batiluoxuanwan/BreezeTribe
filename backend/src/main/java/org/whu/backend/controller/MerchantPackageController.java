@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import org.whu.backend.common.Result;
 import org.whu.backend.dto.PageRequestDto;
 import org.whu.backend.dto.PageResponseDto;
-import org.whu.backend.dto.order.OrderSummaryDto;
+import org.whu.backend.dto.order.OrderSummaryForDealerDto;
 import org.whu.backend.dto.travelpack.PackageCreateRequestDto;
 import org.whu.backend.dto.travelpack.PackageDetailDto;
 import org.whu.backend.dto.travelpack.PackageSummaryDto;
@@ -84,12 +84,15 @@ public class MerchantPackageController {
     @Operation(summary = "查看指定旅行团的订单列表（分页）", description = "让经销商了解自己产品的销售情况")
     @GetMapping("/{packageId}/orders")
     // 如果需要控制敏感信息，可以改为OrderSummaryForDealer
-    public Result<PageResponseDto<OrderSummaryDto>> getPackageOrders(
+    public Result<PageResponseDto<OrderSummaryForDealerDto>> getPackageOrders(
             @PathVariable String packageId,
             @Valid @ParameterObject PageRequestDto pageRequestDto
     ) {
-        // TODO: 查询与该旅行团关联的、已支付的订单列表
-        // 注意：出于隐私保护，只返回必要的、非敏感信息给经销商
-        return Result.success();
+        String currentDealerId = SecurityUtil.getCurrentUserId();
+        log.info("经销商ID '{}' 访问获取旅行团 '{}' 的订单列表接口", currentDealerId, packageId);
+
+        PageResponseDto<OrderSummaryForDealerDto> resultPage = merchantPackageService.getPackageOrders(packageId, currentDealerId, pageRequestDto);
+
+        return Result.success(resultPage);
     }
 }

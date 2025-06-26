@@ -12,11 +12,8 @@ import org.whu.backend.common.exception.BizException;
 import org.whu.backend.dto.PageRequestDto;
 import org.whu.backend.dto.PageResponseDto;
 import org.whu.backend.dto.route.RouteDetailDto;
-import org.whu.backend.dto.spot.SpotDetailDto;
 import org.whu.backend.dto.travelpack.PackageDetailDto;
 import org.whu.backend.dto.travelpack.PackageSummaryDto;
-import org.whu.backend.entity.Route;
-import org.whu.backend.entity.Spot;
 import org.whu.backend.entity.TravelPackage;
 import org.whu.backend.repository.travelRepo.TravelPackageRepository;
 import org.whu.backend.util.AliyunOssUtil;
@@ -27,12 +24,13 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @Transactional(readOnly = true)
-
 public class PublicService {
     @Autowired
     private TravelPackageRepository travelPackageRepository;
+    @Autowired
+    private MerchantRouteService merchantRouteService;
 
-    public static final long EXPIRE_TIME = 60 * 60 * 4;
+    public static final long EXPIRE_TIME = 60 * 60 * 4 * 1000;
     public static final String IMAGE_PROCESS = "image/resize,l_1600/quality,q_50";
 
     /**
@@ -103,47 +101,30 @@ public class PublicService {
     public PackageDetailDto convertPackageToDetailDto(TravelPackage entity) {
         // 1. 先转换内部嵌套的路线和景点列表
         List<RouteDetailDto> routeDtos = entity.getRoutes().stream()
-                .map(packageRoute -> {
-                    Route routeEntity = packageRoute.getRoute();
+                // 直接调用MerchantRouteService中已经写好的、公共的转换方法
+                .map(packageRoute -> merchantRouteService.convertToDetailDto(packageRoute.getRoute()))
+                .collect(Collectors.toList());
 
-                    // 转换每个路线下的景点列表
-                    List<SpotDetailDto> spotDtos = routeEntity.getSpots().stream()
-                            .map(routeSpot -> {
-                                Spot spotEntity = routeSpot.getSpot();
-                                return SpotDetailDto.builder()
-                                        .id(spotEntity.getId())
-                                        .mapProviderUid(spotEntity.getMapProviderUid())
-                                        .name(spotEntity.getName())
-                                        .city(spotEntity.getCity())
-                                        .address(spotEntity.getAddress())
-                                        .longitude(spotEntity.getLongitude())
-                                        .latitude(spotEntity.getLatitude())
-                                        .build();
-                            })
-                            .collect(Collectors.toList());
-
-                    return RouteDetailDto.builder()
-                            .id(routeEntity.getId())
-                            .name(routeEntity.getName())
-                            .description(routeEntity.getDescription())
-                            .spots(spotDtos)
-                            .build();
+        // 2. 转换并生成签名的图片URL列表
+        List<String> signedImageUrls = entity.getImages().stream()
+                .map(packageImage -> {
+                    String objectKey = packageImage.getMediaFile().getObjectKey();
+                    return AliyunOssUtil.generatePresignedGetUrl(objectKey, EXPIRE_TIME, IMAGE_PROCESS);
                 })
                 .collect(Collectors.toList());
 
-        // 2. 构建最外层的PackageDetailDto
+        // 3. 构建最外层的PackageDetailDto
         return PackageDetailDto.builder()
                 .id(entity.getId())
                 .title(entity.getTitle())
-                .coverImageUrl(
-                        entity.getCoverImageUrl() == null ? null :
-                        AliyunOssUtil.generatePresignedGetUrl(entity.getCoverImageUrl(), EXPIRE_TIME, IMAGE_PROCESS)
-                )
+                .coverImageUrls(signedImageUrls)
                 .price(entity.getPrice())
                 .durationInDays(entity.getDurationInDays())
                 .detailedDescription(entity.getDetailedDescription())
-                .status(entity.getStatus().toString())
+                .status(entity.getStatus().name())
                 .routes(routeDtos)
                 .build();
     }
+
+
 }
