@@ -58,6 +58,8 @@ public class AdminService {
     private UserRepository userRepository;
     @Autowired
     private AuthRepository accountRepository;
+    @Autowired
+    private DtoConverter dtoConverter;
 //    @Autowired
 //    private JpaUtil jpaUtil;
 
@@ -72,17 +74,7 @@ public class AdminService {
 
         // 3️转换为 DTO
         List<PackageSummaryDto> content = page.getContent().stream()
-                .map(pkg -> {
-                    PackageSummaryDto dto = new PackageSummaryDto();
-                    dto.setId(pkg.getId());
-                    dto.setTitle(pkg.getTitle());
-                    dto.setDescription(pkg.getDetailedDescription());
-                    dto.setCoverImageUrl(pkg.getCoverImageUrl());
-                    dto.setPrice(pkg.getPrice());
-                    dto.setDurationInDays(pkg.getDurationInDays());
-                    dto.setStatus(pkg.getStatus().toString());
-                    return dto;
-                })
+                .map(dtoConverter::convertPackageToSummaryDto)
                 .toList();
 
         // 4️构建 PageResponseDto
