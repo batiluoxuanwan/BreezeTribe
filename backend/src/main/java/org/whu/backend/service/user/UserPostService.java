@@ -105,16 +105,7 @@ public class UserPostService {
                 .map(dtoConverter::convertPostToSummaryDto)
                 .collect(Collectors.toList());
 
-        return PageResponseDto.<PostSummaryDto>builder()
-                .content(dtos)
-                .pageNumber(postPage.getNumber() + 1)
-                .pageSize(postPage.getSize())
-                .totalElements(postPage.getTotalElements())
-                .totalPages(postPage.getTotalPages())
-                .first(postPage.isFirst())
-                .last(postPage.isLast())
-                .numberOfElements(postPage.getNumberOfElements())
-                .build();
+        return dtoConverter.convertPageToDto(postPage,dtos);
     }
 
     // 获取一篇游记的详细信息（权限校验）

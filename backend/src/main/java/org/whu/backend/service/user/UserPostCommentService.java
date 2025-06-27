@@ -105,16 +105,8 @@ public class UserPostCommentService {
                 })
                 .collect(Collectors.toList());
 //        log.info("查询成功，获取到 {} ");
-        return PageResponseDto.<PostCommentWithRepliesDto>builder()
-                .content(dtos)
-                .pageNumber(topLevelCommentPage.getNumber() + 1)
-                .pageSize(topLevelCommentPage.getSize())
-                .totalElements(topLevelCommentPage.getTotalElements())
-                .totalPages(topLevelCommentPage.getTotalPages())
-                .first(topLevelCommentPage.isFirst())
-                .last(topLevelCommentPage.isLast())
-                .numberOfElements(topLevelCommentPage.getNumberOfElements())
-                .build();
+
+        return dtoConverter.convertPageToDto(topLevelCommentPage,dtos);
     }
 
     /**
@@ -134,15 +126,6 @@ public class UserPostCommentService {
                 .map(dtoConverter::convertCommentToDto)
                 .collect(Collectors.toList());
 
-        return PageResponseDto.<PostCommentDto>builder()
-                .content(replyDtos)
-                .pageNumber(replyPage.getNumber() + 1)
-                .pageSize(replyPage.getSize())
-                .totalElements(replyPage.getTotalElements())
-                .totalPages(replyPage.getTotalPages())
-                .first(replyPage.isFirst())
-                .last(replyPage.isLast())
-                .numberOfElements(replyPage.getNumberOfElements())
-                .build();
+        return dtoConverter.convertPageToDto(replyPage,replyDtos);
     }
 }

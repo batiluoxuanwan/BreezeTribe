@@ -55,17 +55,7 @@ public class PublicService {
                 .map(dtoConverter::convertPackageToSummaryDto)
                 .collect(Collectors.toList());
 
-        // 4. 使用Builder模式构建分页响应对象
-        return PageResponseDto.<PackageSummaryDto>builder()
-                .content(summaryDtos)
-                .pageNumber(packagePage.getNumber() + 1)
-                .pageSize(packagePage.getSize())
-                .totalElements(packagePage.getTotalElements())
-                .totalPages(packagePage.getTotalPages())
-                .first(packagePage.isFirst())
-                .last(packagePage.isLast())
-                .numberOfElements(packagePage.getNumberOfElements())
-                .build();
+        return dtoConverter.convertPageToDto(packagePage,summaryDtos);
     }
 
     // 获取单个旅行团的详情
@@ -98,16 +88,7 @@ public class PublicService {
                 .map(dtoConverter::convertPostToSummaryDto)
                 .collect(Collectors.toList());
 
-        return PageResponseDto.<PostSummaryDto>builder()
-                .content(dtos)
-                .pageNumber(postPage.getNumber() + 1)
-                .pageSize(postPage.getSize())
-                .totalElements(postPage.getTotalElements())
-                .totalPages(postPage.getTotalPages())
-                .first(postPage.isFirst())
-                .last(postPage.isLast())
-                .numberOfElements(postPage.getNumberOfElements())
-                .build();
+        return dtoConverter.convertPageToDto(postPage,dtos);
     }
 
     // 实现复杂的、多条件的搜索逻辑
@@ -131,16 +112,7 @@ public class PublicService {
                 .map(dtoConverter::convertPackageToSummaryDto)
                 .collect(Collectors.toList());
 
-        return PageResponseDto.<PackageSummaryDto>builder()
-                .content(summaryDtos)
-                .pageNumber(packagePage.getNumber() + 1)
-                .pageSize(packagePage.getSize())
-                .totalElements(packagePage.getTotalElements())
-                .totalPages(packagePage.getTotalPages())
-                .first(packagePage.isFirst())
-                .last(packagePage.isLast())
-                .numberOfElements(packagePage.getNumberOfElements())
-                .build();
+        return dtoConverter.convertPageToDto(packagePage,summaryDtos);
     }
 
     // 获取单篇已发布的游记详情
