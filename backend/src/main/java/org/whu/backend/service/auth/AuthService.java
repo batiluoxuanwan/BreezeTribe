@@ -1,4 +1,4 @@
-package org.whu.backend.service;
+package org.whu.backend.service.auth;
 
 import org.apache.commons.validator.routines.EmailValidator;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,10 +14,8 @@ import org.whu.backend.entity.accounts.*;
 import org.whu.backend.repository.authRepo.AuthRepository;
 import org.whu.backend.util.AccountUtil;
 import org.whu.backend.util.AliyunOssUtil;
-import org.whu.backend.util.JpaUtil;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.Random;

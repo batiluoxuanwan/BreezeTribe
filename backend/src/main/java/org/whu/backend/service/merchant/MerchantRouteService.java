@@ -1,4 +1,4 @@
-package org.whu.backend.service;
+package org.whu.backend.service.merchant;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +23,8 @@ import org.whu.backend.entity.association.RouteSpot;
 import org.whu.backend.repository.travelRepo.RouteRepository;
 import org.whu.backend.repository.travelRepo.SpotRepository;
 import org.whu.backend.repository.authRepo.MerchantRepository;
+import org.whu.backend.service.BaiduMapService;
+import org.whu.backend.service.DtoConverter;
 
 import java.util.ArrayList;
 import java.util.List;

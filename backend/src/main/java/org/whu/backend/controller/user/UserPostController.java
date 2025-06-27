@@ -1,4 +1,4 @@
-package org.whu.backend.controller;
+package org.whu.backend.controller.user;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -17,7 +17,7 @@ import org.whu.backend.dto.post.PostSummaryDto;
 import org.whu.backend.dto.post.PostUpdateRequestDto;
 import org.whu.backend.entity.travelpost.TravelPost;
 import org.whu.backend.service.DtoConverter;
-import org.whu.backend.service.UserPostService;
+import org.whu.backend.service.user.UserPostService;
 import org.whu.backend.util.AccountUtil;
 
 @Tag(name = "用户-游记管理", description = "用户发布和管理自己的游记")

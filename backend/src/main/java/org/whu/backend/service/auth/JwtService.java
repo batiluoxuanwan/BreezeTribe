@@ -1,4 +1,4 @@
-package org.whu.backend.service;
+package org.whu.backend.service.auth;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -25,7 +25,7 @@ public class JwtService {
         return Jwts.builder()
                 .claim("identifier", account.getEmail() != null ? account.getEmail() : account.getPhone())
                 .claim("role", account.getRole().name())
-                .setSubject(account.getId().toString())
+                .setSubject(account.getId())
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)

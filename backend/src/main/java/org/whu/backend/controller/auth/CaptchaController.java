@@ -1,10 +1,10 @@
-package org.whu.backend.controller;
+package org.whu.backend.controller.auth;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.whu.backend.common.Result;
-import org.whu.backend.service.CaptchaService;
+import org.whu.backend.service.auth.CaptchaService;
 
 @Slf4j
 @RestController

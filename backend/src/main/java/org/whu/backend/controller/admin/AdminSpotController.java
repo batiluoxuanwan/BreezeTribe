@@ -1,4 +1,4 @@
-package org.whu.backend.controller;
+package org.whu.backend.controller.admin;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -13,8 +13,7 @@ import org.whu.backend.dto.PageResponseDto;
 import org.whu.backend.dto.spot.SpotCreateRequestDto;
 import org.whu.backend.dto.spot.SpotSummaryDto;
 import org.whu.backend.dto.spot.SpotUpdateRequestDto;
-import org.whu.backend.entity.Spot;
-import org.whu.backend.service.AdminService;
+import org.whu.backend.service.admin.AdminService;
 import org.whu.backend.util.JpaUtil;
 
 @Tag(name = "管理员-景点管理", description = "管理员维护平台景点缓存数据库")

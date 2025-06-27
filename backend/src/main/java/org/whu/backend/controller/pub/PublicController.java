@@ -1,4 +1,4 @@
-package org.whu.backend.controller;
+package org.whu.backend.controller.pub;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -17,7 +17,7 @@ import org.whu.backend.dto.travelpack.PackageDetailDto;
 import org.whu.backend.dto.travelpack.PackageSearchRequestDto;
 import org.whu.backend.dto.travelpack.PackageSummaryDto;
 import org.whu.backend.service.BaiduMapService;
-import org.whu.backend.service.PublicService;
+import org.whu.backend.service.pub.PublicService;
 
 import java.util.List;
 
