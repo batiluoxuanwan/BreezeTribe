@@ -65,11 +65,11 @@ public class AuthService {
 
         boolean exists = false;
         if (email != null && !email.isBlank()) {
-            if(!captchaService.verifyCode(email, code))
+            if(!captchaService.verifyEmailCode(email, code))
                 throw new BizException("邮箱验证码错误");
             exists = authRepository.existsByEmailAndRole(email, role);
         } else {
-            if(!captchaService.verifyCode(phone, code))
+            if(!captchaService.verifySmsCode(phone, code))
                 throw new BizException("手机验证码错误");
             exists = authRepository.existsByPhoneAndRole(phone, role);
         }
@@ -171,11 +171,11 @@ public class AuthService {
 
         Optional<Account> exists ;
         if (email != null && !email.isBlank()) {
-            if(!captchaService.verifyCode(email, code))
+            if(!captchaService.verifyEmailCode(email, code))
                 throw new BizException("邮箱验证码错误");
             exists = authRepository.findByEmailAndRole(email, role);
         } else {
-            if(!captchaService.verifyCode(phone, code))
+            if(!captchaService.verifySmsCode(phone, code))
                 throw new BizException("手机验证码错误");
             exists = authRepository.findByPhoneAndRole(phone, role);
         }

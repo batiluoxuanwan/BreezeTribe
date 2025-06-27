@@ -57,7 +57,6 @@ public class CaptchaService {
 
     @Value("${spring.mail.username}")
     private String from;
-    private static final String CODE_KEY_PREFIX = "email:code:";
 
 
     // 生成6位数字验证码
@@ -133,7 +132,7 @@ public class CaptchaService {
 
     public void sendVerificationEmail(String toEmail) {
             String code = generateCode();
-            redisTemplate.opsForValue().set(CODE_KEY_PREFIX + toEmail, code, 5, TimeUnit.MINUTES);
+            redisTemplate.opsForValue().set("email:" + toEmail, code, 5, TimeUnit.MINUTES);
 
             String title = "您正在注册 BreezeTribe，您的验证码为：";
             String url = "https://yourdomain.com/verify?code=" + code + "&email=" + toEmail;
@@ -144,7 +143,7 @@ public class CaptchaService {
 
     public void resetVerificationEmail(String email) {
         String code = generateCode();
-        redisTemplate.opsForValue().set(CODE_KEY_PREFIX + email, code, 5, TimeUnit.MINUTES);
+        redisTemplate.opsForValue().set("email:" + email, code, 5, TimeUnit.MINUTES);
 
         String title = "您正在重置 BreezeTribe 账号密码，您的验证码为：";
         String url = "https://yourdomain.com/reset?code=" + code + "&email=" + email;
@@ -153,8 +152,8 @@ public class CaptchaService {
     }
 
     // 校验验证码
-    public boolean verifyCode(String email, String code) {
-        String key = CODE_KEY_PREFIX + email;
+    public boolean verifyEmailCode(String email, String code) {
+        String key = "email:" + email;
         String cachedCode = redisTemplate.opsForValue().get(key);
 
         if (cachedCode != null && cachedCode.equals(code)) {
@@ -181,22 +180,43 @@ public class CaptchaService {
             throw new BizException("短信发送失败，请稍后再试");
         }
     }
-//    public void sendVerificationSms(String mobile) {
-//            JpaUtil.notNull(mobile, "手机号不能为空");
-//
-////            String rateLimitKey = "sms:rate:" + mobile;
-////            if (Boolean.TRUE.equals(redisTemplate.hasKey(rateLimitKey))) {
-////                throw new BizException("验证码发送过于频繁，请稍后再试");
-////            }
-//        int minutes = 5;
-//        String code = generateCode(); // 6位验证码
-//        // 发送短信（复用封装方法）
-//        sendAliyunSms(mobile, code, minutes);
-//        // 设置验证码及频率限制
-//        //redisTemplate.opsForValue().set(rateLimitKey, "1", 60, TimeUnit.SECONDS);
-//        redisTemplate.opsForValue().set("sms:" + mobile, code, 5, TimeUnit.MINUTES);
-//    }
-//
-//    public void resetVerificationSms(String phone) {
-//    }
+    public void sendVerificationSms(String mobile) {
+            JpaUtil.notNull(mobile, "手机号不能为空");
+
+//            String rateLimitKey = "sms:rate:" + mobile;
+//            if (Boolean.TRUE.equals(redisTemplate.hasKey(rateLimitKey))) {
+//                throw new BizException("验证码发送过于频繁，请稍后再试");
+//            }
+        int minutes = 5;
+        String code = generateCode(); // 6位验证码
+        // 发送短信（复用封装方法）
+        sendAliyunSms(mobile, code, minutes);
+        // 设置验证码及频率限制
+        //redisTemplate.opsForValue().set(rateLimitKey, "1", 60, TimeUnit.SECONDS);
+        redisTemplate.opsForValue().set("sms:regis" + mobile, code, 5, TimeUnit.MINUTES);
+    }
+
+    public void resetVerificationSms(String phone) {
+        JpaUtil.notNull(phone, "手机号不能为空");
+
+        int minutes = 5;
+        String code = generateCode(); // 通用6位验证码生成方法
+
+        // 1. 发送短信（调用复用方法）
+        sendAliyunSms(phone, code, minutes);
+
+        // 2. 存入 Redis（用于后续验证）
+        redisTemplate.opsForValue().set("sms:reset:" + phone, code, minutes, TimeUnit.MINUTES);
+    }
+    public boolean verifySmsCode(String phone, String code) {
+        String key = "sms:" + phone;
+        String cachedCode = redisTemplate.opsForValue().get(key);
+
+        if (cachedCode != null && cachedCode.equals(code)) {
+            // 验证通过后删除验证码（可选）
+            redisTemplate.delete(key);
+            return true;
+        }
+        return false;
+    }
 }

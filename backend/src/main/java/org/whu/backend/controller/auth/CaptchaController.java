@@ -26,16 +26,16 @@ public class CaptchaController {
         captchaService.resetVerificationEmail(email);
         return Result.success("验证码已发送，请查收邮件");
     }
-//    @PostMapping("/sendSms")
-//    public Result<?> sendSms(@RequestParam String phone) {
-//        log.info("发送验证码请求，手机号: {}", phone);
-//        captchaService.sendVerificationSms(phone);
-//        return Result.success("验证码已发送，请查收短信");
-//    }
-//    @PostMapping("/resetSms")
-//    public Result<?> resetSms(@RequestParam String phone)  {
-//        log.info("发送验证码请求，手机号: {}", phone);
-//        captchaService.resetVerificationSms(phone);
-//        return Result.success("验证码已发送，请查收短信");
-//    }
+    @PostMapping("/sendSms")
+    public Result<?> sendSms(@RequestParam String phone) {
+        log.info("发送验证码请求，手机号: {}", phone);
+        captchaService.sendVerificationSms(phone);
+        return Result.success("验证码已发送，请查收短信");
+    }
+    @PostMapping("/resetSms")
+    public Result<?> resetSms(@RequestParam String phone)  {
+        log.info("发送验证码请求，手机号: {}", phone);
+        captchaService.resetVerificationSms(phone);
+        return Result.success("验证码已发送，请查收短信");
+    }
 }
