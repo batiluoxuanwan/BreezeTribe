@@ -2,7 +2,7 @@
   <div class="register-background">
     <div class="register-container">
       <div class="register-left">
-        <h2>Welcome to BreezeTribe</h2>
+        <h2 style="text-align: center;font-size: 32px; font-weight: bold;">Welcome to BreezeTribe</h2>
         <img src="@/assets//Logo.jpg" alt="Logo" class="register-logo" />
         <el-form-item>
           <el-button type="text" @click="goLogin" style="width: 100%; text-align: center;">
@@ -12,7 +12,7 @@
       </div>
 
       <div class="register-right">
-        <h2 style="text-align: center;">REGISTER</h2>
+        <h2 style="text-align: center;font-size: 32px; font-weight: bold;">REGISTER</h2>
 
         <el-form
           :model="registerForm"
@@ -383,7 +383,7 @@ const goLogin = () => {
 }
 
 .register-left {
-  width: 250px;
+  width: 340px;
   background: white;
   border-radius: 50px;
   padding: 40px;
@@ -403,8 +403,8 @@ const goLogin = () => {
   top: 50%;
   transform: translateY(-50%);
   width: 400px;
-  height: 550px;
-  padding: 40px 30px;
+  height: 575px;
+  padding: 30px 30px;
   background: #84adbc;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
   z-index: 10;
