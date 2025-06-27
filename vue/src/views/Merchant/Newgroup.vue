@@ -119,11 +119,11 @@
 
             <el-form label-width="90px" label-position="left" class="daily-route-form">
               <el-form-item label="路线名称">
-                <el-input v-model="dailySchedules.routeName" placeholder="例如：上海市区经典一日游"></el-input>
+                <el-input v-model="day.routeName" placeholder="例如：上海市区经典一日游"></el-input>
               </el-form-item>
               <el-form-item label="路线描述">
                 <el-input
-                  v-model="dailySchedules.routeDescription"
+                  v-model="day.routeDescription"
                   type="textarea"
                   :rows="2"
                   placeholder="简述当天行程亮点或交通方式"
@@ -318,16 +318,16 @@ const spotKeyword = ref('')
 const spotResults = ref([])
 const loading = ref(false)
 
-// 景点详情/备注弹窗相关
-const spotDetailDialogVisible = ref(false)
-const currentSpot = reactive({
-  name: '',
-  note: '',
-  timeRange: [],
-  imageUrl: '',
-  dayIndex: null, // 记录当前编辑的景点属于哪一天
-  spotIndex: null, // 记录当前编辑的景点是当天的第几个
-})
+// // 景点详情/备注弹窗相关
+// const spotDetailDialogVisible = ref(false)
+// const currentSpot = reactive({
+//   name: '',
+//   note: '',
+//   timeRange: [],
+//   imageUrl: '',
+//   dayIndex: null, // 记录当前编辑的景点属于哪一天
+//   spotIndex: null, // 记录当前编辑的景点是当天的第几个
+// })
 
 const handleSelectDestination = (item) => {
   destination.value = item.name;
@@ -539,52 +539,35 @@ const removeSpot = (dayIndex, spotIndex) => {
   ElMessage.info(`已将 "${spotName}" 从行程中移除。`);
 };
 
-// --- 景点详情/备注弹窗 ---
-const openSpotDetailDialog = (dayIndex, spotIndex) => {
-  // 深拷贝景点数据，避免直接修改原始数据导致意外副作用
-  Object.assign(currentSpot, JSON.parse(JSON.stringify(dailySchedules.value[dayIndex][spotIndex])));
-  currentSpot.dayIndex = dayIndex;
-  currentSpot.spotIndex = spotIndex;
-  spotDetailDialogVisible.value = true;
-};
+// // --- 景点详情/备注弹窗 ---
+// const openSpotDetailDialog = (dayIndex, spotIndex) => {
+//   // 深拷贝景点数据，避免直接修改原始数据导致意外副作用
+//   Object.assign(currentSpot, JSON.parse(JSON.stringify(dailySchedules.value[dayIndex][spotIndex])));
+//   currentSpot.dayIndex = dayIndex;
+//   currentSpot.spotIndex = spotIndex;
+//   spotDetailDialogVisible.value = true;
+// };
 
-// 监听弹窗关闭事件，将 currentSpot 的修改同步回原始数据
-watch(spotDetailDialogVisible, (newVal) => {
-  if (!newVal && currentSpot.dayIndex !== null && currentSpot.spotIndex !== null) {
-    const dayIdx = currentSpot.dayIndex;
-    const spotIdx = currentSpot.spotIndex;
-    // 将 currentSpot 的属性更新到原始数据中
-    Object.assign(dailySchedules.value[dayIdx][spotIdx], {
-      note: currentSpot.note,
-      timeRange: currentSpot.timeRange,
-      imageUrl: currentSpot.imageUrl,
-    });
-    // 重置 currentSpot 状态
-    Object.assign(currentSpot, { name: '', note: '', timeRange: [], imageUrl: '', dayIndex: null, spotIndex: null });
-  }
-});
+// // 监听弹窗关闭事件，将 currentSpot 的修改同步回原始数据
+// watch(spotDetailDialogVisible, (newVal) => {
+//   if (!newVal && currentSpot.dayIndex !== null && currentSpot.spotIndex !== null) {
+//     const dayIdx = currentSpot.dayIndex;
+//     const spotIdx = currentSpot.spotIndex;
+//     // 将 currentSpot 的属性更新到原始数据中
+//     Object.assign(dailySchedules.value[dayIdx][spotIdx], {
+//       note: currentSpot.note,
+//       timeRange: currentSpot.timeRange,
+//       imageUrl: currentSpot.imageUrl,
+//     });
+//     // 重置 currentSpot 状态
+//     Object.assign(currentSpot, { name: '', note: '', timeRange: [], imageUrl: '', dayIndex: null, spotIndex: null });
+//   }
+// });
 
-const handleImageUpload = (file) => {
-  const isJPGPNG = file.raw.type === 'image/jpeg' || file.raw.type === 'image/png';
-  const isLt500K = file.raw.size / 1024 < 500; // 小于 500KB
-
-  if (!isJPGPNG) {
-    ElMessage.error('图片只能是 JPG 或 PNG 格式！');
-    return false;
-  }
-  if (!isLt500K) {
-    ElMessage.error('图片大小不能超过 500KB！');
-    return false;
-  }
-
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    currentSpot.imageUrl = e.target.result;
-    ElMessage.success('图片已成功预览，点击“确定”保存到行程。');
-  };
-  reader.readAsDataURL(file.raw);
-  return true;
-};
+// 改时间格式
+const formatDateTime = (dateStr) => {
+  return dateStr ? `${dateStr}T00:00:00Z` : '';
+}
 
 // --- 最终提交 ---
 const submitTourPackage = async () => {
@@ -592,10 +575,11 @@ const submitTourPackage = async () => {
   if (!title.value) { ElMessage.error('请输入旅行团标题。'); return; }
   if (!destination.value) { ElMessage.error('请选择目的地。'); return; }
   if (!startDate.value || !endDate.value) { ElMessage.error('请选择出发和返回日期。'); return; }
+  if (!detailDescription.value) { ElMessage.error('请写入详细描述。'); return; }
   if (dailySchedules.value.length === 0) { ElMessage.error('请生成行程框架并添加行程。'); return; }
   if (price.value === null || price.value <= 0) { ElMessage.error('请输入有效的旅行团价格。'); return; }
   if (capacity.value === null || capacity.value <= 0) { ElMessage.error('请输入有效的旅行团容量。'); return; }
-  if (uploadedImgIds.value.length === 0) { ElMessage.error('请上传至少一张团主图。'); return; }
+  if (uploadedBackendFileIds.length === 0) { ElMessage.error('请上传至少一张团主图。'); return; }
 
   // 计算 durationInDays
   const start = new Date(startDate.value);
@@ -606,9 +590,9 @@ const submitTourPackage = async () => {
   // 构建要提交的 dailySchedules 数组
   const formattedDailySchedules = dailySchedules.value.map((day, index) => ({
     dayNumber: index + 1,
-    routeName: dailySchedules.value[index]?.routeName || '',
-    routeDescription: dailySchedules.value[index]?.routeDescription || '',
-    spotUids: day.spots.map(spot => spot.uid) 
+    routeName: day.routeName || '',
+    routeDescription: day.routeDescription || '',
+    spotUids: day.map(spot => spot.uid) 
   }));
 
     // 构建提交数据对象
@@ -617,10 +601,10 @@ const submitTourPackage = async () => {
     detailedDescription: detailDescription.value,
     price: price.value,
     capacity: capacity.value,
-    departureDate: startDate.value, 
+    departureDate: formatDateTime(startDate.value), 
     durationInDays: durationInDays,
     dailySchedules: formattedDailySchedules,
-    imgIds: uploadedImgIds.value, 
+    imgIds: uploadedBackendFileIds, 
   };
 
   console.log('即将提交的旅行团数据:', JSON.stringify(tourPackageData, null, 2));
@@ -629,8 +613,7 @@ const submitTourPackage = async () => {
     const response = await authAxios.post('/dealer/travel-packages', tourPackageData);
 
     if (response.data.code === 200) {
-      ElMessage.success('恭喜！您的旅行团已成功发布！🎉');
-      // 发布成功后可以跳转到旅行团详情页或者我的旅行团列表
+      ElMessage.success('恭喜！您的旅行团已成功发布！请耐心等待审核吧🎉');
       router.push('/merchant/me'); 
     } else {
       ElMessage.error(response.data.message || '旅行团发布失败，请重试。');
@@ -890,27 +873,27 @@ const submitTourPackage = async () => {
   background-color: #fef0f0;
 }
 
-.note-preview {
+/* .note-preview {
   display: flex;
-  align-items: flex-start; /* 图标与文本顶部对齐 */
+  align-items: flex-start; 
   gap: 10px;
-  background-color: #f9fbfb; /* 预览框浅色背景 */
+  background-color: #f9fbfb; 
   padding: 12px;
   border-radius: 8px;
   cursor: pointer;
   border: 1px dashed #e0e0e0;
-  min-height: 70px; /* 确保最小高度 */
+  min-height: 70px; 
   transition: all 0.2s ease;
 }
 
 .note-preview:hover {
-  background-color: #e0f2f1; /* 鼠标悬停时浅主题色 */
+  background-color: #e0f2f1; 
   border-color: #b2dfdb;
 }
 
 .note-preview .el-icon {
   font-size: 1.2rem;
-  color: #909399; /* 编辑图标颜色 */
+  color: #909399; 
   margin-top: 2px;
 }
 
@@ -919,7 +902,7 @@ const submitTourPackage = async () => {
   font-size: 0.9rem;
   color: #666;
   line-height: 1.4;
-  word-break: break-word; /* 自动换行 */
+  word-break: break-word; 
 }
 
 .time-range-display {
@@ -948,7 +931,7 @@ const submitTourPackage = async () => {
   object-fit: cover;
   border: 1px solid #eee;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
-}
+} */
 
 /* 提交按钮区域 */
 .submit-section {

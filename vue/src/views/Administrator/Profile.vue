@@ -512,16 +512,16 @@ const viewMerchantDetails = (merchantRow) => {
 const fetchPendingTours = async () => {
   tourReviewLoading.value = true;
   try {
-    const response = await authAxios.get('/api/admin/tours/pending', { // 假设后端有此接口
+    const response = await authAxios.get('/admin/approvals/travel-packages', { 
       params: {
-        pageNum: tourReviewCurrentPage.value,
-        pageSize: tourReviewPageSize
+        page: tourReviewCurrentPage.value,
+        size: tourReviewPageSize
       }
     });
     if (response.data.code === 200 && response.data.data) {
-      pendingTours.value = response.data.data.records;
-      pendingToursTotal.value = response.data.data.total;
-      pendingToursCount.value = response.data.data.total; // 更新侧边栏徽标
+      pendingTours.value = response.data.data.content;
+      pendingToursTotal.value = response.data.data.totalElements;
+      pendingToursCount.value = response.data.data.totalElements; 
     } else {
       ElMessage.error(response.data.message || '获取待审核旅行团失败');
     }
@@ -686,11 +686,11 @@ const saveAdminSettings = async () => {
 
 // --- 初始化数据 ---
 onMounted(() => {
-  fetchAdminOverview(); // 获取管理员概览数据
-  fetchUsers();         // 加载用户列表
-  fetchMerchants();     // 加载团长列表
+  // fetchAdminOverview(); // 获取管理员概览数据
+  // fetchUsers();         // 加载用户列表
+  // fetchMerchants();     // 加载团长列表
   fetchPendingTours();  // 加载待审核旅行团
-  fetchPendingNotes();  // 加载待审核游记
+  //fetchPendingNotes();  // 加载待审核游记
 });
 
 // 当 activeTab 改变时，重新加载对应数据 (按需)
