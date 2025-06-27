@@ -3,7 +3,7 @@
     <div class="login-container">
       <!-- 左侧 Logo -->
       <div class="login-left">
-        <h2>Welcome to BreezeTribe</h2>
+        <h2 style="text-align: center;font-size: 32px; font-weight: bold;">Welcome to BreezeTribe</h2>
         <img src="@/assets/Logo.jpg" alt="Logo" class="login-logo" />
          <!-- 去注册 -->
           <el-form-item>
@@ -15,9 +15,10 @@
 
       <!-- 右侧表单 -->
       <div class="login-right">
-        
-        <h1 style="text-align: center;">LOGIN</h1>
-        <h4 style="text-align: center;">专业报团，放心出游，开启无忧旅行！</h4>
+        <h2 style="text-align: center;line-height: 2.0;">
+          <span style="font-size: 32px; font-weight: bold;">LOGIN</span><br>
+          <span style="font-size: 18px; color: #555;">专业报团，放心出游，开启无忧旅行！</span>
+        </h2>
         <!-- 登录方式切换（用 Tabs 实现） -->
         <el-tabs v-model="mode" class="login-switch" stretch>
           <el-tab-pane label="手机号登录" name="phone" ></el-tab-pane>
@@ -242,7 +243,7 @@ const goRegister = () => {
 }
 
 .login-left {
-  width: 250px;
+  width: 340px;
   background: white;
   border-radius: 50px;
   padding: 40px;
@@ -261,9 +262,9 @@ const goRegister = () => {
   right: 60px;  
   top: 50%;
   transform: translateY(-50%);
-  width: 350px;
-  height:460px;
-  padding: 40px 30px;
+  width: 400px;
+  height:550px;
+  padding: 50px 30px;
   background: #84adbc;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
   z-index: 10;
@@ -273,7 +274,7 @@ const goRegister = () => {
 }
 
 .login-right .el-form-item {
-  margin-bottom: 25px; /* 垂直间距*/
+  margin-bottom: 30px; /* 垂直间距*/
 }
 
 /* 取消最后一个 el-form-item 的下边距，避免按钮下方留白 */
