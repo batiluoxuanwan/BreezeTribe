@@ -1,4 +1,4 @@
-package org.whu.backend.controller;
+package org.whu.backend.controller.admin;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -12,7 +12,7 @@ import org.whu.backend.dto.PageRequestDto;
 import org.whu.backend.dto.PageResponseDto;
 import org.whu.backend.dto.admin.BanRequestDto;
 import org.whu.backend.dto.admin.UserManagementDto;
-import org.whu.backend.service.AdminService;
+import org.whu.backend.service.admin.AdminService;
 import org.whu.backend.util.JpaUtil;
 
 @Tag(name = "管理员-用户管理", description = "管理平台所有类型的账户")

@@ -1,4 +1,4 @@
-package org.whu.backend.service;
+package org.whu.backend.service.pub;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +21,7 @@ import org.whu.backend.entity.TravelPackage;
 import org.whu.backend.entity.travelpost.TravelPost;
 import org.whu.backend.repository.TravelPostRepository;
 import org.whu.backend.repository.travelRepo.TravelPackageRepository;
+import org.whu.backend.service.DtoConverter;
 import org.whu.backend.service.specification.TravelPackageSpecification;
 
 import java.util.List;

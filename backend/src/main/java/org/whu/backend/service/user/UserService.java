@@ -1,4 +1,4 @@
-package org.whu.backend.service;
+package org.whu.backend.service.user;
 
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;

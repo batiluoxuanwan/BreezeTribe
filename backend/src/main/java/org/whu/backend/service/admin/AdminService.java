@@ -1,6 +1,5 @@
-package org.whu.backend.service;
+package org.whu.backend.service.admin;
 
-import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springdoc.core.annotations.ParameterObject;
@@ -11,7 +10,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.*;
-import org.whu.backend.common.Result;
 import org.whu.backend.common.exception.BizException;
 import org.whu.backend.dto.PageRequestDto;
 import org.whu.backend.dto.PageResponseDto;
@@ -28,11 +26,11 @@ import org.whu.backend.entity.TravelPackage;
 import org.whu.backend.entity.accounts.Account;
 import org.whu.backend.entity.accounts.Merchant;
 import org.whu.backend.entity.accounts.Role;
-import org.whu.backend.entity.accounts.User;
 import org.whu.backend.repository.authRepo.MerchantRepository;
 import org.whu.backend.repository.authRepo.UserRepository;
 import org.whu.backend.repository.travelRepo.SpotRepository;
 import org.whu.backend.repository.travelRepo.TravelPackageRepository;
+import org.whu.backend.service.DtoConverter;
 import org.whu.backend.util.JpaUtil;
 import org.whu.backend.repository.authRepo.AuthRepository;
 

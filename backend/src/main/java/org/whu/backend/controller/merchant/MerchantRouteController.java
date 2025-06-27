@@ -1,4 +1,4 @@
-package org.whu.backend.controller;
+package org.whu.backend.controller.merchant;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -15,7 +15,7 @@ import org.whu.backend.dto.route.RouteCreateRequestDto;
 import org.whu.backend.dto.route.RouteDetailDto;
 import org.whu.backend.dto.route.RouteSummaryDto;
 import org.whu.backend.dto.route.RouteUpdateRequestDto;
-import org.whu.backend.service.MerchantRouteService;
+import org.whu.backend.service.merchant.MerchantRouteService;
 import org.whu.backend.util.AccountUtil;
 
 // 该接口暂时废弃不可用

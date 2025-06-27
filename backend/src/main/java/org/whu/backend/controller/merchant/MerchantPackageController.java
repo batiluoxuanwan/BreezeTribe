@@ -1,4 +1,4 @@
-package org.whu.backend.controller;
+package org.whu.backend.controller.merchant;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -18,7 +18,7 @@ import org.whu.backend.dto.travelpack.PackageSummaryDto;
 import org.whu.backend.dto.travelpack.PackageUpdateRequestDto;
 import org.whu.backend.entity.TravelPackage;
 import org.whu.backend.service.DtoConverter;
-import org.whu.backend.service.MerchantPackageService;
+import org.whu.backend.service.merchant.MerchantPackageService;
 import org.whu.backend.util.AccountUtil;
 
 @Tag(name = "经销商-旅行团管理", description = "经销商管理自己的旅行团商品")

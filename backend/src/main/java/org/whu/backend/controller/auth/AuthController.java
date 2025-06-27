@@ -1,4 +1,4 @@
-package org.whu.backend.controller;
+package org.whu.backend.controller.auth;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -6,14 +6,13 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 import org.whu.backend.common.Result;
 import org.whu.backend.dto.auth.LoginRequest;
 import org.whu.backend.dto.auth.RegisterRequest;
 import org.whu.backend.dto.auth.ResetPasswordRequest;
 import org.whu.backend.dto.auth.UpdateUsernameRequest;
 import org.whu.backend.dto.mediafile.FileUploadRequestDto;
-import org.whu.backend.service.AuthService;
+import org.whu.backend.service.auth.AuthService;
 
 @RestController
 @RequestMapping("/api/auth")
