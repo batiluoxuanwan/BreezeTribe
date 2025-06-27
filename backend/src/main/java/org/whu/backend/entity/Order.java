@@ -50,6 +50,7 @@ public class Order {
         PENDING_PAYMENT, // 待支付
         PAID, // 已支付
         CANCELED, // 取消
+        ONGOING, // 正在进行
         COMPLETED // 完成
     }
 

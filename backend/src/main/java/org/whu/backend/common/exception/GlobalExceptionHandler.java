@@ -3,10 +3,9 @@ package org.whu.backend.common.exception;
 import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.data.mapping.PropertyReferenceException;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.mail.MailException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -21,7 +20,6 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.whu.backend.common.Result;
 
 import java.time.format.DateTimeParseException;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -83,10 +81,11 @@ public class GlobalExceptionHandler {
     public Result<?> handleNoResourceFoundException(NoResourceFoundException e, HttpServletRequest request) {
         String requestUrl = request.getRequestURI();
         // 对于404错误，通常记录为WARN级别，并包含请求的URL和方法，一般不需要完整堆栈
-        log.warn("请求的资源未找到 (404): {} {} (Referer: {})",
+        log.warn("请求的资源未找到 (404): {} {} (Referer: {})，错误信息: {}",
                 request.getMethod(),
                 requestUrl,
-                request.getHeader("Referer")); // 记录访问来源，有助于分析
+                request.getHeader("Referer"),
+                e.getMessage()); // 记录访问来源，有助于分析
         return Result.failure(HttpStatus.NOT_FOUND.value(), "您访问的页面或资源不存在");
     }
 
@@ -150,9 +149,27 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AuthorizationDeniedException.class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
     public Result<?> handleAuthenticationException(AuthorizationDeniedException e) {
-        log.warn("未认证的用户 {}", e.getMessage());
+        log.warn("未认证的用户:  {}", e.getMessage());
         return Result.failure(HttpStatus.UNAUTHORIZED.value(), "未认证的用户");
     }
+
+    @ExceptionHandler(MailException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public Result<?> handleMailException(MailException e) {
+        log.warn("邮件发送失败:  {}", e.getMessage());
+        return Result.failure(HttpStatus.BAD_REQUEST.value(), "邮件发送失败，请稍后再试");
+    }
+
+    // 处理数据库相关的常见异常，这里捕获一个比较通用的父类，避免暴露过多底层细节。
+    @ExceptionHandler(org.springframework.dao.DataAccessException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public Result<?> handleDataAccessException(org.springframework.dao.DataAccessException e) {
+        // 在日志中记录详细的根本原因，但不对外暴露
+        log.error("数据库访问异常: {}", e.getMessage());
+        // 返回给前端一个通用的、友好的错误提示
+        return Result.failure(HttpStatus.INTERNAL_SERVER_ERROR.value(), "数据查询操作失败，请联系管理员");
+    }
+
 
     // --- JWT 相关异常处理 ---
 //    @ExceptionHandler(ExpiredJwtException.class)
@@ -169,48 +186,48 @@ public class GlobalExceptionHandler {
 //        return Result.failure(HttpStatus.UNAUTHORIZED.value(), "无效的身份认证信息");
 //    }
 
-    //SQL
-    // 1. 属性查询错误
-    @ExceptionHandler(PropertyReferenceException.class)
-    public ResponseEntity<?> handlePropertyReferenceException(PropertyReferenceException ex) {
-        return ResponseEntity.badRequest().body(
-                Map.of(
-                        "code", 400,
-                        "message", "查询属性不存在，请检查字段名是否匹配！",
-                        "errorDetail", ex.getMessage()
-                )
-        );
-    }
-
-    // 2. 完整性错误，例如违反外键或唯一键约束
-    @ExceptionHandler(DataIntegrityViolationException.class)
-    public ResponseEntity<?> handleDataIntegrityViolationException(DataIntegrityViolationException ex) {
-        // 可根据 ex.getRootCause() 获取更详细错误
-        String rootMessage = ex.getRootCause() != null
-                ? ex.getRootCause().getMessage()
-                : ex.getMessage();
-        return ResponseEntity.badRequest().body(
-                Map.of(
-                        "code", 400,
-                        "message", "数据库操作错误，请检查数据完整性或引用对象是否存在！",
-                        "errorDetail", rootMessage
-                )
-        );
-    }
-
-    // 可选：针对 JPA 层产生的其他数据库异常
-    @ExceptionHandler(org.springframework.dao.DataAccessException.class)
-    public ResponseEntity<?> handleDataAccessException(org.springframework.dao.DataAccessException ex) {
-        return ResponseEntity.internalServerError().body(
-                Map.of(
-                        "code", 500,
-                        "message", "数据库访问错误，请稍后再试！",
-                        "errorDetail", ex.getRootCause() != null
-                                ? ex.getRootCause().getMessage()
-                                : ex.getMessage()
-                )
-        );
-    }
+//    //SQL
+//    // 1. 属性查询错误
+//    @ExceptionHandler(PropertyReferenceException.class)
+//    public ResponseEntity<?> handlePropertyReferenceException(PropertyReferenceException ex) {
+//        return ResponseEntity.badRequest().body(
+//                Map.of(
+//                        "code", 400,
+//                        "message", "查询属性不存在，请检查字段名是否匹配！",
+//                        "errorDetail", ex.getMessage()
+//                )
+//        );
+//    }
+//
+//    // 2. 完整性错误，例如违反外键或唯一键约束
+//    @ExceptionHandler(DataIntegrityViolationException.class)
+//    public ResponseEntity<?> handleDataIntegrityViolationException(DataIntegrityViolationException ex) {
+//        // 可根据 ex.getRootCause() 获取更详细错误
+//        String rootMessage = ex.getRootCause() != null
+//                ? ex.getRootCause().getMessage()
+//                : ex.getMessage();
+//        return ResponseEntity.badRequest().body(
+//                Map.of(
+//                        "code", 400,
+//                        "message", "数据库操作错误，请检查数据完整性或引用对象是否存在！",
+//                        "errorDetail", rootMessage
+//                )
+//        );
+//    }
+//
+//    // 可选：针对 JPA 层产生的其他数据库异常
+//    @ExceptionHandler(org.springframework.dao.DataAccessException.class)
+//    public ResponseEntity<?> handleDataAccessException(org.springframework.dao.DataAccessException ex) {
+//        return ResponseEntity.internalServerError().body(
+//                Map.of(
+//                        "code", 500,
+//                        "message", "数据库访问错误，请稍后再试！",
+//                        "errorDetail", ex.getRootCause() != null
+//                                ? ex.getRootCause().getMessage()
+//                                : ex.getMessage()
+//                )
+//        );
+//    }
 
 
     // --- 通用运行时异常处理器 (作为最后的防线) ---

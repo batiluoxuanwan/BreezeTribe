@@ -2,8 +2,8 @@ package org.whu.backend.repository.travelRepo;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
 import org.whu.backend.entity.TravelPackage;
 
 import java.util.Optional;
@@ -17,4 +17,6 @@ public interface TravelPackageRepository extends JpaRepository<TravelPackage, St
 
     // 根据经销商ID分页查询旅行团（分页）
     Page<TravelPackage> findByDealerId(String dealerId, Pageable pageable);
+
+    Page<TravelPackage> findAll(Specification<TravelPackage> spec, Pageable pageable);
 }

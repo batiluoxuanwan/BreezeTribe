@@ -41,6 +41,13 @@ spring:
       password: cloudora100points
       database: 0
 
+# 服务器配置
+server:
+  address: 127.0.0.1   # 确保只监听本地回环地址
+  port: 8081           # 将 Spring Boot 应用的监听端口改为 8081 (HTTP)
+  forward-headers-strategy: FRAMEWORK # 正确推断出API的公共访问URL的协议（https）、主机和端口
+
+
 baidu:
   map:
     ak: cX3Lu6F9cEcRr7M2K80G0Di49wvz4hY0
