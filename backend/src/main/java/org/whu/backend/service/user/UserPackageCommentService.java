@@ -1,6 +1,5 @@
 package org.whu.backend.service.user;
 
-import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -14,7 +13,6 @@ import org.whu.backend.dto.PageRequestDto;
 import org.whu.backend.dto.PageResponseDto;
 import org.whu.backend.dto.packagecomment.PackageCommentCreateDto;
 import org.whu.backend.dto.packagecomment.PackageCommentDto;
-import org.whu.backend.dto.postcomment.PostCommentDto;
 import org.whu.backend.entity.Order;
 import org.whu.backend.entity.PackageComment;
 import org.whu.backend.entity.TravelPackage;
@@ -23,7 +21,6 @@ import org.whu.backend.repository.authRepo.UserRepository;
 import org.whu.backend.repository.travelRepo.OrderRepository;
 import org.whu.backend.repository.travelRepo.PackageCommentRepository;
 import org.whu.backend.repository.travelRepo.TravelPackageRepository;
-import org.springframework.util.StringUtils;
 import org.whu.backend.service.DtoConverter;
 
 import java.util.List;
@@ -84,6 +81,8 @@ public class UserPackageCommentService {
             }
             newComment.setParent(parentComment);
         }
+        // 增加评论数
+        packageRepository.incrementCommentCount(packageId);
 
         return commentRepository.save(newComment);
     }

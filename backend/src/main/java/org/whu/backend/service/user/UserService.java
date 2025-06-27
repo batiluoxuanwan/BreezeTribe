@@ -9,6 +9,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.whu.backend.common.exception.BizException;
 import org.whu.backend.dto.favourite.FavoritePageReqDto;
 import org.whu.backend.dto.PageResponseDto;
@@ -130,6 +131,7 @@ public class UserService {
         return true;
     }
 
+    @Transactional // 必须加上事务注解！！！！！！
     public boolean addFavorite(FavoriteRequestDto favoriteRequestDto) {
         User user = securityUtil.getCurrentUser();
 
@@ -148,8 +150,10 @@ public class UserService {
         switch (favoriteRequestDto.getItemType()) {
             case PACKAGE:
                 JpaUtil.getOrThrow(travelPackageRepository, favoriteRequestDto.getItemId(), "旅行团不存在");
+                travelPackageRepository.incrementFavoriteCount(favoriteRequestDto.getItemId());
                 break;
             case SPOT:
+                // TODO: 改成景点缓存逻辑
                 JpaUtil.getOrThrow(spotRepository, favoriteRequestDto.getItemId(), "景点不存在");
                 break;
             case ROUTE:
@@ -172,6 +176,7 @@ public class UserService {
         return true;
     }
 
+    @Transactional // 必须加上事务注解！！！！！！
     public boolean removeFavorite(FavoriteRequestDto favoriteRequestDto) {
         User user = securityUtil.getCurrentUser();
         // 2. 查找并删除对应的Favorite记录
@@ -179,6 +184,13 @@ public class UserService {
         Optional<Favorite> existing = favoriteRepository.findByUserAndItemIdAndItemType(user, favoriteRequestDto.getItemId(), favoriteRequestDto.getItemType());
         if (existing.isEmpty()) {
             throw new BizException("收藏不存在");
+        }
+        switch (existing.get().getItemType()){
+            case PACKAGE:
+                travelPackageRepository.decrementFavoriteCount(favoriteRequestDto.getItemId());
+                break;
+            case POST:
+                break;
         }
         favoriteRepository.delete(existing.get());
         //favoriteRepository.deleteByUserAndItemIdAndItemType(user, favoriteRequestDto.getItemId(), favoriteRequestDto.getItemType());

@@ -173,10 +173,6 @@ public class DtoConverter {
     // 将TravelPost实体转换为详细的DTO
     public PostDetailDto convertPostToDetailDto(TravelPost post) {
         // 转换作者信息
-        String url = post.getAuthor().getAvatarUrl();
-        if (url != null) {
-            url = AliyunOssUtil.generatePresignedGetUrl(url, EXPIRE_TIME, IMAGE_PROCESS);
-        }
         AuthorDto authorDto = ConvertUserToAuthorDto(post.getAuthor());
 
         // 转换景点信息 (如果存在)
@@ -262,16 +258,22 @@ public class DtoConverter {
 
     // 把旅游团实体TravelPackage转化为简略的信息PackageSummaryDto
     public PackageSummaryDto convertPackageToSummaryDto(TravelPackage entity) {
-        PackageSummaryDto dto = new PackageSummaryDto();
-        dto.setId(entity.getId());
-        dto.setTitle(entity.getTitle());
-        if (entity.getCoverImageUrl() != null)
-            dto.setCoverImageUrl(AliyunOssUtil.generatePresignedGetUrl(entity.getCoverImageUrl(), EXPIRE_TIME, IMAGE_PROCESS));
-        dto.setPrice(entity.getPrice());
-        dto.setDescription(entity.getDetailedDescription());
-        dto.setDurationInDays(entity.getDurationInDays());
-        dto.setStatus(entity.getStatus().toString());
-        return dto;
+        String coverImageUrl = null;
+        if (entity.getCoverImageUrl() != null) {
+            coverImageUrl = AliyunOssUtil.generatePresignedGetUrl(entity.getCoverImageUrl(), EXPIRE_TIME, IMAGE_PROCESS);
+        }
+
+        return PackageSummaryDto.builder()
+                .id(entity.getId())
+                .title(entity.getTitle())
+                .coverImageUrl(coverImageUrl)
+                .price(entity.getPrice())
+                .description(entity.getDetailedDescription())
+                .durationInDays(entity.getDurationInDays())
+                .favouriteCount(entity.getFavoriteCount())
+                .commentCount(entity.getCommentCount())
+                .status(entity.getStatus().toString())
+                .build();
     }
 
     // 把旅游团实体TravelPackage转化为详细的信息PackageSummaryDto
@@ -298,6 +300,8 @@ public class DtoConverter {
                 .price(entity.getPrice())
                 .durationInDays(entity.getDurationInDays())
                 .detailedDescription(entity.getDetailedDescription())
+                .favouriteCount(entity.getFavoriteCount())
+                .commentCount(entity.getCommentCount())
                 .status(entity.getStatus().name())
                 .routes(routeDtos)
                 .build();
