@@ -86,9 +86,11 @@ public class FriendService {
     }
 
     public void deleteFriend(String friendId) {
-        String accountId = AccountUtil.getCurrentAccountId();
-        friendShipRepository.deleteByAccountIdAndFriendId(accountId, friendId);
-        friendShipRepository.deleteByAccountIdAndFriendId(friendId, accountId);
+        //String accountId = AccountUtil.getCurrentAccountId();
+        Account account = accountUtil.getCurrentAccount();
+        Account friend = JpaUtil.getOrThrow(accountRepository, friendId, "好友不存在");
+        friendShipRepository.deleteByAccount1AndAccount2(account, friend);
+        friendShipRepository.deleteByAccount1AndAccount2(friend, account);
     }
 
 //    public List<FriendDTO> getFriends(String accountId) {
@@ -97,13 +99,15 @@ public class FriendService {
 //                .toList();
 //    }
     public PageResponseDto<FriendDto> getFriends(PageRequestDto pageRequestDto) {
-        String accountId = AccountUtil.getCurrentAccountId();
+        //String accountId = AccountUtil.getCurrentAccountId();
+        Account account = accountUtil.getCurrentAccount();
+        //Account friend = JpaUtil.getOrThrow(accountRepository, friendId, "好友不存在");
         // 1️创建 Pageable
         Sort.Direction direction = Sort.Direction.fromString(pageRequestDto.getSortDirection());
         Pageable pageable = PageRequest.of(pageRequestDto.getPage() - 1, pageRequestDto.getSize(),
                 Sort.by(direction, pageRequestDto.getSortBy()));
         // 2️获取 Page<Friend> 实体
-        Page<Friendship> page = friendShipRepository.findByAccount1(accountId, pageable);
+        Page<Friendship> page = friendShipRepository.findByAccount1(account, pageable);
 
         // 3️转换为 DTO
         List<FriendDto> content = page.getContent().stream()
