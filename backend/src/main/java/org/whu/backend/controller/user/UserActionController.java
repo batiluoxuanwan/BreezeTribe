@@ -1,4 +1,4 @@
-package org.whu.backend.controller;
+package org.whu.backend.controller.user;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -15,7 +15,7 @@ import org.whu.backend.dto.favourite.FavoriteRequestDto;
 import org.whu.backend.dto.favourite.FavouriteDetailDto;
 import org.whu.backend.dto.order.OrderCreateRequestDto;
 import org.whu.backend.dto.order.OrderDetailDto;
-import org.whu.backend.service.UserService;
+import org.whu.backend.service.user.UserService;
 
 @Tag(name = "用户-订单与收藏", description = "用户进行报名、收藏等操作的API")
 @RestController

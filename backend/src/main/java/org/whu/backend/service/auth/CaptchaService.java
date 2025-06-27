@@ -1,19 +1,28 @@
-package org.whu.backend.service;
+package org.whu.backend.service.auth;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.util.StringUtils;
+import org.springframework.web.client.RestTemplate;
 import org.whu.backend.common.exception.BizException;
+import org.whu.backend.util.JpaUtil;
 
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
+
+import static org.aspectj.weaver.tools.cache.SimpleCacheFactory.path;
 
 @Slf4j
 @Service
@@ -25,6 +34,29 @@ public class CaptchaService {
     @Autowired
     private StringRedisTemplate redisTemplate;
 
+    @Autowired
+    private RestTemplate restTemplate;
+
+    @Value("${sms.host}")
+    private String host;
+
+    @Value("${sms.path}")
+    private String path;
+
+    @Value("${sms.method}")
+    private String method;
+
+    @Value("${sms.appcode}")
+    private String appcode;
+
+    @Value("${sms.smsSignId}")
+    private String smsSignId;
+
+    @Value("${sms.templateId}")
+    private String templateId;
+
+    @Value("${spring.mail.username}")
+    private String from;
     private static final String CODE_KEY_PREFIX = "email:code:";
 
 
@@ -132,4 +164,39 @@ public class CaptchaService {
         }
         return false;
     }
+    private void sendAliyunSms(String mobile, String code, int minutes) {
+        String url = host + path +
+                "?mobile=" + mobile +
+                "&param=" + "**code**:" + code + ",**minute**:" + minutes +
+                "&smsSignId=" + smsSignId +
+                "&templateId=" + templateId;
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "APPCODE " + appcode);
+
+        HttpEntity<String> entity = new HttpEntity<>(null, headers);
+        ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, entity, String.class);
+
+        if (!response.getStatusCode().is2xxSuccessful()) {
+            throw new BizException("短信发送失败，请稍后再试");
+        }
+    }
+//    public void sendVerificationSms(String mobile) {
+//            JpaUtil.notNull(mobile, "手机号不能为空");
+//
+////            String rateLimitKey = "sms:rate:" + mobile;
+////            if (Boolean.TRUE.equals(redisTemplate.hasKey(rateLimitKey))) {
+////                throw new BizException("验证码发送过于频繁，请稍后再试");
+////            }
+//        int minutes = 5;
+//        String code = generateCode(); // 6位验证码
+//        // 发送短信（复用封装方法）
+//        sendAliyunSms(mobile, code, minutes);
+//        // 设置验证码及频率限制
+//        //redisTemplate.opsForValue().set(rateLimitKey, "1", 60, TimeUnit.SECONDS);
+//        redisTemplate.opsForValue().set("sms:" + mobile, code, 5, TimeUnit.MINUTES);
+//    }
+//
+//    public void resetVerificationSms(String phone) {
+//    }
 }

@@ -14,7 +14,8 @@ import org.springframework.context.annotation.Configuration;
 @OpenAPIDefinition(
         servers = {
                 @Server(url = "http://localhost:8081", description = "Local DEV server"),
-                @Server(url = "https://frp-dad.com:36680", description = "sakura-frp DEV server")
+                @Server(url = "https://frp-dad.com:36680", description = "sakura-frp DEV server"),
+                @Server(url = "https://121.43.136.251:8080", description = "remote TEST server")
         }
 )
 public class SwaggerConfig {

@@ -1,6 +1,5 @@
-package org.whu.backend.service;
+package org.whu.backend.service.admin;
 
-import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springdoc.core.annotations.ParameterObject;
@@ -11,7 +10,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.*;
-import org.whu.backend.common.Result;
 import org.whu.backend.common.exception.BizException;
 import org.whu.backend.dto.PageRequestDto;
 import org.whu.backend.dto.PageResponseDto;
@@ -28,11 +26,11 @@ import org.whu.backend.entity.TravelPackage;
 import org.whu.backend.entity.accounts.Account;
 import org.whu.backend.entity.accounts.Merchant;
 import org.whu.backend.entity.accounts.Role;
-import org.whu.backend.entity.accounts.User;
 import org.whu.backend.repository.authRepo.MerchantRepository;
 import org.whu.backend.repository.authRepo.UserRepository;
 import org.whu.backend.repository.travelRepo.SpotRepository;
 import org.whu.backend.repository.travelRepo.TravelPackageRepository;
+import org.whu.backend.service.DtoConverter;
 import org.whu.backend.util.JpaUtil;
 import org.whu.backend.repository.authRepo.AuthRepository;
 
@@ -58,6 +56,8 @@ public class AdminService {
     private UserRepository userRepository;
     @Autowired
     private AuthRepository accountRepository;
+    @Autowired
+    private DtoConverter dtoConverter;
 //    @Autowired
 //    private JpaUtil jpaUtil;
 
@@ -72,17 +72,7 @@ public class AdminService {
 
         // 3️转换为 DTO
         List<PackageSummaryDto> content = page.getContent().stream()
-                .map(pkg -> {
-                    PackageSummaryDto dto = new PackageSummaryDto();
-                    dto.setId(pkg.getId());
-                    dto.setTitle(pkg.getTitle());
-                    dto.setDescription(pkg.getDetailedDescription());
-                    dto.setCoverImageUrl(pkg.getCoverImageUrl());
-                    dto.setPrice(pkg.getPrice());
-                    dto.setDurationInDays(pkg.getDurationInDays());
-                    dto.setStatus(pkg.getStatus().toString());
-                    return dto;
-                })
+                .map(dtoConverter::convertPackageToSummaryDto)
                 .toList();
 
         // 4️构建 PageResponseDto
@@ -294,35 +284,54 @@ public class AdminService {
                 .build();
     }
 
-    public PageResponseDto<UserManagementDto> getAllUsers(PageRequestDto pageRequestDto,String role)
-    {
-        // 1️解析分页和排序参数
+    public PageResponseDto<UserManagementDto> getAllUsers(PageRequestDto pageRequestDto, String role, String id, String name) {
         Sort.Direction direction = Sort.Direction.fromString(pageRequestDto.getSortDirection());
         Pageable pageable = PageRequest.of(pageRequestDto.getPage() - 1, pageRequestDto.getSize(),
                 Sort.by(direction, pageRequestDto.getSortBy()));
-        // 2️根据 role 过滤，如果 role == null 则查询全部
+
         Page<Account> page;
-        if (role == null || role.isBlank()) {
-            page = accountRepository.findAll(pageable);
-        } else {
-            Role enumRole = Role.valueOf(role); // 假设你的 Role 是枚举
+
+        // 1️精确查 ID：优先级最高
+        if (id != null && !id.isBlank()) {
+            Optional<Account> accountOpt = accountRepository.findById(id);
+            if (accountOpt.isEmpty()) {
+                throw new BizException("用户不存在");
+            }
+            Account account = accountOpt.get();
+            UserManagementDto dto = mapToDto(account);
+            return PageResponseDto.<UserManagementDto>builder()
+                    .content(List.of(dto))
+                    .pageNumber(1)
+                    .pageSize(1)
+                    .totalElements(1)
+                    .totalPages(1)
+                    .first(true)
+                    .last(true)
+                    .numberOfElements(1)
+                    .build();
+        }
+
+        // 2️模糊查用户名 + 角色
+        if (name != null && !name.isBlank()) {
+            if (role != null && !role.isBlank()) {
+                Role enumRole = Role.valueOf(role);
+                page = accountRepository.findByUsernameContainingAndRole(name, enumRole, pageable);
+            } else {
+                page = accountRepository.findByUsernameContaining(name, pageable);
+            }
+        }
+        // 3️只查角色
+        else if (role != null && !role.isBlank()) {
+            Role enumRole = Role.valueOf(role);
             page = accountRepository.findByRole(enumRole, pageable);
         }
-        // 3️将实体转为 DTO
+        // 4️查所有
+        else {
+            page = accountRepository.findAll(pageable);
+        }
+
         List<UserManagementDto> content = page.getContent().stream()
-                .map(account -> {
-                    UserManagementDto dto = new UserManagementDto();
-                    dto.setId(account.getId());
-                    dto.setEmail(account.getEmail());
-                    dto.setPhone(account.getPhone());
-                    dto.setUsername(account.getUsername());
-                    dto.setRole(account.getRole());
-                    dto.setBanDurationDays(account.getBanDurationDays()); // 你封禁字段
-                    dto.setBanStartTime(account.getBanStartTime());
-                    dto.setCreatedAt(account.getCreatedAt());
-                    // 其他属性映射...
-                    return dto;
-                })
+                .map(this::mapToDto)
                 .toList();
 
         return PageResponseDto.<UserManagementDto>builder()
@@ -378,5 +387,18 @@ public class AdminService {
         accountRepository.save(account);
 
         return true;
+    }
+
+    private UserManagementDto mapToDto(Account account) {
+        UserManagementDto dto = new UserManagementDto();
+        dto.setId(account.getId());
+        dto.setEmail(account.getEmail());
+        dto.setPhone(account.getPhone());
+        dto.setUsername(account.getUsername());
+        dto.setRole(account.getRole());
+        dto.setBanDurationDays(account.getBanDurationDays());
+        dto.setBanStartTime(account.getBanStartTime());
+        dto.setCreatedAt(account.getCreatedAt());
+        return dto;
     }
 }

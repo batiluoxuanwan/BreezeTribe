@@ -1,4 +1,4 @@
-package org.whu.backend.controller;
+package org.whu.backend.controller.admin;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -13,7 +13,7 @@ import org.whu.backend.dto.PageResponseDto;
 import org.whu.backend.dto.accounts.MerchantSummaryDto;
 import org.whu.backend.dto.admin.RejectionRequestDto;
 import org.whu.backend.dto.travelpack.PackageSummaryDto;
-import org.whu.backend.service.AdminService;
+import org.whu.backend.service.admin.AdminService;
 import org.whu.backend.util.JpaUtil;
 
 @Tag(name = "管理员-审核中心", description = "处理经销商注册和旅行团发布的审核请求")

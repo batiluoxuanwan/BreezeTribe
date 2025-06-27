@@ -1,4 +1,4 @@
-package org.whu.backend.controller;
+package org.whu.backend.controller.admin;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -12,7 +12,7 @@ import org.whu.backend.dto.PageRequestDto;
 import org.whu.backend.dto.PageResponseDto;
 import org.whu.backend.dto.admin.BanRequestDto;
 import org.whu.backend.dto.admin.UserManagementDto;
-import org.whu.backend.service.AdminService;
+import org.whu.backend.service.admin.AdminService;
 import org.whu.backend.util.JpaUtil;
 
 @Tag(name = "管理员-用户管理", description = "管理平台所有类型的账户")
@@ -24,13 +24,15 @@ public class AdminUserManagementController {
     @Autowired
     private AdminService adminService;
 
-    @Operation(summary = "获取所有用户/经销商列表（分页）", description = "可通过参数筛选角色类型")
+    @Operation(summary = "获取所有用户/经销商列表（分页）", description = "可通过role,id,name(模糊)筛选角色")
     @GetMapping
     public Result<PageResponseDto<UserManagementDto>> getAllUsers(
             @RequestParam(required = false) String role, // e.g., USER, DEALER
+            @RequestParam(required = false) String Id,
+            @RequestParam(required = false) String name,
             @Valid @ParameterObject PageRequestDto pageRequestDto) {
         pageRequestDto.setSortBy("createdAt");
-        PageResponseDto<UserManagementDto> result = adminService.getAllUsers(pageRequestDto,role);
+        PageResponseDto<UserManagementDto> result = adminService.getAllUsers(pageRequestDto,role,Id,name);
         JpaUtil.notNull(result, "查询失败");
         return Result.success("查询成功", result);
     }
@@ -48,4 +50,6 @@ public class AdminUserManagementController {
         JpaUtil.isTrue(adminService.unbanAccount(accountId), "解封失败");
         return Result.success("账户已成功解封");
     }
+
+
 }
