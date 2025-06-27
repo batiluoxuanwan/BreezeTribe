@@ -24,13 +24,15 @@ public class AdminUserManagementController {
     @Autowired
     private AdminService adminService;
 
-    @Operation(summary = "获取所有用户/经销商列表（分页）", description = "可通过参数筛选角色类型")
+    @Operation(summary = "获取所有用户/经销商列表（分页）", description = "可通过role,id,name(模糊)筛选角色")
     @GetMapping
     public Result<PageResponseDto<UserManagementDto>> getAllUsers(
             @RequestParam(required = false) String role, // e.g., USER, DEALER
+            @RequestParam(required = false) String Id,
+            @RequestParam(required = false) String name,
             @Valid @ParameterObject PageRequestDto pageRequestDto) {
         pageRequestDto.setSortBy("createdAt");
-        PageResponseDto<UserManagementDto> result = adminService.getAllUsers(pageRequestDto,role);
+        PageResponseDto<UserManagementDto> result = adminService.getAllUsers(pageRequestDto,role,Id,name);
         JpaUtil.notNull(result, "查询失败");
         return Result.success("查询成功", result);
     }
@@ -48,4 +50,6 @@ public class AdminUserManagementController {
         JpaUtil.isTrue(adminService.unbanAccount(accountId), "解封失败");
         return Result.success("账户已成功解封");
     }
+
+
 }
