@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.mail.MailException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -80,10 +81,11 @@ public class GlobalExceptionHandler {
     public Result<?> handleNoResourceFoundException(NoResourceFoundException e, HttpServletRequest request) {
         String requestUrl = request.getRequestURI();
         // 对于404错误，通常记录为WARN级别，并包含请求的URL和方法，一般不需要完整堆栈
-        log.warn("请求的资源未找到 (404): {} {} (Referer: {})",
+        log.warn("请求的资源未找到 (404): {} {} (Referer: {})，错误信息: {}",
                 request.getMethod(),
                 requestUrl,
-                request.getHeader("Referer")); // 记录访问来源，有助于分析
+                request.getHeader("Referer"),
+                e.getMessage()); // 记录访问来源，有助于分析
         return Result.failure(HttpStatus.NOT_FOUND.value(), "您访问的页面或资源不存在");
     }
 
@@ -147,8 +149,15 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AuthorizationDeniedException.class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
     public Result<?> handleAuthenticationException(AuthorizationDeniedException e) {
-        log.warn("未认证的用户 {}", e.getMessage());
+        log.warn("未认证的用户:  {}", e.getMessage());
         return Result.failure(HttpStatus.UNAUTHORIZED.value(), "未认证的用户");
+    }
+
+    @ExceptionHandler(MailException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public Result<?> handleMailException(MailException e) {
+        log.warn("邮件发送失败:  {}", e.getMessage());
+        return Result.failure(HttpStatus.BAD_REQUEST.value(), "邮件发送失败，请稍后再试");
     }
 
     // 处理数据库相关的常见异常，这里捕获一个比较通用的父类，避免暴露过多底层细节。
@@ -160,6 +169,7 @@ public class GlobalExceptionHandler {
         // 返回给前端一个通用的、友好的错误提示
         return Result.failure(HttpStatus.INTERNAL_SERVER_ERROR.value(), "数据查询操作失败，请联系管理员");
     }
+
 
     // --- JWT 相关异常处理 ---
 //    @ExceptionHandler(ExpiredJwtException.class)
