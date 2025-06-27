@@ -79,13 +79,15 @@
                 :auto-upload="false"
                 :on-change="handleTourImageUpload"
                 :on-remove="handleTourImageRemove"
-                :file-list="tourImageUrls.map(url => ({ url: url }))"
+                :file-list="tourImageUrls.map(url => ({
+                  url: url
+                }))"
                 :limit="5" accept="image/jpeg,image/png"
               >
                 <el-icon><Plus /></el-icon>
                 <template #tip>
                   <div class="el-upload__tip">
-                    上传旅行团主封面图片，最多可上传5张 (JPG/PNG格式，单张不超过 500KB)
+                    上传旅行团主封面图片，最多可上传5张 (JPG/PNG格式，单张不超过 1000KB)
                   </div>
                 </template>
               </el-upload>
@@ -149,7 +151,7 @@
                     <el-button type="danger" :icon="Delete" circle size="small" class="delete-spot-btn" @click="removeSpot(index, i)"></el-button>
                   </div>
 
-                  <div class="note-preview" @click="openSpotDetailDialog(index, i)">
+                  <!-- <div class="note-preview" @click="openSpotDetailDialog(index, i)">
                     <el-icon><Edit /></el-icon>
                     <div class="note-content">
                       <div v-if="spot.timeRange && spot.timeRange.length === 2 && spot.timeRange[0] && spot.timeRange[1]" class="time-range-display">
@@ -167,7 +169,7 @@
                         点击此处，为该地点添加时间、备注或图片
                       </div>
                     </div>
-                  </div>
+                  </div> -->
                 </div>
               </el-card>
             </div>
@@ -225,7 +227,7 @@
         </template>
       </el-dialog>
 
-      <el-dialog v-model="spotDetailDialogVisible" :title="currentSpot.name || '编辑地点/活动详情'" width="500px" class="spot-detail-dialog">
+      <!-- <el-dialog v-model="spotDetailDialogVisible" :title="currentSpot.name || '编辑地点/活动详情'" width="500px" class="spot-detail-dialog">
         <el-form label-width="80px">
           <el-form-item label="备注">
             <el-input
@@ -279,7 +281,7 @@
         <template #footer>
           <el-button type="primary" @click="spotDetailDialogVisible = false">确定</el-button>
         </template>
-      </el-dialog>
+      </el-dialog> -->
     </div>
   </div>
 </template>
@@ -287,8 +289,8 @@
 <script setup>
 import { ref, reactive, watch, useId } from 'vue'
 import { Search, Edit, Upload, Plus, InfoFilled, Calendar, List, Location, Check, Clock, Delete, ArrowLeft } from '@element-plus/icons-vue'
-import { publicAxios } from '@/utils/request'
-import { ElMessage } from 'element-plus'
+import { publicAxios,authAxios } from '@/utils/request'
+import { ElMessage,ElMessageBox } from 'element-plus'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -298,6 +300,7 @@ const goToProfile = () => {
 }
 
 // 旅行团整体信息
+const title = ref('')//标题
 const destination = ref('')//目的地
 const startDate = ref(null)//开始日期
 const endDate = ref(null)//结束日期
@@ -306,9 +309,8 @@ const detailDescription = ref(null) //详细描述
 const price = ref(null) // 价格
 const capacity = ref(null) // 容量
 const activeDayIndex = ref(null) // 当前操作的是哪一天的行程
-
-const tourImageUrls = ref([]) // 用于前端预览的旅行团整体图片
-const uploadedImgIds = ref([]) // 存储已上传图片的ID，最终提交给后端
+const tourImageUrls = reactive([]); // 只存储预览图片的URL字符串
+const uploadedBackendFileIds = reactive([]); // 单独存储后端返回的文件ID，与 tourImageUrls 顺序对应
 
 // 景点搜索弹窗相关
 const spotDialogVisible = ref(false)
@@ -332,64 +334,127 @@ const handleSelectDestination = (item) => {
   ElMessage.success(`目的地已选择: ${item.name}`);
 };
 
-// 上传团主图
+// --- 图片上传处理 ---
 const handleTourImageUpload = async (file) => {
-  // 基本校验 
+  // 基本文件类型和大小校验
   const isJPGPNG = file.raw.type === 'image/jpeg' || file.raw.type === 'image/png';
-  const isLt500K = file.raw.size / 1024 < 500; // 500KB
+  const isLt1000K = file.raw.size / 1024 < 1000; 
 
   if (!isJPGPNG) {
-    ElMessage.error('团主图只能是 JPG 或 PNG 格式！');
+    ElMessage.error('图片只能是 JPG 或 PNG 格式！');
     return false;
   }
-  if (!isLt500K) {
-    ElMessage.error('团主图大小不能超过 500KB！');
+  if (!isLt1000K) {
+    ElMessage.error('图片大小不能超过 1MB！');
     return false;
   }
 
-  // 前端预览 创建 FileReader 对象，以便立即在前端显示图片给用户看
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    tourImageUrls.value.push(e.target.result);
-  };
-  reader.readAsDataURL(file.raw); 
+  // 生成前端预览URL (异步操作)
+  let previewUrl = '';
+  try {
+    previewUrl = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target.result);
+      reader.onerror = (error) => reject(error);
+      reader.readAsDataURL(file.raw);
+    });
+  } catch (error) {
+    console.error('读取文件进行预览失败:', error);
+    ElMessage.error('无法读取图片文件进行预览。');
+    return false;
+  }
 
-  // 准备 FormData 用于后端上传
+  // 准备 FormData
   const formData = new FormData();
   formData.append('file', file.raw);
 
   // 发送文件到后端
   try {
-    const response = await authAxios.post('/api/user/media/upload', formData, {
+    const response = await authAxios.post('/user/media/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
     });
 
-    // 5. 处理后端响应
+    // 处理后端响应
     if (response.data.code === 200) {
-      const uploadedId = response.data.data.fileId;
-      uploadedImgIds.value.push(uploadedId); // 存储后端返回的 ID
+      const uploadedId = response.data.data.fileId; 
+      tourImageUrls.push(previewUrl); 
+      uploadedBackendFileIds.push(uploadedId);
+      console.log(tourImageUrls)
 
       ElMessage.success('图片上传成功！');
-      return true; 
+      return true;
     } else {
-      ElMessage.error(response.data.message || '图片上传失败，请稍后再试。');
-      const index = tourImageUrls.value.indexOf(reader.result);
-      if (index > -1) {
-        tourImageUrls.value.splice(index, 1);
-      }
+      ElMessage.error(response.data.message || '图片上传失败，请重试。');
       return false;
     }
   } catch (error) {
-    // 网络错误或其他 Axios 错误
     console.error('图片上传失败:', error);
-    ElMessage.error('图片上传失败，请检查网络或联系管理员。');
-    // 如果上传失败，从前端预览列表中移除该图片
-    const index = tourImageUrls.value.indexOf(reader.result);
-    if (index > -1) {
-      tourImageUrls.value.splice(index, 1);
+    if (error.response && error.response.data && error.response.data.message) {
+      ElMessage.error(`上传失败: ${error.response.data.message}`);
+    } else {
+      ElMessage.error('网络错误或服务器问题，图片上传失败。');
     }
+    return false;
+  }
+};
+
+// --- 图片删除处理 ---
+const handleTourImageRemove = async (file) => {
+  // 查找要删除的预览图片在 tourImageUrls 中的索引
+  const index = tourImageUrls.findIndex(url => url === file.url);
+  if (index === -1) {
+    ElMessage.error('未找到要移除的图片。');
+    return false;
+  }
+
+  // 根据索引获取对应的后端文件ID
+  const fileIdToRemove = uploadedBackendFileIds[index]; 
+
+  // 弹出确认框
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除此图片吗？`,
+      '删除确认',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    );
+
+    // 用户点击确定，执行后端删除操作
+    if (fileIdToRemove) { 
+      try {
+        const response = await authAxios.delete(`/user/media/${fileIdToRemove}`);
+        if (response.data.code === 200) {
+          ElMessage.success('图片已从服务器移除！');
+          // 从前端预览列表和后端ID列表中移除
+          tourImageUrls.splice(index, 1);
+          uploadedBackendFileIds.splice(index, 1); // **同步移除对应的后端ID**
+          return true;
+        } else {
+          ElMessage.error(response.data.message || '从服务器删除图片失败。');
+          return false;
+        }
+      } catch (error) {
+        console.error('调用删除接口失败:', error);
+        if (error.response && error.response.data && error.response.data.message) {
+            ElMessage.error(`删除失败: ${error.response.data.message}`);
+        } else {
+            ElMessage.error('网络错误或服务器问题，图片删除失败。');
+        }
+        return false;
+      }
+    } else {
+      tourImageUrls.splice(index, 1); // 仅从前端移除
+      ElMessage.info('图片已从预览移除，但未与后端文件关联。');
+      return true;
+    }
+  } catch (cancel) {
+    // 用户点击了取消，不执行任何操作
+    ElMessage.info('已取消删除操作。');
     return false;
   }
 };
@@ -527,7 +592,7 @@ const submitTourPackage = async () => {
   if (!title.value) { ElMessage.error('请输入旅行团标题。'); return; }
   if (!destination.value) { ElMessage.error('请选择目的地。'); return; }
   if (!startDate.value || !endDate.value) { ElMessage.error('请选择出发和返回日期。'); return; }
-  if (days.value.length === 0) { ElMessage.error('请生成行程框架并添加行程。'); return; }
+  if (dailySchedules.value.length === 0) { ElMessage.error('请生成行程框架并添加行程。'); return; }
   if (price.value === null || price.value <= 0) { ElMessage.error('请输入有效的旅行团价格。'); return; }
   if (capacity.value === null || capacity.value <= 0) { ElMessage.error('请输入有效的旅行团容量。'); return; }
   if (uploadedImgIds.value.length === 0) { ElMessage.error('请上传至少一张团主图。'); return; }
@@ -873,12 +938,6 @@ const submitTourPackage = async () => {
 
 .actual-note {
   margin-bottom: 5px;
-}
-
-.empty-note {
-  color: #aaa;
-  font-style: italic;
-  font-size: 0.85rem;
 }
 
 .spot-image-preview {
