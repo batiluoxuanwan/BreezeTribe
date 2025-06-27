@@ -270,6 +270,7 @@ public class DtoConverter {
         dto.setPrice(entity.getPrice());
         dto.setDescription(entity.getDetailedDescription());
         dto.setDurationInDays(entity.getDurationInDays());
+        dto.setFavouriteCount(entity.getFavoriteCount());
         dto.setStatus(entity.getStatus().toString());
         return dto;
     }
@@ -298,6 +299,7 @@ public class DtoConverter {
                 .price(entity.getPrice())
                 .durationInDays(entity.getDurationInDays())
                 .detailedDescription(entity.getDetailedDescription())
+                .favouriteCount(entity.getFavoriteCount())
                 .status(entity.getStatus().name())
                 .routes(routeDtos)
                 .build();

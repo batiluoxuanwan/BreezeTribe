@@ -31,6 +31,9 @@ public class PackageSummaryDto {
     @Schema(description = "旅行团持续天数")
     private Integer durationInDays;
 
+    @Schema(description = "旅行团的收藏数量")
+    private Integer favouriteCount;
+
     @Schema(description = "旅行团目前的状态")
     private String status;
 }
