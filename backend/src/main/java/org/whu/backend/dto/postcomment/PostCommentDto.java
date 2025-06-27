@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
  */
 @Data
 @Builder
-public class CommentDto {
+public class PostCommentDto {
     private String id;
     private String content;
     private AuthorDto author;

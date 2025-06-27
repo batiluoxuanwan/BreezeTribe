@@ -1,15 +1,17 @@
 package org.whu.backend.service;
 
 
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
+import org.whu.backend.dto.PageResponseDto;
 import org.whu.backend.dto.accounts.AuthorDto;
 import org.whu.backend.dto.mediafile.MediaFileDto;
 import org.whu.backend.dto.order.OrderSummaryForDealerDto;
 import org.whu.backend.dto.packagecomment.PackageCommentDto;
 import org.whu.backend.dto.post.PostDetailDto;
 import org.whu.backend.dto.post.PostSummaryDto;
-import org.whu.backend.dto.postcomment.CommentDto;
-import org.whu.backend.dto.postcomment.CommentWithRepliesDto;
+import org.whu.backend.dto.postcomment.PostCommentDto;
+import org.whu.backend.dto.postcomment.PostCommentWithRepliesDto;
 import org.whu.backend.dto.route.RouteDetailDto;
 import org.whu.backend.dto.route.RouteSummaryDto;
 import org.whu.backend.dto.spot.SpotDetailDto;
@@ -50,6 +52,27 @@ public class DtoConverter {
     }
 
     /**
+     * [新增] 一个通用的，将JPA的Page<T>对象转换为我们自定义PageResponseDto<U>的方法
+     * @param page JPA返回的Page对象
+     * @param content DTO列表，由调用方提前转换好
+     * @param <T> 实体类型
+     * @param <U> DTO类型
+     * @return 自定义的PageResponseDto
+     */
+    public <T, U> PageResponseDto<U> convertPageToDto(Page<T> page, List<U> content) {
+        return PageResponseDto.<U>builder()
+                .content(content)
+                .pageNumber(page.getNumber() + 1)
+                .pageSize(page.getSize())
+                .totalElements(page.getTotalElements())
+                .totalPages(page.getTotalPages())
+                .first(page.isFirst())
+                .last(page.isLast())
+                .numberOfElements(page.getNumberOfElements())
+                .build();
+    }
+
+    /**
      * 将PackageComment实体转换为带少量预览回复的DTO
      */
     public PackageCommentDto convertPackageCommentToDto(PackageComment comment, List<PackageCommentDto> repliesPreview, long totalReplies) {
@@ -82,8 +105,8 @@ public class DtoConverter {
     /**
      * 将PostComment实体转换为简单的DTO (不带嵌套回复)
      */
-    public CommentDto convertCommentToDto(Comment comment) {
-        return CommentDto.builder()
+    public PostCommentDto convertCommentToDto(Comment comment) {
+        return PostCommentDto.builder()
                 .id(comment.getId())
                 .content(comment.getContent())
                 .author(ConvertUserToAuthorDto(comment.getAuthor()))
@@ -97,8 +120,8 @@ public class DtoConverter {
     /**
      * 将PostComment实体转换为带少量预览回复的DTO
      */
-    public CommentWithRepliesDto convertCommentToDtoWithReplies(Comment comment, List<CommentDto> repliesPreview, long totalReplies) {
-        return CommentWithRepliesDto.builder()
+    public PostCommentWithRepliesDto convertCommentToDtoWithReplies(Comment comment, List<PostCommentDto> repliesPreview, long totalReplies) {
+        return PostCommentWithRepliesDto.builder()
                 .id(comment.getId())
                 .content(comment.getContent())
                 .author(ConvertUserToAuthorDto(comment.getAuthor()))

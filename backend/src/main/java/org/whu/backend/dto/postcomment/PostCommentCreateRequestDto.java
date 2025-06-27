@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 @Data
-public class CommentCreateRequestDto {
+public class PostCommentCreateRequestDto {
     @Schema(description = "评论内容")
     @NotBlank
     private String content;

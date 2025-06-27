@@ -1,5 +1,6 @@
 package org.whu.backend.service.user;
 
+import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -13,6 +14,7 @@ import org.whu.backend.dto.PageRequestDto;
 import org.whu.backend.dto.PageResponseDto;
 import org.whu.backend.dto.packagecomment.PackageCommentCreateDto;
 import org.whu.backend.dto.packagecomment.PackageCommentDto;
+import org.whu.backend.dto.postcomment.PostCommentDto;
 import org.whu.backend.entity.Order;
 import org.whu.backend.entity.PackageComment;
 import org.whu.backend.entity.TravelPackage;
@@ -109,44 +111,32 @@ public class UserPackageCommentService {
                 })
                 .collect(Collectors.toList());
 
-        return PageResponseDto.<PackageCommentDto>builder()
-                .content(dtos)
-                .pageNumber(commentPage.getNumber() + 1)
-                .pageSize(commentPage.getSize())
-                .totalElements(commentPage.getTotalElements())
-                .totalPages(commentPage.getTotalPages())
-                .first(commentPage.isFirst())
-                .last(commentPage.isLast())
-                .numberOfElements(commentPage.getNumberOfElements())
-                .build();
+        return dtoConverter.convertPageToDto(commentPage,dtos);
     }
 
-//    /**
-//     * [已修改] 获取单条旅行团评价的详细信息
-//     * 现在它会接收一个用于其回复列表的分页参数
-//     */
-//    public PackageCommentDto getPackageCommentDetails(String commentId, PageRequestDto repliesPageRequest) {
-//        log.info("正在获取旅行团评价ID '{}' 的详情, 回复分页参数: {}", commentId, repliesPageRequest);
-//
-//        // 1. 查找主评价是否存在
-//        PackageComment mainComment = packageCommentRepository.findById(commentId)
-//                .orElseThrow(() -> new BizException("找不到ID为 " + commentId + " 的评价"));
-//
-//        // 2. [修改] 分页查询该主评价下的所有直接回复
-//        Pageable repliesPageable = PageRequest.of(
-//                repliesPageRequest.getPage() - 1,
-//                repliesPageRequest.getSize(),
-//                Sort.by(Sort.Direction.ASC, "createdTime") // 回复按时间正序
-//        );
-//        Page<PackageComment> repliesPage = packageCommentRepository.findByParentId(commentId, repliesPageable);
-//
-//        // 3. 将回复的分页结果(Page<Entity>)转换为我们自定义的分页DTO(PageResponseDto<DTO>)
-//        PageResponseDto<PackageCommentDto> repliesPageDto = dtoConverter.convertPageToDto(
-//                repliesPage,
-//                dtoConverter::convertPackageCommentToSimpleDto
-//        );
-//
-//        // 4. 将主评价和它的回复分页数据组装成最终的DTO
-//        return dtoConverter.convertPackageCommentToDtoWithReplies(mainComment, repliesPageDto);
-//    }
+    /**
+     * 获取单条旅行团评价的详细信息
+     */
+    public PageResponseDto<PackageCommentDto> getPackageCommentDetails(String commentId, PageRequestDto repliesPageRequest) {
+        log.info("正在获取旅行团评价ID '{}' 的详情, 分页参数: {}", commentId, repliesPageRequest);
+
+        // 1. 查找主评价是否存在
+        PackageComment mainComment = packageCommentRepository.findById(commentId)
+                .orElseThrow(() -> new BizException("找不到ID为 " + commentId + " 的评价"));
+
+        // 2. 分页查询该主评价下的所有直接回复
+        Pageable repliesPageable = PageRequest.of(
+                repliesPageRequest.getPage() - 1,
+                repliesPageRequest.getSize(),
+                Sort.by(Sort.Direction.ASC, "createdTime") // 回复按时间正序
+        );
+        Page<PackageComment> repliesPage = packageCommentRepository.findByParentId(commentId, repliesPageable);
+
+        // 3. 将回复的分页结果(Page<Entity>)转换为自定义的分页DTO(PageResponseDto<DTO>)
+        List<PackageCommentDto> dtos = repliesPage.getContent().stream()
+                .map(dtoConverter::convertPackageCommentToSimpleDto)
+                .toList();
+
+        return dtoConverter.convertPageToDto(repliesPage,dtos);
+    }
 }

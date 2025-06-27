@@ -11,9 +11,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.whu.backend.common.exception.BizException;
 import org.whu.backend.dto.PageRequestDto;
 import org.whu.backend.dto.PageResponseDto;
-import org.whu.backend.dto.postcomment.CommentCreateRequestDto;
-import org.whu.backend.dto.postcomment.CommentDto;
-import org.whu.backend.dto.postcomment.CommentWithRepliesDto;
+import org.whu.backend.dto.postcomment.PostCommentCreateRequestDto;
+import org.whu.backend.dto.postcomment.PostCommentDto;
+import org.whu.backend.dto.postcomment.PostCommentWithRepliesDto;
 import org.whu.backend.entity.accounts.User;
 import org.whu.backend.entity.travelpost.Comment;
 import org.whu.backend.entity.travelpost.TravelPost;
@@ -42,7 +42,7 @@ public class UserPostCommentService {
      * 发布一条新评论或回复，对游记
      */
     @Transactional
-    public Comment createComment(String postId, CommentCreateRequestDto dto, String currentUserId) {
+    public Comment createComment(String postId, PostCommentCreateRequestDto dto, String currentUserId) {
         log.info("用户ID '{}' 正在为游记ID '{}' 发布新评论...", currentUserId, postId);
 
         User author = userRepository.findById(currentUserId)
@@ -83,7 +83,7 @@ public class UserPostCommentService {
      * 获取游记的评论列表（带少量预览回复），对游记
      */
     @Transactional(readOnly = true)
-    public PageResponseDto<CommentWithRepliesDto> getCommentsByPost(String postId, PageRequestDto pageRequestDto) {
+    public PageResponseDto<PostCommentWithRepliesDto> getCommentsByPost(String postId, PageRequestDto pageRequestDto) {
         log.info("正在获取游记ID '{}' 的评论列表，分页参数: {}", postId, pageRequestDto);
 
         Pageable pageable = PageRequest.of(pageRequestDto.getPage() - 1, pageRequestDto.getSize(),
@@ -91,10 +91,10 @@ public class UserPostCommentService {
 
         Page<Comment> topLevelCommentPage = commentRepository.findByTravelPostIdAndParentIsNull(postId, pageable);
 
-        List<CommentWithRepliesDto> dtos = topLevelCommentPage.getContent().stream()
+        List<PostCommentWithRepliesDto> dtos = topLevelCommentPage.getContent().stream()
                 .map(comment -> {
                     // 为每条一级评论查找它的前3条二级回复作为预览
-                    List<CommentDto> repliesPreview = commentRepository.findTop3ByParentIdOrderByCreatedTimeAsc(comment.getId())
+                    List<PostCommentDto> repliesPreview = commentRepository.findTop3ByParentIdOrderByCreatedTimeAsc(comment.getId())
                             .stream()
                             .map(dtoConverter::convertCommentToDto)
                             .collect(Collectors.toList());
@@ -105,7 +105,7 @@ public class UserPostCommentService {
                 })
                 .collect(Collectors.toList());
 //        log.info("查询成功，获取到 {} ");
-        return PageResponseDto.<CommentWithRepliesDto>builder()
+        return PageResponseDto.<PostCommentWithRepliesDto>builder()
                 .content(dtos)
                 .pageNumber(topLevelCommentPage.getNumber() + 1)
                 .pageSize(topLevelCommentPage.getSize())
@@ -121,7 +121,7 @@ public class UserPostCommentService {
      * 获取单条评论的所有回复列表（楼中楼详情），对游记
      */
     @Transactional(readOnly = true)
-    public PageResponseDto<CommentDto> getCommentReplies(String commentId, PageRequestDto pageRequestDto) {
+    public PageResponseDto<PostCommentDto> getCommentReplies(String commentId, PageRequestDto pageRequestDto) {
         log.info("正在获取评论ID '{}' 的所有回复...", commentId);
 
         Pageable pageable = PageRequest.of(pageRequestDto.getPage() - 1, pageRequestDto.getSize(),
@@ -130,11 +130,11 @@ public class UserPostCommentService {
         // 注意：此处需要数据库支持递归查询。如果不支持，需要用代码模拟递归，会复杂很多。
         Page<Comment> replyPage = commentRepository.findAllRepliesByParentId(commentId, pageable);
 
-        List<CommentDto> replyDtos = replyPage.getContent().stream()
+        List<PostCommentDto> replyDtos = replyPage.getContent().stream()
                 .map(dtoConverter::convertCommentToDto)
                 .collect(Collectors.toList());
 
-        return PageResponseDto.<CommentDto>builder()
+        return PageResponseDto.<PostCommentDto>builder()
                 .content(replyDtos)
                 .pageNumber(replyPage.getNumber() + 1)
                 .pageSize(replyPage.getSize())

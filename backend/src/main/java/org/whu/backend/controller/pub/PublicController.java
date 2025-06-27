@@ -14,8 +14,8 @@ import org.whu.backend.dto.baidumap.BaiduSuggestionResponseDto;
 import org.whu.backend.dto.packagecomment.PackageCommentDto;
 import org.whu.backend.dto.post.PostDetailDto;
 import org.whu.backend.dto.post.PostSummaryDto;
-import org.whu.backend.dto.postcomment.CommentDto;
-import org.whu.backend.dto.postcomment.CommentWithRepliesDto;
+import org.whu.backend.dto.postcomment.PostCommentDto;
+import org.whu.backend.dto.postcomment.PostCommentWithRepliesDto;
 import org.whu.backend.dto.travelpack.PackageDetailDto;
 import org.whu.backend.dto.travelpack.PackageSearchRequestDto;
 import org.whu.backend.dto.travelpack.PackageSummaryDto;
@@ -95,23 +95,23 @@ public class PublicController {
 
     @Operation(summary = "获取指定游记的评论列表（带少量回复预览）")
     @GetMapping("/posts/{postId}/comments")
-    public Result<PageResponseDto<CommentWithRepliesDto>> getComments(
+    public Result<PageResponseDto<PostCommentWithRepliesDto>> getComments(
             @PathVariable String postId,
             @Valid @ParameterObject PageRequestDto pageRequestDto
     ) {
         log.info("正在获取游记 '{}' 的评论列表...", postId);
-        PageResponseDto<CommentWithRepliesDto> resultPage = userPostCommentService.getCommentsByPost(postId, pageRequestDto);
+        PageResponseDto<PostCommentWithRepliesDto> resultPage = userPostCommentService.getCommentsByPost(postId, pageRequestDto);
         return Result.success(resultPage);
     }
 
     @Operation(summary = "获取单条评论的所有回复列表（楼中楼详情）")
     @GetMapping("/posts/comments/{commentId}/replies")
-    public Result<PageResponseDto<CommentDto>> getCommentReplies(
+    public Result<PageResponseDto<PostCommentDto>> getCommentReplies(
             @PathVariable String commentId,
             @Valid @ParameterObject PageRequestDto pageRequestDto
     ) {
         log.info("正在获取评论 '{}' 的所有回复列表...", commentId);
-        PageResponseDto<CommentDto> resultPage = userPostCommentService.getCommentReplies(commentId, pageRequestDto);
+        PageResponseDto<PostCommentDto> resultPage = userPostCommentService.getCommentReplies(commentId, pageRequestDto);
         return Result.success(resultPage);
     }
 
@@ -123,6 +123,18 @@ public class PublicController {
     ) {
         log.info("正在获取旅行团 '{}' 的评价列表...", packageId);
         PageResponseDto<PackageCommentDto> resultPage = userPackageCommentService.getPackageComments(packageId, pageRequestDto);
+        return Result.success(resultPage);
+    }
+
+    // 获取单条旅行团评价的直接回复列表（分页）
+    @Operation(summary = "获取单条旅行团评价的直接回复列表（分页）")
+    @GetMapping("/package-comments/{commentId}/replies")
+    public Result<PageResponseDto<PackageCommentDto>> getPackageCommentReplies(
+            @PathVariable String commentId,
+            @Valid @ParameterObject PageRequestDto pageRequestDto
+    ) {
+        log.info("正在获取旅行团评价 '{}' 的直接回复列表...", commentId);
+        PageResponseDto<PackageCommentDto> resultPage = userPackageCommentService.getPackageCommentDetails(commentId, pageRequestDto);
         return Result.success(resultPage);
     }
 

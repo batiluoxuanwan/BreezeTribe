@@ -13,14 +13,14 @@ import java.util.List;
  */
 @Data
 @Builder
-public class CommentWithRepliesDto {
+public class PostCommentWithRepliesDto {
     private String id;
     private String content;
     private AuthorDto author;
     private String replyToUsername;
     private LocalDateTime createdTime;
     @Schema(description = "预览的回复列表（例如最多3条）")
-    private List<CommentDto> repliesPreview;
+    private List<PostCommentDto> repliesPreview;
     @Schema(description = "这条评论总共有多少条回复")
     private long totalReplies;
 }
