@@ -23,7 +23,7 @@ public class Message {
 
     private LocalDateTime timestamp;
 
-    private boolean read;
+    private boolean hadread;
 
     // 预留字段：图片/语音/撤回等
 }

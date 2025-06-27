@@ -27,7 +27,7 @@ public class ChatController {
         message.setToAccountId(msg.getTo());
         message.setContent(msg.getContent());
         message.setTimestamp(LocalDateTime.now());
-        message.setRead(false);
+        message.setHadread(false);
         messageRepository.save(message);
 
         // 点对点推送消息到指定用户（假设订阅 /queue/messages）
