@@ -284,35 +284,54 @@ public class AdminService {
                 .build();
     }
 
-    public PageResponseDto<UserManagementDto> getAllUsers(PageRequestDto pageRequestDto,String role)
-    {
-        // 1️解析分页和排序参数
+    public PageResponseDto<UserManagementDto> getAllUsers(PageRequestDto pageRequestDto, String role, String id, String name) {
         Sort.Direction direction = Sort.Direction.fromString(pageRequestDto.getSortDirection());
         Pageable pageable = PageRequest.of(pageRequestDto.getPage() - 1, pageRequestDto.getSize(),
                 Sort.by(direction, pageRequestDto.getSortBy()));
-        // 2️根据 role 过滤，如果 role == null 则查询全部
+
         Page<Account> page;
-        if (role == null || role.isBlank()) {
-            page = accountRepository.findAll(pageable);
-        } else {
-            Role enumRole = Role.valueOf(role); // 假设你的 Role 是枚举
+
+        // 1️精确查 ID：优先级最高
+        if (id != null && !id.isBlank()) {
+            Optional<Account> accountOpt = accountRepository.findById(id);
+            if (accountOpt.isEmpty()) {
+                throw new BizException("用户不存在");
+            }
+            Account account = accountOpt.get();
+            UserManagementDto dto = mapToDto(account);
+            return PageResponseDto.<UserManagementDto>builder()
+                    .content(List.of(dto))
+                    .pageNumber(1)
+                    .pageSize(1)
+                    .totalElements(1)
+                    .totalPages(1)
+                    .first(true)
+                    .last(true)
+                    .numberOfElements(1)
+                    .build();
+        }
+
+        // 2️模糊查用户名 + 角色
+        if (name != null && !name.isBlank()) {
+            if (role != null && !role.isBlank()) {
+                Role enumRole = Role.valueOf(role);
+                page = accountRepository.findByUsernameContainingAndRole(name, enumRole, pageable);
+            } else {
+                page = accountRepository.findByUsernameContaining(name, pageable);
+            }
+        }
+        // 3️只查角色
+        else if (role != null && !role.isBlank()) {
+            Role enumRole = Role.valueOf(role);
             page = accountRepository.findByRole(enumRole, pageable);
         }
-        // 3️将实体转为 DTO
+        // 4️查所有
+        else {
+            page = accountRepository.findAll(pageable);
+        }
+
         List<UserManagementDto> content = page.getContent().stream()
-                .map(account -> {
-                    UserManagementDto dto = new UserManagementDto();
-                    dto.setId(account.getId());
-                    dto.setEmail(account.getEmail());
-                    dto.setPhone(account.getPhone());
-                    dto.setUsername(account.getUsername());
-                    dto.setRole(account.getRole());
-                    dto.setBanDurationDays(account.getBanDurationDays()); // 你封禁字段
-                    dto.setBanStartTime(account.getBanStartTime());
-                    dto.setCreatedAt(account.getCreatedAt());
-                    // 其他属性映射...
-                    return dto;
-                })
+                .map(this::mapToDto)
                 .toList();
 
         return PageResponseDto.<UserManagementDto>builder()
@@ -368,5 +387,18 @@ public class AdminService {
         accountRepository.save(account);
 
         return true;
+    }
+
+    private UserManagementDto mapToDto(Account account) {
+        UserManagementDto dto = new UserManagementDto();
+        dto.setId(account.getId());
+        dto.setEmail(account.getEmail());
+        dto.setPhone(account.getPhone());
+        dto.setUsername(account.getUsername());
+        dto.setRole(account.getRole());
+        dto.setBanDurationDays(account.getBanDurationDays());
+        dto.setBanStartTime(account.getBanStartTime());
+        dto.setCreatedAt(account.getCreatedAt());
+        return dto;
     }
 }

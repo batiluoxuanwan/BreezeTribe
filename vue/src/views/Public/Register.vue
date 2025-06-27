@@ -365,7 +365,7 @@ const goLogin = () => {
   display: flex;
   justify-content: center;
   align-items: center;
-  background-image: url('@/assets/background.png');
+  background-image: url('@/assets/background.jpg');
   background-size: cover;
   background-position: center;
   padding: 16px;
@@ -405,7 +405,7 @@ const goLogin = () => {
   width: 400px;
   height: 575px;
   padding: 30px 30px;
-  background: #84adbc;
+  background: #56899cce;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
   z-index: 10;
 

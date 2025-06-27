@@ -1,6 +1,9 @@
 <template>
   <div class="admin-page">
     <aside class="sidebar">
+      <el-button type="info" :icon="ArrowLeft" class="back-to-home-btn" @click="goToHome">
+        返回
+      </el-button>
       <el-avatar
         :src="adminInfo.avatarUrl || '/default-admin-avatar.png'"
         :size="100"
@@ -67,16 +70,16 @@
             <el-table-column prop="phone" label="电话"></el-table-column>
             <el-table-column label="状态" width="100">
               <template #default="{ row }">
-                <el-tag :type="row.status === 'ACTIVE' ? 'success' : 'danger'">
-                  {{ row.status === 'ACTIVE' ? '正常' : '禁用' }}
+                <el-tag :type="getBanStatusType(row.banDurationDays)">
+                  {{ getBanStatusText(row.banDurationDays) }}
                 </el-tag>
               </template>
             </el-table-column>
             <el-table-column label="操作" width="180">
               <template #default="{ row }">
                 <el-button link type="primary" size="small" @click="viewUserDetails(row)">查看详情</el-button>
-                <el-button link :type="row.status === 'ACTIVE' ? 'danger' : 'success'" size="small" @click="toggleUserStatus(row)">
-                  {{ row.status === 'ACTIVE' ? '禁用' : '启用' }}
+                <el-button link :type="row.banDurationDays === 0 ? 'danger' : 'success'" size="small" @click="toggleBanStatus(row)">
+                  {{ row.banDurationDays === 0 ? '封禁' : '解封' }}
                 </el-button>
               </template>
             </el-table-column>
@@ -99,19 +102,19 @@
             <el-table-column prop="id" label="ID" width="80"></el-table-column>
             <el-table-column prop="username" label="用户名"></el-table-column>
             <el-table-column prop="companyName" label="公司名称"></el-table-column>
-            <el-table-column prop="contactEmail" label="联系邮箱"></el-table-column>
+            <el-table-column prop="email" label="联系邮箱"></el-table-column>
             <el-table-column label="状态" width="100">
               <template #default="{ row }">
-                <el-tag :type="row.status === 'ACTIVE' ? 'success' : 'danger'">
-                  {{ row.status === 'ACTIVE' ? '正常' : '禁用' }}
+                <el-tag :type="getBanStatusType(row.banDurationDays)">
+                  {{ getBanStatusText(row.banDurationDays) }}
                 </el-tag>
               </template>
             </el-table-column>
             <el-table-column label="操作" width="180">
               <template #default="{ row }">
                 <el-button link type="primary" size="small" @click="viewMerchantDetails(row)">查看详情</el-button>
-                <el-button link :type="row.status === 'ACTIVE' ? 'danger' : 'success'" size="small" @click="toggleMerchantStatus(row)">
-                  {{ row.status === 'ACTIVE' ? '禁用' : '启用' }}
+                <el-button link :type="row.banDurationDays === 0 ? 'danger' : 'success'" size="small" @click="toggleBanStatus(row)">
+                  {{ row.banDurationDays === 0 ? '封禁' : '解封' }}
                 </el-button>
               </template>
             </el-table-column>
@@ -137,8 +140,8 @@
             <el-table-column label="操作" width="200">
               <template #default="{ row }">
                 <el-button link type="primary" size="small" @click="viewTourDetails(row)">查看详情</el-button>
-                <el-button link type="success" size="small" @click="approveTour(row)">通过</el-button>
-                <el-button link type="danger" size="small" @click="rejectTour(row)">拒绝</el-button>
+                <el-button link type="success" size="small" @click="approveTour(row.id)">通过</el-button>
+                <el-button link type="danger" size="small" @click="rejectTour(row.id)">拒绝</el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -180,7 +183,6 @@
         </el-tab-pane>
 
         <el-tab-pane label="系统设置" name="systemSettings">
-          <h3 class="tab-header">系统配置</h3>
           <el-card class="setting-card">
             <h4>管理员密码修改</h4>
             <el-form :model="adminSettingsForm" label-width="120px">
@@ -301,9 +303,12 @@
 
 <script setup>
 import { ref, onMounted, nextTick } from 'vue';
-import { User, Shop, PictureFilled, Document, Setting, EditPen } from '@element-plus/icons-vue';
+import { User, Shop, PictureFilled, Document, Setting, EditPen, ArrowLeft } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { authAxios } from '@/utils/request'; // 假设你的认证请求实例
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
 
 // --- 管理员信息及侧边栏数据 ---
 const adminInfo = ref({
@@ -400,16 +405,16 @@ const fetchAdminOverview = async () => {
 const fetchUsers = async () => {
   userLoading.value = true;
   try {
-    const response = await authAxios.get('/api/admin/users', {
+    const response = await authAxios.get('/admin/users', {
       params: {
-        pageNum: userCurrentPage.value,
-        pageSize: userPageSize,
-        query: userSearchQuery.value // 传递搜索关键词
+        role: 'ROLE_USER',
+        page: userCurrentPage.value,
+        size: userPageSize
       }
     });
     if (response.data.code === 200 && response.data.data) {
-      users.value = response.data.data.records;
-      userTotal.value = response.data.data.total;
+      users.value = response.data.data.content;
+      userTotal.value = response.data.data.totalElements;
     } else {
       ElMessage.error(response.data.message || '获取用户列表失败');
     }
@@ -456,16 +461,16 @@ const viewUserDetails = (userRow) => {
 const fetchMerchants = async () => {
   merchantLoading.value = true;
   try {
-    const response = await authAxios.get('/api/admin/merchants', {
+    const response = await authAxios.get('/admin/users', {
       params: {
-        pageNum: merchantCurrentPage.value,
-        pageSize: merchantPageSize,
-        query: merchantSearchQuery.value // 传递搜索关键词
+        role: 'ROLE_MERCHANT',
+        page: merchantCurrentPage.value,
+        size: merchantPageSize
       }
     });
     if (response.data.code === 200 && response.data.data) {
-      merchants.value = response.data.data.records;
-      merchantTotal.value = response.data.data.total;
+      merchants.value = response.data.data.content;
+      merchantTotal.value = response.data.data.totalElements;
     } else {
       ElMessage.error(response.data.message || '获取团长列表失败');
     }
@@ -478,29 +483,6 @@ const fetchMerchants = async () => {
 };
 const debouncedSearchMerchants = debounce(fetchMerchants, 500); // 搜索防抖
 
-// 切换团长状态
-const toggleMerchantStatus = async (merchantRow) => {
-  const newStatus = merchantRow.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE';
-  const actionText = newStatus === 'DISABLED' ? '禁用' : '启用';
-  ElMessageBox.confirm(`确定要${actionText}团长 ${merchantRow.username} 吗？`, '提示', {
-    type: 'warning'
-  })
-    .then(async () => {
-      try {
-        const response = await authAxios.post(`/api/admin/merchants/${merchantRow.id}/status`, { status: newStatus });
-        if (response.data.code === 200) {
-          ElMessage.success(`${actionText}团长成功！`);
-          merchantRow.status = newStatus; // 乐观更新UI
-        } else {
-          ElMessage.error(response.data.message || `${actionText}团长失败`);
-        }
-      } catch (error) {
-        console.error(`${actionText}团长时发生错误:`, error);
-        ElMessage.error(`${actionText}团长失败，请稍后再试。`);
-      }
-    })
-    .catch(() => { /* 用户取消 */ });
-};
 
 // 查看团长详情
 const viewMerchantDetails = (merchantRow) => {
@@ -512,16 +494,16 @@ const viewMerchantDetails = (merchantRow) => {
 const fetchPendingTours = async () => {
   tourReviewLoading.value = true;
   try {
-    const response = await authAxios.get('/api/admin/tours/pending', { // 假设后端有此接口
+    const response = await authAxios.get('/admin/approvals/travel-packages', { 
       params: {
-        pageNum: tourReviewCurrentPage.value,
-        pageSize: tourReviewPageSize
+        page: tourReviewCurrentPage.value,
+        size: tourReviewPageSize
       }
     });
     if (response.data.code === 200 && response.data.data) {
-      pendingTours.value = response.data.data.records;
-      pendingToursTotal.value = response.data.data.total;
-      pendingToursCount.value = response.data.data.total; // 更新侧边栏徽标
+      pendingTours.value = response.data.data.content;
+      pendingToursTotal.value = response.data.data.totalElements;
+      pendingToursCount.value = response.data.data.totalElements; 
     } else {
       ElMessage.error(response.data.message || '获取待审核旅行团失败');
     }
@@ -546,7 +528,7 @@ const approveTour = async (tourId) => {
   })
     .then(async () => {
       try {
-        const response = await authAxios.post(`/api/admin/tours/${tourId}/approve`); // 假设后端接口
+        const response = await authAxios.post(`/admin/approvals/travel-packages/${tourId}/approve`); 
         if (response.data.code === 200) {
           ElMessage.success('旅行团审核通过！');
           // 移除已审核的旅行团并刷新列表
@@ -565,103 +547,121 @@ const approveTour = async (tourId) => {
 
 // 拒绝旅行团
 const rejectTour = async (tourId) => {
-  ElMessageBox.confirm('确定要拒绝此旅行团的审核吗？', '提示', {
-    type: 'danger'
+  ElMessageBox.prompt('确定要拒绝此旅行团的审核吗？请输入拒绝原因:', '拒绝旅行团', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    inputPattern: /^.{2,200}$/, 
+    inputErrorMessage: '拒绝原因不能为空，且长度需在10到200个字符之间。',
+    type: 'warning' 
   })
-    .then(async () => {
+    .then(async ({ value: rejectReason }) => { 
       try {
-        const response = await authAxios.post(`/api/admin/tours/${tourId}/reject`); // 假设后端接口
+        const response = await authAxios.post(`/admin/approvals/travel-packages/${tourId}/reject`, {
+          reason: rejectReason 
+        });
+
         if (response.data.code === 200) {
           ElMessage.success('旅行团已拒绝！');
-          await fetchPendingTours();
-          tourDetailsDialog.value = false; // 关闭详情弹窗
+          await fetchPendingTours(); 
+          tourDetailsDialog.value = false; 
         } else {
           ElMessage.error(response.data.message || '拒绝失败');
         }
       } catch (error) {
         console.error('拒绝旅行团时发生错误:', error);
-        ElMessage.error('操作失败，请稍后再试。');
+        if (error.response && error.response.data && error.response.data.message) {
+          ElMessage.error(error.response.data.message); // 显示后端返回的具体错误信息
+        } else {
+          ElMessage.error('操作失败，请稍后再试。');
+        }
       }
     })
-    .catch(() => { /* 用户取消 */ });
-};
-
-// 获取待审核游记列表
-const fetchPendingNotes = async () => {
-  noteReviewLoading.value = true;
-  try {
-    const response = await authAxios.get('/api/admin/notes/pending', { // 假设后端有此接口
-      params: {
-        pageNum: noteReviewCurrentPage.value,
-        pageSize: noteReviewPageSize
+    .catch((action) => {
+      // 用户点击取消或关闭弹窗
+      if (action === 'cancel') {
+        ElMessage.info('已取消拒绝操作。');
+      } else {
+        console.error('ElMessageBox.prompt 发生错误或被取消:', action);
       }
     });
-    if (response.data.code === 200 && response.data.data) {
-      pendingNotes.value = response.data.data.records;
-      pendingNotesTotal.value = response.data.data.total;
-      pendingNotesCount.value = response.data.data.total; // 更新侧边栏徽标
-    } else {
-      ElMessage.error(response.data.message || '获取待审核游记失败');
-    }
-  } catch (error) {
-    console.error('获取待审核游记时发生错误:', error);
-    ElMessage.error('加载待审核游记失败。');
-  } finally {
-    noteReviewLoading.value = false;
-  }
 };
 
-// 查看游记详情并弹窗审核
-const viewNoteDetails = (noteRow) => {
-  selectedNote.value = { ...noteRow };
-  noteDetailsDialog.value = true;
-};
+// // 获取待审核游记列表
+// const fetchPendingNotes = async () => {
+//   noteReviewLoading.value = true;
+//   try {
+//     const response = await authAxios.get('/api/admin/notes/pending', { // 假设后端有此接口
+//       params: {
+//         pageNum: noteReviewCurrentPage.value,
+//         pageSize: noteReviewPageSize
+//       }
+//     });
+//     if (response.data.code === 200 && response.data.data) {
+//       pendingNotes.value = response.data.data.records;
+//       pendingNotesTotal.value = response.data.data.total;
+//       pendingNotesCount.value = response.data.data.total; // 更新侧边栏徽标
+//     } else {
+//       ElMessage.error(response.data.message || '获取待审核游记失败');
+//     }
+//   } catch (error) {
+//     console.error('获取待审核游记时发生错误:', error);
+//     ElMessage.error('加载待审核游记失败。');
+//   } finally {
+//     noteReviewLoading.value = false;
+//   }
+// };
 
-// 审核通过游记
-const approveNote = async (noteId) => {
-  ElMessageBox.confirm('确定要通过此游记的审核吗？', '提示', {
-    type: 'success'
-  })
-    .then(async () => {
-      try {
-        const response = await authAxios.post(`/api/admin/notes/${noteId}/approve`); // 假设后端接口
-        if (response.data.code === 200) {
-          ElMessage.success('游记审核通过！');
-          await fetchPendingNotes();
-          noteDetailsDialog.value = false;
-        } else {
-          ElMessage.error(response.data.message || '审核失败');
-        }
-      } catch (error) {
-        console.error('审核游记时发生错误:', error);
-        ElMessage.error('操作失败，请稍后再试。');
-      }
-    })
-    .catch(() => { /* 用户取消 */ });
-};
+// // 查看游记详情并弹窗审核
+// const viewNoteDetails = (noteRow) => {
+//   selectedNote.value = { ...noteRow };
+//   noteDetailsDialog.value = true;
+// };
 
-// 拒绝游记
-const rejectNote = async (noteId) => {
-  ElMessageBox.confirm('确定要拒绝此游记的审核吗？', '提示', {
-    type: 'danger'
-  })
-    .then(async () => {
-      try {
-        const response = await authAxios.post(`/api/admin/notes/${noteId}/reject`); // 假设后端接口
-        if (response.data.code === 200) {
-          ElMessage.success('游记已拒绝！');
-          await fetchPendingNotes();
-          noteDetailsDialog.value = false;
-        } else {
-          ElMessage.error(response.data.message || '拒绝失败');
-        }
-      } catch (error) {
-        console.error('拒绝游记时发生错误:', error);
-        ElMessage.error('操作失败，请稍后再试。');
-      }
-    })
-    .catch(() => { /* 用户取消 */ });
-};
+// // 审核通过游记
+// const approveNote = async (noteId) => {
+//   ElMessageBox.confirm('确定要通过此游记的审核吗？', '提示', {
+//     type: 'success'
+//   })
+//     .then(async () => {
+//       try {
+//         const response = await authAxios.post(`/admin/approvals/travel-packages/${noteId}/approve`); 
+//         if (response.data.code === 200) {
+//           ElMessage.success('游记审核通过！');
+//           await fetchPendingNotes();
+//           noteDetailsDialog.value = false;
+//         } else {
+//           ElMessage.error(response.data.message || '审核失败');
+//         }
+//       } catch (error) {
+//         console.error('审核游记时发生错误:', error);
+//         ElMessage.error('操作失败，请稍后再试。');
+//       }
+//     })
+//     .catch(() => { /* 用户取消 */ });
+// };
+
+// // 拒绝游记
+// const rejectNote = async (noteId) => {
+//   ElMessageBox.confirm('确定要拒绝此游记的审核吗？', '提示', {
+//     type: 'danger'
+//   })
+//     .then(async () => {
+//       try {
+//         const response = await authAxios.post(`/api/admin/notes/${noteId}/reject`); // 假设后端接口
+//         if (response.data.code === 200) {
+//           ElMessage.success('游记已拒绝！');
+//           await fetchPendingNotes();
+//           noteDetailsDialog.value = false;
+//         } else {
+//           ElMessage.error(response.data.message || '拒绝失败');
+//         }
+//       } catch (error) {
+//         console.error('拒绝游记时发生错误:', error);
+//         ElMessage.error('操作失败，请稍后再试。');
+//       }
+//     })
+//     .catch(() => { /* 用户取消 */ });
+// };
 
 // 保存管理员资料 (目前仅模拟，实际应调用后端接口)
 const saveProfile = () => {
@@ -684,13 +684,119 @@ const saveAdminSettings = async () => {
   adminSettingsForm.value.confirmNewPassword = '';
 };
 
+// 获取封禁状态
+const getBanStatusText = (banDurationDays) => {
+  if (banDurationDays === -1) {
+    return '永久封禁';
+  } else if (banDurationDays === 0) {
+    return '正常';
+  } else if (banDurationDays > 0) {
+    return `封禁 ${banDurationDays} 天`;
+  }
+  return '未知状态'; 
+};
+
+// 根据状态返回类型颜色
+const getBanStatusType = (banDurationDays) => {
+  if (banDurationDays === -1) {
+    return 'danger'; // 永久封禁用红色
+  } else if (banDurationDays === 0) {
+    return 'success'; // 正常用绿色
+  } else if (banDurationDays > 0) {
+    return 'warning'; // 暂时封禁用黄色/橙色
+  }
+  return 'info'; // 未知状态用灰色
+};
+
+// 通用切换状态
+const toggleBanStatus = async (user) => {
+  const isCurrentlyBanned = user.banDurationDays !== 0; 
+  let confirmTitle = '';
+  let confirmMessage = '';
+  let successMessage = '';
+  let apiUrl = '';
+  let targetBanDuration = 0; 
+
+  if (isCurrentlyBanned) {
+    // 当前已封禁，点击按钮是执行“解封”操作
+    confirmTitle = '解封该账号';
+    confirmMessage = `确定要解封 ${user.username} (ID: ${user.id}) 吗？解封后，该账号将恢复正常使用。`;
+    apiUrl = `/admin/users/${user.id}/unban`; // 假设解封接口
+    targetBanDuration = 0; // 解封即设置为0天
+  } else {
+    // 当前是正常状态，点击按钮是执行“封禁”操作
+    confirmTitle = '封禁该账号';
+    confirmMessage = `确定要封禁 ${user.username} (ID: ${user.id}) 吗？`;
+    apiUrl = `/admin/users/${user.id}/ban`; 
+    
+    try {
+      // 弹出一个输入框，让管理员输入封禁天数
+      const { value: inputDays } = await ElMessageBox.prompt('请输入封禁天数 (-1 代表永久封禁，0 代表取消封禁或解封):', confirmTitle, {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        inputPattern: /^-1|[0-9]\d*$/, // 允许输入 -1 或任意非负整数
+        inputErrorMessage: '请输入 -1 或非负整数天数！'
+      });
+      
+      const parsedDays = parseInt(inputDays, 10);
+      if (isNaN(parsedDays)) {
+        ElMessage.warning('无效的封禁天数输入。');
+        return;
+      }
+      
+      targetBanDuration = parsedDays; // 设置目标封禁天数
+
+      if (targetBanDuration === 0 && !isCurrentlyBanned) {
+        // 如果当前是正常状态，却输入了 0，提示用户这等同于不封禁
+        ElMessage.info('您输入了 0 天，表示不执行封禁操作。');
+        return; 
+      }
+      if (targetBanDuration > 0) {
+         confirmMessage = `确定要封禁 ${user.username} (ID: ${user.id}) ${targetBanDuration} 天吗？`;
+      } else if (targetBanDuration === -1) {
+         confirmMessage = `确定要永久封禁 ${user.username} (ID: ${user.id}) 吗？`;
+      }
+      
+    } catch (cancel) {
+      ElMessage.info('已取消封禁操作。');
+      return; 
+    }
+  }
+
+  try {
+    await ElMessageBox.confirm(confirmMessage, '操作确认', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: isCurrentlyBanned ? 'success' : 'warning', // 解封用绿色确认，封禁用黄色确认
+      dangerouslyUseHTMLString: true 
+    });
+
+    const response = await authAxios.post(apiUrl, { durationInDays: targetBanDuration });
+
+    if (response.data.code === 200) {
+      successMessage = isCurrentlyBanned ? '已成功解封！' : '已成功封禁！';
+      ElMessage.success(successMessage);
+      user.banDurationDays = targetBanDuration;
+    } else {
+      ElMessage.error(response.data.message || '操作失败。');
+    }
+  } catch (error) {
+    if (error === 'cancel') {
+      ElMessage.info('操作已取消。');
+    } else {
+      console.error('更新状态失败:', error);
+      ElMessage.error('操作失败，请稍后再试。');
+    }
+  }
+};
+
 // --- 初始化数据 ---
 onMounted(() => {
-  fetchAdminOverview(); // 获取管理员概览数据
+  // fetchAdminOverview(); // 获取管理员概览数据
   fetchUsers();         // 加载用户列表
   fetchMerchants();     // 加载团长列表
   fetchPendingTours();  // 加载待审核旅行团
-  fetchPendingNotes();  // 加载待审核游记
+  //fetchPendingNotes();  // 加载待审核游记
 });
 
 // 当 activeTab 改变时，重新加载对应数据 (按需)
@@ -701,6 +807,11 @@ onMounted(() => {
 //   else if (newTab === 'tourReview') fetchPendingTours();
 //   else if (newTab === 'noteReview') fetchPendingNotes();
 // });
+
+// 跳转首页
+const goToHome = () => {
+  router.push('/')
+}
 
 </script>
 
@@ -737,6 +848,20 @@ onMounted(() => {
   align-self: flex-start;
   overflow-y: auto; /* 侧边栏内容过多时可滚动 */
 }
+
+.back-to-home-btn{
+  position:absolute;
+  top:10px;
+  left:10px;
+  padding:8px 15px;
+  font-size:0.9rem;
+  border-radius:8px;
+  background-color:#607d8b;
+  border-color:#607d8b;
+  color:#fff;
+  transition:all 0.3s ease;
+}
+
 
 .avatar {
   margin-bottom: 16px;

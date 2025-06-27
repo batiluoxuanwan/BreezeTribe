@@ -1,206 +1,590 @@
 <template>
-  <div class="travel-group-detail-container">
-    <el-button type="primary" class="back-button" @click="goBack"><el-icon><ArrowLeftBold /></el-icon>返回</el-button>
-    <div v-if="loading" class="loading-detail">
-      <el-spinner size="large"></el-spinner>
-      <p>正在加载旅行团详情...</p>
-    </div>
-    <div v-else-if="travelGroupDetail">
-      <el-card class="detail-card">
-        <template #header>
-          <div class="card-header">
-            <h2 class="group-title">{{ travelGroupDetail.title }}</h2>
-            <el-tag type="success" v-if="travelGroupDetail.isHot">热门</el-tag>
-            <el-tag type="info" v-if="travelGroupDetail.isNew">新品</el-tag>
-          </div>
-        </template>
+  <div class="TravelGroupDetail">
+    <div class="travel-group-detail-container">
+      <el-button type="info" class="back-button" @click="goBack">
+        <el-icon><ArrowLeftBold /></el-icon>
+        <span>返回</span>
+      </el-button>
 
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-image :src="travelGroupDetail.imageUrl" fit="cover" class="group-image"></el-image>
-          </el-col>
-          <el-col :span="12">
-            <div class="detail-info">
-              <p><strong>目的地:</strong> {{ travelGroupDetail.destination }}</p>
-              <p><strong>价格:</strong> ¥{{ travelGroupDetail.price }}</p>
-              <p><strong>出发日期:</strong> {{ travelGroupDetail.startDate }}</p>
-              <p><strong>行程时长:</strong> {{ travelGroupDetail.duration }}天</p>
-              <p><strong>当前成员:</strong> {{ travelGroupDetail.members }}人</p>
-              <p><strong>用户评分:</strong> <el-rate v-model="travelGroupDetail.rating" disabled show-score text-color="#ff9900" score-template="{value}"></el-rate></p>
-              <p><strong>浏览量:</strong> {{ travelGroupDetail.views }}</p>
+      <div v-if="loading" class="loading-detail">
+        <el-empty description="正在加载旅行团详情..."></el-empty>
+      </div>
+
+      <div v-else-if="travelGroupDetail" class="detail-content-wrapper">
+        <el-card class="detail-card">
+          <template #header>
+            <div class="card-header">
+              <h2 class="group-title">{{ travelGroupDetail.title }}</h2>
+              <el-tag :type="getTourStatusTagType(travelGroupDetail.status)" size="large">
+                {{ getTourStatusText(travelGroupDetail.status) }}
+              </el-tag>
             </div>
-          </el-col>
-        </el-row>
-        <el-divider></el-divider>
-        <h3>行程介绍</h3>
-        <p class="description-text">{{ travelGroupDetail.description }}</p>
+          </template>
 
-        <el-divider></el-divider>
-        <h4>详细行程安排</h4>
-        <div class="itinerary-section">
-          <div v-for="(day, index) in travelGroupDetail.itinerary" :key="index" class="itinerary-item">
-            <h5>第 {{ day.dayNumber }} 天: {{ day.title }}</h5>
-            <p>{{ day.details }}</p>
+          <el-row :gutter="30" class="main-info-section">
+            <el-col :span="14">
+              <el-carousel v-if="travelGroupDetail.coverImageUrls && travelGroupDetail.coverImageUrls.length > 1"
+                           trigger="click" height="400px" indicator-position="outside" class="group-carousel">
+                <el-carousel-item v-for="(imgUrl, idx) in travelGroupDetail.coverImageUrls" :key="idx">
+                  <el-image :src="imgUrl" fit="cover" class="carousel-image"></el-image>
+                </el-carousel-item>
+              </el-carousel>
+              <el-image v-else :src="travelGroupDetail.coverImageUrls && travelGroupDetail.coverImageUrls.length > 0 ? travelGroupDetail.coverImageUrls[0] : 'https://fuss10.elemecdn.com/e/5d/4a731a90594a4af544c0c25941171jpeg.jpeg'"
+                        fit="cover" class="group-image-single">
+                <template #error>
+                  <div class="image-slot">
+                    <el-icon><Picture /></el-icon>
+                    <span>无图片</span>
+                  </div>
+                </template>
+              </el-image>
+            </el-col>
+            <el-col :span="10">
+              <div class="detail-info">
+                <p class="price-display">
+                  <strong>价格:</strong> <span class="price-value">¥{{ travelGroupDetail.price }}</span>
+                </p>
+                <p><strong>行程时长:</strong> <span class="info-value">{{ travelGroupDetail.durationInDays }} 天</span></p>
+                <p v-if="travelGroupDetail.destination"><strong>目的地:</strong> <span class="info-value">{{ travelGroupDetail.destination }}</span></p>
+                <p v-if="travelGroupDetail.startDate"><strong>出发日期:</strong> <span class="info-value">{{ formatDate(travelGroupDetail.startDate) }}</span></p>
+                <p v-if="travelGroupDetail.members"><strong>当前成员:</strong> <span class="info-value">{{ travelGroupDetail.members }} 人</span></p>
+                <p v-if="travelGroupDetail.rating">
+                  <strong>用户评分:</strong>
+                  <el-rate v-model="travelGroupDetail.rating" disabled show-score text-color="#ff9900" score-template="{value}" class="rating-display"></el-rate>
+                </p>
+
+                <div class="enroll-button-section">
+                  <el-button
+                    type="success"
+                    size="large"
+                    :disabled="travelGroupDetail.status !== 'PUBLISHED'"
+                    @click="handleEnrollClick"
+                  >
+                    <el-icon><Tickets /></el-icon>
+                    <span>立即报名</span>
+                  </el-button>
+                  <p v-if="travelGroupDetail.status !== 'PUBLISHED'" class="enroll-disabled-tip">
+                    * 该旅行团未处于“已发布”状态，暂无法报名。
+                  </p>
+                </div>
+              </div>
+            </el-col>
+          </el-row>
+
+          <el-divider class="section-divider"></el-divider>
+
+          <h3 class="section-title">旅行团介绍</h3>
+          <p class="detailed-description-text" v-html="formatDescription(travelGroupDetail.detailedDescription)"></p>
+          <p v-if="!travelGroupDetail.detailedDescription" class="placeholder-text">暂无详细介绍。</p>
+
+          <el-divider class="section-divider"></el-divider>
+
+          <h3 class="section-title">详细行程安排</h3>
+          <div class="itinerary-section">
+            <el-timeline v-if="travelGroupDetail.routes && travelGroupDetail.routes.length > 0">
+              <el-timeline-item
+                v-for="(route, index) in travelGroupDetail.routes"
+                :key="route.id || index"
+                :timestamp="`第 ${index + 1} 天`"
+                placement="top"
+                type="primary"
+              >
+                <el-card class="itinerary-card">
+                  <h4>{{ route.name || `第 ${index + 1} 天行程` }}</h4>
+                  <p class="route-description">{{ route.description || '暂无描述' }}</p>
+
+                  <div v-if="route.spots && route.spots.length > 0" class="spot-list">
+                    <h5>包含景点:</h5>
+                    <el-tag v-for="spot in route.spots" :key="spot.id" class="spot-tag" type="info" effect="plain">
+                      {{ spot.name }}
+                    </el-tag>
+                  </div>
+                  <p v-else class="placeholder-text">暂无具体景点安排。</p>
+                </el-card>
+              </el-timeline-item>
+            </el-timeline>
+            <el-empty v-else description="暂无详细行程安排。"></el-empty>
           </div>
-          <p v-if="!travelGroupDetail.itinerary || travelGroupDetail.itinerary.length === 0">暂无详细行程安排。</p>
-        </div>
-      </el-card>
+        </el-card>
+      </div>
+
+      <el-empty v-else description="未找到该旅行团信息或加载失败"></el-empty>
     </div>
-    <el-empty v-else description="未找到该旅行团信息或加载失败"></el-empty>
   </div>
+
+  <el-dialog
+    v-model="enrollDialogVisible"
+    title="填写报名信息"
+    width="500px"
+    :close-on-click-modal="false"
+    destroy-on-close
+  >
+    <el-form :model="enrollForm" :rules="enrollRules" ref="enrollFormRef" label-width="100px">
+      <el-form-item label="旅行团名称">
+        <el-input :value="travelGroupDetail ? travelGroupDetail.title : ''" disabled></el-input>
+      </el-form-item>
+      <el-form-item label="报名人数" prop="numberOfParticipants">
+        <el-input-number v-model="enrollForm.numberOfParticipants" :min="1" :max="99" style="width: 100%"></el-input-number>
+      </el-form-item>
+      <el-form-item label="联系人姓名" prop="contactName">
+        <el-input v-model="enrollForm.contactName" placeholder="请输入联系人姓名"></el-input>
+      </el-form-item>
+      <el-form-item label="联系电话" prop="contactPhone">
+        <el-input v-model="enrollForm.contactPhone" placeholder="请输入联系电话"></el-input>
+      </el-form-item>
+    </el-form>
+    <template #footer>
+      <span class="dialog-footer">
+        <el-button @click="enrollDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitEnrollForm">确定报名</el-button>
+      </span>
+    </template>
+  </el-dialog>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted ,reactive} from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ElMessage, ElCard, ElRow, ElCol, ElImage, ElDivider, ElTag, ElRate, ElEmpty, ElButton } from 'element-plus';
-import { publicAxios } from '@/utils/request'; // 确保路径正确
-import { ArrowLeftBold } from '@element-plus/icons-vue';
+import { ElMessage, ElCard, ElRow, ElCol, ElImage, ElDivider, ElTag, ElRate, ElEmpty, ElButton,ElCarousel, ElCarouselItem, ElTimeline, ElTimelineItem, ElIcon, ElMessageBox } from 'element-plus';
+import { ArrowLeftBold, Picture } from '@element-plus/icons-vue'; 
+import { publicAxios,authAxios } from '@/utils/request'; 
+import moment from 'moment'; 
+import { useAuthStore } from '@/stores/auth';
 
-const route = useRoute(); // 获取当前路由信息
-const router = useRouter(); // 获取路由实例
+const route = useRoute();
+const router = useRouter();
+const authStore = useAuthStore();
 
 const travelGroupDetail = ref(null);
 const loading = ref(true);
 
+const enrollDialogVisible = ref(false); // 控制报名弹窗的显示与隐藏
+const enrollFormRef = ref(null); // 用于获取表单实例，进行表单校验
+
+// 报名表单数据
+const enrollForm = reactive({
+  numberOfParticipants: 1, 
+  contactName: '',
+  contactPhone: '',
+});
+
+// 报名表单校验规则
+const enrollRules = reactive({
+  numberOfParticipants: [
+    { required: true, message: '请填写报名人数', trigger: 'blur' },
+    { type: 'number', min: 1, message: '报名人数至少为1', trigger: 'blur' },
+  ],
+  contactName: [
+    { required: true, message: '请填写联系人姓名', trigger: 'blur' },
+    { min: 2, max: 20, message: '姓名长度在 2 到 20 个字符', trigger: 'blur' },
+  ],
+  contactPhone: [
+    { required: true, message: '请填写联系电话', trigger: 'blur' },
+    { pattern: /^1[3-9]\d{9}$/, message: '请输入有效的手机号码', trigger: 'blur' }, // 简单的手机号正则
+  ],
+});
+
 // --- 返回上一页 ---
 const goBack = () => {
-  router.back(); // 返回上一个历史记录页面
+  router.back();
 };
 
 // --- 获取特定旅行团的详细数据 ---
 const fetchTravelGroupDetail = async (id) => {
   loading.value = true;
   try {
-    // 假设你的后端获取单个旅行团详情的接口是 /public/travel-packages/{id}
-    // {id} 会被替换为实际的旅行团 ID
     const response = await publicAxios.get(`/public/travel-packages/${id}`);
 
     if (response.data.code === 200) {
-      travelGroupDetail.value = response.data.data; // 后端返回的特定旅行团详情
-      // 注意：这里假设后端直接返回一个旅行团对象，而不是一个包含 list 和 total 的分页对象
+      travelGroupDetail.value = response.data.data;
     } else {
       ElMessage.error(response.data.message || '获取旅行团详情失败！');
-      travelGroupDetail.value = null; // 清空数据以显示 Empty 状态
+      travelGroupDetail.value = null; 
     }
   } catch (error) {
     console.error(`获取旅行团详情 (ID: ${id}) 失败:`, error);
-    ElMessage.error('网络请求失败，请检查您的网络或稍后再试！');
-    travelGroupDetail.value = null; // 清空数据以显示 Empty 状态
+    if (error.response && error.response.data && error.response.data.message) {
+      ElMessage.error(error.response.data.message);
+    } else {
+      ElMessage.error('网络请求失败，请检查您的网络或稍后再试！');
+    }
+    travelGroupDetail.value = null; 
   } finally {
     loading.value = false;
   }
 };
 
+// --- 辅助函数：根据状态获取文本 ---
+const getTourStatusText = (status) => {
+  switch (status) {
+    case 'PENDING_APPROVAL': return '待审核';
+    case 'PUBLISHED': return '已发布';
+    case 'OFFLINE': return '已下架';
+    case 'REJECTED': return '已驳回';
+    default: return '未知状态';
+  }
+};
+
+// --- 辅助函数：根据状态获取 El-Tag 类型（颜色） ---
+const getTourStatusTagType = (status) => {
+  switch (status) {
+    case 'PENDING_APPROVAL': return 'info'; // 蓝色/灰色
+    case 'PUBLISHED': return 'success'; // 绿色
+    case 'OFFLINE': return 'danger'; // 红色
+    case 'REJECTED': return 'warning'; // 黄色
+    default: return 'info';
+  }
+};
+
+// --- 辅助函数：格式化详细描述 (将换行符 \n 转换为 HTML 的 <br/>) ---
+const formatDescription = (description) => {
+  if (!description) return '';
+  return description.replace(/\n/g, '<br/>');
+};
+
+// --- 辅助函数：格式化日期 (需要 moment.js 库) ---
+const formatDate = (dateString) => {
+  if (!dateString) return '未设置';
+  return moment(dateString).format('YYYY年MM月DD日');
+};
+
+// --- 处理报名按钮点击 ---
+const handleEnrollClick = async () => {
+  // 检查登录状态
+  if (!authStore.isLoggedIn) {
+    ElMessageBox.confirm('您尚未登录，请先登录才能报名。', '提示', {
+      confirmButtonText: '去登录',
+      cancelButtonText: '取消',
+      type: 'info',
+    })
+    .then(() => {
+      router.push('/login'); 
+    })
+    .catch(() => {
+      ElMessage.info('已取消报名。');
+    });
+    return;
+  }
+
+  // 检查用户角色
+  if (authStore.role !== 'ROLE_USER') {
+    ElMessageBox.alert('抱歉，只有普通用户才能报名旅行团。请使用用户账户登录或联系管理员。', '权限不足', {
+      confirmButtonText: '知道了',
+      type: 'warning',
+      dangerouslyUseHTMLString: true,
+    });
+    return;
+  }
+
+  // 用户已登录且是 'USER' 角色，显示报名弹窗
+  enrollForm.numberOfParticipants = 1;
+  enrollForm.contactName = '';
+  enrollForm.contactPhone = '';
+  // 如果有表单引用，先清空校验状态
+  if (enrollFormRef.value) {
+    enrollFormRef.value.resetFields();
+  }
+  enrollDialogVisible.value = true; 
+};
+
+// --- 提交报名表单 ---
+const submitEnrollForm = async () => {
+  try {
+    // 表单校验
+    await enrollFormRef.value.validate();
+
+    // 发送报名请求
+    const response = await authAxios.post('/user/orders', {
+      packageId: travelGroupDetail.value.id,
+      travelerCount: enrollForm.numberOfParticipants,
+      contactName: enrollForm.contactName,
+      contactPhone: enrollForm.contactPhone,
+    });
+
+    if (response.data.code === 200) {
+      ElMessage.success(`成功报名 ${enrollForm.numberOfParticipants} 人！请等待后续通知。`);
+      enrollDialogVisible.value = false; 
+    } else {
+      ElMessage.error(response.data.message || '报名失败，请重试。');
+    }
+  } catch (error) {
+    if (error === false) { // validate 校验失败会返回 false
+      ElMessage.error('请完整填写报名信息并确保格式正确。');
+    } else {
+      console.error('报名提交失败:', error);
+      if (error.response && error.response.data && error.response.data.message) {
+        ElMessage.error(error.response.data.message);
+      } else {
+        ElMessage.error('报名操作失败，请稍后再试。');
+      }
+    }
+  }
+};
+
+// 组件挂载时执行
 onMounted(() => {
   // 从路由参数中获取旅行团 ID
   const groupId = route.params.id; 
   if (groupId) {
     fetchTravelGroupDetail(groupId);
   } else {
-    ElMessage.error('未获取到旅行团ID！');
+    ElMessage.error('未获取到旅行团ID，无法加载详情！');
     loading.value = false;
   }
 });
 </script>
 
 <style scoped>
+.TravelGroupDetail{
+  background-image: url('@/assets/bg1.jpg');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  min-height: 100vh;
+  align-items: center;
+  padding: 20px 0;
+}
+
 .travel-group-detail-container {
-  padding: 20px 40px;
-  max-width: 1000px;
-  margin: 20px auto;
-  background-color: #f9f9f9;
-  border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  position: relative; /* 确保返回按钮定位 */
+  padding: 30px; 
+  max-width: 1200px;
+  margin: 30px auto;
+  background-color: #ffffff;
+  border-radius: 12px; 
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+  position: relative; 
+  font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif;
 }
 
 .back-button {
   position: absolute;
-  top: 20px;
-  left: 20px;
+  top: 10px;
+  left: 10px;
   z-index: 10;
 }
 
+/* 加载状态样式 */
 .loading-detail {
   text-align: center;
-  padding: 50px 0;
+  padding: 80px 0;
   color: #909399;
 }
 
-.detail-card {
-  margin-top: 50px; /* 留出返回按钮的空间 */
-  border-radius: 8px;
-  box-shadow: none; /* 内部卡片不再需要额外阴影 */
+/* 详情内容容器，避免被返回按钮遮挡 */
+.detail-content-wrapper {
+  margin-top: 20px;
 }
 
+/* 卡片样式 */
+.detail-card {
+  border-radius: 10px;
+  box-shadow: none;
+  border: 1px solid #e6e6e6;
+}
+
+/* 卡片头部样式 */
 .card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-bottom: 15px;
+  padding-bottom: 20px;
   border-bottom: 1px solid #ebeef5;
 }
 
+/* 旅行团标题 */
 .group-title {
-  font-size: 2.2em;
+  font-size: 2.8em; 
   color: #303133;
   margin: 0;
+  font-weight: bold;
+  letter-spacing: 0.5px; 
 }
 
-.group-image {
+/* 主信息区 */
+.main-info-section {
+  margin-top: 20px;
+}
+
+/* 图片轮播图样式 */
+.group-carousel {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); 
+}
+.carousel-image {
   width: 100%;
-  height: 350px; /* 固定高度，保持图片一致性 */
+  height: 100%;
+  object-fit: cover; 
+}
+
+/* 单张图片样式 */
+.group-image-single {
+  width: 100%;
+  height: 400px; 
   border-radius: 8px;
   object-fit: cover;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+/* 图片加载失败时的占位符样式 */
+.image-slot {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  background: #f0f2f5; 
+  color: #909399; 
+  font-size: 2em; 
+  flex-direction: column;
+}
+.image-slot span {
+  font-size: 0.5em; 
+  margin-top: 10px;
 }
 
+/* 详情信息文本样式 */
+.detail-info {
+  padding-left: 20px;
+}
 .detail-info p {
-  font-size: 1.1em;
+  font-size: 1.15em; 
   color: #606266;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   line-height: 1.6;
 }
 .detail-info strong {
   color: #303133;
+  min-width: 80px; 
+  display: inline-block; 
+}
+.info-value {
+  color: #303133;
+  font-weight: 500;
+}
+/* 价格显示样式 */
+.price-display {
+  font-size: 1.4em; 
+  font-weight: bold;
+  color: #e6a23c;
+}
+.price-value {
+  font-size: 1.8em; 
+  color: #e6a23c;
+}
+/* 评分组件对齐 */
+.rating-display {
+  vertical-align: middle;
 }
 
-.description-text {
-  font-size: 1.1em;
-  line-height: 1.8;
+/* 分隔线样式 */
+.section-divider {
+  margin: 40px 0; 
+  border-top: 2px dashed #ebeef5; 
+}
+
+/* 各个内容区块的标题样式 */
+.section-title {
+  font-size: 1.8em;
+  color: #303133;
+  margin-bottom: 25px;
+  border-left: 5px solid #4cb1a3; 
+  padding-left: 10px;
+  font-weight: bold;
+}
+
+/* 详细描述文本样式 */
+.detailed-description-text {
+  font-size: 1.05em;
+  line-height: 1.9; 
   color: #303133;
   margin-bottom: 20px;
-  white-space: pre-wrap; /* 保留文本中的换行符 */
+  text-align: justify; 
+  white-space: pre-wrap; 
 }
-
-.itinerary-section {
-  margin-top: 15px;
-  padding: 10px;
-  background-color: #f5f7fa;
+/* 占位符文本样式 */
+.placeholder-text {
+  color: #909399;
+  font-style: italic;
+  text-align: center;
+  padding: 20px;
+  border: 1px dashed #e4e7ed;
   border-radius: 5px;
+  margin-top: 20px;
 }
 
-.itinerary-item {
-  margin-bottom: 15px;
-  padding-bottom: 10px;
-  border-bottom: 1px dashed #e4e7ed;
+/* 行程区样式 */
+.itinerary-section {
+  padding: 15px 0;
 }
 
-.itinerary-item:last-child {
-  border-bottom: none;
-  margin-bottom: 0;
-  padding-bottom: 0;
-}
-
-.itinerary-item h5 {
+/* 时间轴时间戳样式 */
+.el-timeline-item__timestamp {
   font-size: 1.1em;
-  color: #409eff;
-  margin-bottom: 5px;
+  color: #4bb6a8; 
+  font-weight: bold;
 }
 
-.itinerary-item p {
-  font-size: 0.95em;
+/* 时间轴中的卡片样式 */
+.itinerary-card {
+  margin-top: 5px;
+  margin-left: 10px; 
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08); 
+  border: none;
+}
+.itinerary-card h4 {
+  font-size: 1.4em;
+  color: #303133;
+  margin-bottom: 10px;
+  font-weight: bold;
+}
+.route-description {
+  font-size: 1em;
+  line-height: 1.7;
   color: #606266;
-  line-height: 1.5;
+  margin-bottom: 15px;
+}
+
+/* 景点标签列表 */
+.spot-list {
+  margin-top: 10px;
+}
+.spot-list h5 {
+  font-size: 1.05em;
+  color: #303133;
+  margin-bottom: 10px;
+}
+.spot-tag {
+  margin-right: 8px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+  height: 32px; 
+  line-height: 30px; 
+}
+
+/* 响应式调整 */
+@media (max-width: 992px) {
+  .travel-group-detail-container {
+    padding: 20px;
+  }
+  .main-info-section .el-col {
+    width: 100%;
+    max-width: 100%;
+    flex: 0 0 100%;
+  }
+  .detail-info {
+    padding-left: 0;
+    margin-top: 20px;
+  }
+  .group-title {
+    font-size: 2em;
+  }
+  .group-image-single, .group-carousel {
+    height: 300px;
+  }
+  .back-button {
+    top: 15px;
+    left: 15px;
+  }
 }
 </style>

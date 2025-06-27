@@ -7,10 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.whu.backend.common.Result;
-import org.whu.backend.dto.auth.LoginRequest;
-import org.whu.backend.dto.auth.RegisterRequest;
-import org.whu.backend.dto.auth.ResetPasswordRequest;
-import org.whu.backend.dto.auth.UpdateUsernameRequest;
+import org.whu.backend.dto.auth.*;
 import org.whu.backend.dto.mediafile.FileUploadRequestDto;
 import org.whu.backend.service.auth.AuthService;
 
@@ -62,5 +59,8 @@ public class AuthController {
         return authService.updateUsername(request);
     }
 
-
+    @GetMapping("/me")
+    public Result<Medto> me() {
+        return Result.success("返回成功",authService.me());
+    }
 }

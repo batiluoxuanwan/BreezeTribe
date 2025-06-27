@@ -154,7 +154,7 @@
           <el-table :data="myTours" v-loading="tourLoading" style="width: 100%" class="admin-table">
             <el-table-column prop="id" label="ID" width="80"></el-table-column>
             <el-table-column prop="title" label="团名"></el-table-column>
-            <el-table-column prop="location" label="地点"></el-table-column>
+            <el-table-column prop="description" label="详细描述"></el-table-column>
             <el-table-column prop="startDate" label="出发日期" width="120"></el-table-column>
             <el-table-column prop="price" label="价格" width="100"></el-table-column>
             <el-table-column prop="status" label="状态" width="100">
@@ -462,7 +462,7 @@ const myToursTotal = ref(0);
 const myToursCurrentPage = ref(1);
 const myToursPageSize = 10;
 const tourSearchQuery = ref('');
-const selectedTour = ref({}); // 用于详情和操作的旅行团对象
+const selectedTour = ref({}); 
 const tourDetailsDialog = ref(false);
 
 // --- 订单管理数据 ---
@@ -567,16 +567,16 @@ const fetchRecentOrders = async () => {
 const fetchMyTours = async () => {
   tourLoading.value = true;
   try {
-    const response = await authAxios.get('/api/merchant/tours', {
+    const response = await authAxios.get('/dealer/travel-packages', {
       params: {
-        pageNum: myToursCurrentPage.value,
-        pageSize: myToursPageSize,
-        query: tourSearchQuery.value
+        page: myToursCurrentPage.value,
+        size: myToursPageSize
       }
     });
     if (response.data.code === 200 && response.data.data) {
-      myTours.value = response.data.data.records;
-      myToursTotal.value = response.data.data.total;
+      myTours.value = response.data.data.content;
+      myToursTotal.value = response.data.data.totalElements;
+      console.log('获取旅行团列表成功', response.data.data )
     } else {
       ElMessage.error(response.data.message || '获取旅行团列表失败');
     }
@@ -864,7 +864,7 @@ const getTourReviewStatusText = (status) => {
 const getOrderStatusType = (status) => {
   switch (status) {
     case 'PENDING_PAYMENT': return 'warning';
-    case 'PAID': return ''; // 默认蓝色
+    case 'PAID': return '';
     case 'COMPLETED': return 'success';
     case 'CANCELLED': return 'danger';
     default: return 'info';
@@ -885,13 +885,13 @@ const getTourStatusType = (status) => {
     case 'PENDING_REVIEW': return 'info';
     case 'PUBLISHED': return 'success';
     case 'OFFLINE': return 'danger';
-    case 'REJECTED': return 'warning'; // 被驳回也属于一种状态
+    case 'REJECTED': return 'warning'; 
     default: return '';
   }
 };
 const getTourStatusText = (status) => {
   switch (status) {
-    case 'PENDING_REVIEW': return '待审核';
+    case 'PENDING_APPROVAL': return '待审核';
     case 'PUBLISHED': return '已发布';
     case 'OFFLINE': return '已下架';
     case 'REJECTED': return '已驳回';
@@ -902,13 +902,12 @@ const getTourStatusText = (status) => {
 
 // --- 初始化数据 ---
 onMounted(() => {
-  fetchMerchantProfile();    // 获取团长个人资料
-  fetchMerchantOverview();   // 获取概览数据
-  fetchRecentTourReviews(); // 获取近期旅行团审核状态
-  fetchRecentOrders();      // 获取近期订单概览
+  // fetchMerchantProfile();    // 获取团长个人资料
+  // fetchMerchantOverview();   // 获取概览数据
+  // fetchRecentTourReviews(); // 获取近期旅行团审核状态
+  // fetchRecentOrders();      // 获取近期订单概览
 
-  // 默认加载一些列表数据，也可以根据 activeTab 的变化动态加载
-  // fetchMyTours();
+  fetchMyTours();
   // fetchOrders();
   // fetchReviews();
   // fetchMessages();

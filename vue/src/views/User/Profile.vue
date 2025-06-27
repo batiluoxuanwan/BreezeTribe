@@ -170,6 +170,9 @@
 import { ref } from 'vue'
 import { Star, Tickets, EditPen, Comment, Bell,ArrowLeft } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
 
 const user = ref({
   username: '旅行者小明',
@@ -219,6 +222,11 @@ function saveProfile() {
   user.value.username = editForm.value.username
   ElMessage.success('资料保存成功！')
   editProfileDialog.value = false
+}
+
+// 跳转首页
+const goToHome = () => {
+  router.push('/')
 }
 </script>
 

@@ -219,6 +219,21 @@ public class AuthService {
         authRepository.save(account);
         return Result.success("修改成功");
     }
+    public Medto me()
+    {
+        Account account= accountUtil.getCurrentAccount();
+        Medto dto=new Medto();
+        dto.setId(account.getId());
+        dto.setUsername(account.getUsername());
+        dto.setEmail(account.getEmail());
+        dto.setPhone(account.getPhone());
+        dto.setCreatedAt(account.getCreatedAt());
+        dto.setUpdatedAt(account.getUpdatedAt());
+        dto.setRole(account.getRole());
+        dto.setAvatarUrl(AliyunOssUtil.generatePresignedGetUrl(account.getAvatarUrl(), 3600));
+        return dto;
+    }
+
     private boolean isValidEmail(String email) {
         return email != null && EmailValidator.getInstance().isValid(email);
     }
@@ -227,4 +242,5 @@ public class AuthService {
         // 中国大陆 11 位标准手机号
         return phone != null && phone.matches("^1[3-9]\\d{9}$");
     }
+
 }

@@ -1,7 +1,7 @@
 <template>
   <el-card class="travel-card group-card" shadow="hover">
     <div class="image-wrapper">
-      <img :src="group.imageUrl" class="card-image" alt="旅行团图片" />
+      <img :src="group.coverImageUrl" class="card-image" alt="旅行团图片" />
       <el-tag v-if="group.isHot" type="danger" size="small" class="card-badge hot-badge">Hot</el-tag>
       <el-tag v-if="group.isNew" type="success" size="small" class="card-badge new-badge">New</el-tag>
     </div>
@@ -10,7 +10,7 @@
       <p class="card-meta">目的地: {{ group.destination }}</p>
       <p class="card-price">¥{{ group.price }} 起</p>
       <div class="card-info">
-        <span>时长: {{ group.duration }}天</span>
+        <span>时长: {{ group.durationInDays }}天</span>
         <span>人数: {{ group.members }}人</span>
         <span>评分: {{ group.rating }}</span>
       </div>
