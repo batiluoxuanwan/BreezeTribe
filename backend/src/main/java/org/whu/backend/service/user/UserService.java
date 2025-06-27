@@ -131,7 +131,6 @@ public class UserService {
         return true;
     }
 
-    @Transactional // 必须加上事务注解！！！！！！
     public boolean addFavorite(FavoriteRequestDto favoriteRequestDto) {
         User user = securityUtil.getCurrentUser();
 
