@@ -78,7 +78,7 @@ public class PublicController {
     }
 
     @Operation(summary = "获取已发布的游记列表（分页）")
-    @GetMapping
+    @GetMapping("posts")
     public Result<PageResponseDto<PostSummaryDto>> getPublishedPosts(@Valid @ParameterObject PageRequestDto pageRequestDto) {
         log.info("访问获取公共游记列表接口, 分页参数: {}", pageRequestDto);
         PageResponseDto<PostSummaryDto> resultPage = publicService.getPublishedPosts(pageRequestDto);
