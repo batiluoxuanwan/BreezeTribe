@@ -230,7 +230,7 @@ public class AuthService {
         dto.setCreatedAt(account.getCreatedAt());
         dto.setUpdatedAt(account.getUpdatedAt());
         dto.setRole(account.getRole());
-        dto.setAvatarUrl(account.getAvatarUrl());
+        dto.setAvatarUrl(AliyunOssUtil.generatePresignedGetUrl(account.getAvatarUrl(), 3600));
         return dto;
     }
 
