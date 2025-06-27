@@ -207,7 +207,7 @@ const handleLogin = () => {
 // 取消处理逻辑
 const handleCancel = () => {
     if (loginFormRef.value) {
-        loginFormRef.value.resetFields(); // <-- 使用 resetFields() 清空表单并移除校验提示
+        loginFormRef.value.resetFields(); // 使用 resetFields() 清空表单并移除校验提示
     }
     ElMessage.info('已取消登录');
     router.push('/');

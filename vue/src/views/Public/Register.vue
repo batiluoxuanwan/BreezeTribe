@@ -283,7 +283,7 @@ const sendEmailCode = () => {
   formRef.value.validateField('email', async (isValid) => {
     if (isValid) {
       try {
-        const response = await publicAxios.post('/captcha/sendEmail', { email: registerForm.email });
+        const response = await publicAxios.post('/captcha/sendEmail', null, {params:{ email: registerForm.email }});
         if (response.data.code === 200) {
           ElMessage.success(`邮箱验证码已发送至 ${registerForm.email}`);
           emailCodeCountdown.value = 60;
