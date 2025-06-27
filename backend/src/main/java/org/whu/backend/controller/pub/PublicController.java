@@ -13,11 +13,14 @@ import org.whu.backend.dto.PageResponseDto;
 import org.whu.backend.dto.baidumap.BaiduSuggestionResponseDto;
 import org.whu.backend.dto.post.PostDetailDto;
 import org.whu.backend.dto.post.PostSummaryDto;
+import org.whu.backend.dto.postcomment.CommentDto;
+import org.whu.backend.dto.postcomment.CommentWithRepliesDto;
 import org.whu.backend.dto.travelpack.PackageDetailDto;
 import org.whu.backend.dto.travelpack.PackageSearchRequestDto;
 import org.whu.backend.dto.travelpack.PackageSummaryDto;
 import org.whu.backend.service.BaiduMapService;
 import org.whu.backend.service.pub.PublicService;
+import org.whu.backend.service.user.UserPostCommentService;
 
 import java.util.List;
 
@@ -31,6 +34,8 @@ public class PublicController {
     private PublicService publicService;
     @Autowired
     private BaiduMapService baiduMapService;
+    @Autowired
+    private UserPostCommentService userPostCommentService;
 
     // TODO: 分页查询要对排序字段进行检查
     @Operation(summary = "获取已发布的旅行团列表（分页）", description = "供所有用户浏览")
@@ -78,10 +83,32 @@ public class PublicController {
     }
 
     @Operation(summary = "获取单篇已发布的游记详情")
-    @GetMapping("/{id}")
-    public Result<PostDetailDto> getPostDetails(@PathVariable String id) {
-        log.info("访问获取公共游记详情接口, ID: {}", id);
-        PostDetailDto postDetails = publicService.getPostDetails(id);
+    @GetMapping("/posts/{postId}")
+    public Result<PostDetailDto> getPostDetails(@PathVariable String postId) {
+        log.info("访问获取公共游记详情接口, ID: {}", postId);
+        PostDetailDto postDetails = publicService.getPostDetails(postId);
         return Result.success(postDetails);
+    }
+
+    @Operation(summary = "获取指定游记的评论列表（带少量回复预览）")
+    @GetMapping("/posts/{postId}/comments")
+    public Result<PageResponseDto<CommentWithRepliesDto>> getComments(
+            @PathVariable String postId,
+            @Valid @ParameterObject PageRequestDto pageRequestDto
+    ) {
+        log.info("正在获取游记 '{}' 的评论列表...", postId);
+        PageResponseDto<CommentWithRepliesDto> resultPage = userPostCommentService.getCommentsByPost(postId, pageRequestDto);
+        return Result.success(resultPage);
+    }
+
+    @Operation(summary = "获取单条评论的所有回复列表（楼中楼详情）")
+    @GetMapping("/posts/comments/{commentId}/replies")
+    public Result<PageResponseDto<CommentDto>> getCommentReplies(
+            @PathVariable String commentId,
+            @Valid @ParameterObject PageRequestDto pageRequestDto
+    ) {
+        log.info("正在获取评论 '{}' 的所有回复列表...", commentId);
+        PageResponseDto<CommentDto> resultPage = userPostCommentService.getCommentReplies(commentId, pageRequestDto);
+        return Result.success(resultPage);
     }
 }

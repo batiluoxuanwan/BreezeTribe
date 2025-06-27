@@ -1,4 +1,4 @@
-package org.whu.backend.repository;
+package org.whu.backend.repository.post;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

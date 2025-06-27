@@ -32,8 +32,6 @@ public class UserPostController {
     @Autowired
     private DtoConverter dtoConverter;
 
-    // TODO: 注入一个公共的转换服务
-
     @Operation(summary = "发布一篇新游记")
     @PostMapping
     public Result<PostDetailDto> createPost(@Valid @RequestBody PostCreateRequestDto createRequestDto) {

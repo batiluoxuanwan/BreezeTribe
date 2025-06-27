@@ -22,7 +22,7 @@ import org.whu.backend.entity.accounts.User;
 import org.whu.backend.entity.travelpost.PostImage;
 import org.whu.backend.entity.travelpost.TravelPost;
 import org.whu.backend.repository.MediaFileRepository;
-import org.whu.backend.repository.TravelPostRepository;
+import org.whu.backend.repository.post.TravelPostRepository;
 import org.whu.backend.repository.authRepo.UserRepository;
 import org.whu.backend.service.DtoConverter;
 import org.whu.backend.service.merchant.MerchantPackageService;
