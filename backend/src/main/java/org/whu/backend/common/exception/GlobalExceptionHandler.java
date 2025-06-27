@@ -57,10 +57,11 @@ public class GlobalExceptionHandler {
     public Result<?> handleHttpMessageNotReadableException(HttpMessageNotReadableException e, HttpServletRequest request) {
         String requestPath = request.getRequestURI();
         // 尝试获取更具体的根本原因，特别是JSON解析相关的错误
-        Throwable cause = e.getCause();
-        log.warn("请求体JSON解析失败 (400) for path: {} from client: {}. Jackson Error: {}",
-                requestPath, request.getRemoteAddr(), cause.getMessage()); // 日志记录更具体的Jackson错误
+//        Throwable cause = e.getCause();
+//        log.warn("请求体JSON解析失败 (400) for path: {} from client: {}. Jackson Error: {}",
+//                requestPath, request.getRemoteAddr(), cause.getMessage()); // 日志记录更具体的Jackson错误
         // 给前端一个相对友好的提示
+        log.warn("请求格式无法正确解析: {}", e.getMessage());
         String userMessage = "请检查请求数据的格式或内容是否正确。";
         return Result.failure(HttpStatus.BAD_REQUEST.value(), userMessage);
     }

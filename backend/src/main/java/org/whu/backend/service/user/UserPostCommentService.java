@@ -39,7 +39,7 @@ public class UserPostCommentService {
     private DtoConverter dtoConverter;
 
     /**
-     * 发布一条新评论或回复
+     * 发布一条新评论或回复，对游记
      */
     @Transactional
     public Comment createComment(String postId, CommentCreateRequestDto dto, String currentUserId) {
@@ -80,7 +80,7 @@ public class UserPostCommentService {
     }
 
     /**
-     * 获取游记的评论列表（带少量预览回复）
+     * 获取游记的评论列表（带少量预览回复），对游记
      */
     @Transactional(readOnly = true)
     public PageResponseDto<CommentWithRepliesDto> getCommentsByPost(String postId, PageRequestDto pageRequestDto) {
@@ -118,7 +118,7 @@ public class UserPostCommentService {
     }
 
     /**
-     * 获取单条评论的所有回复列表（楼中楼详情）
+     * 获取单条评论的所有回复列表（楼中楼详情），对游记
      */
     @Transactional(readOnly = true)
     public PageResponseDto<CommentDto> getCommentReplies(String commentId, PageRequestDto pageRequestDto) {

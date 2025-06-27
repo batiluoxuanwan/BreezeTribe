@@ -11,6 +11,7 @@ import org.whu.backend.common.Result;
 import org.whu.backend.dto.PageRequestDto;
 import org.whu.backend.dto.PageResponseDto;
 import org.whu.backend.dto.baidumap.BaiduSuggestionResponseDto;
+import org.whu.backend.dto.packagecomment.PackageCommentDto;
 import org.whu.backend.dto.post.PostDetailDto;
 import org.whu.backend.dto.post.PostSummaryDto;
 import org.whu.backend.dto.postcomment.CommentDto;
@@ -20,6 +21,7 @@ import org.whu.backend.dto.travelpack.PackageSearchRequestDto;
 import org.whu.backend.dto.travelpack.PackageSummaryDto;
 import org.whu.backend.service.BaiduMapService;
 import org.whu.backend.service.pub.PublicService;
+import org.whu.backend.service.user.UserPackageCommentService;
 import org.whu.backend.service.user.UserPostCommentService;
 
 import java.util.List;
@@ -36,6 +38,8 @@ public class PublicController {
     private BaiduMapService baiduMapService;
     @Autowired
     private UserPostCommentService userPostCommentService;
+    @Autowired
+    private UserPackageCommentService userPackageCommentService;
 
     // TODO: 分页查询要对排序字段进行检查
     @Operation(summary = "获取已发布的旅行团列表（分页）", description = "供所有用户浏览")
@@ -62,7 +66,6 @@ public class PublicController {
         return Result.success(packageDetails);
     }
 
-    // 原来的 searchExternalSpots 接口功能不明确，把它替换成更具体的 "suggestions" 接口
     @Operation(summary = "获取地点输入提示", description = "用于前端搜索框的实时输入提示，后端转发百度地图API请求")
     @GetMapping("/spots/suggestions")
     public Result<List<BaiduSuggestionResponseDto.SuggestionResult>> getSpotSuggestions(
@@ -111,4 +114,16 @@ public class PublicController {
         PageResponseDto<CommentDto> resultPage = userPostCommentService.getCommentReplies(commentId, pageRequestDto);
         return Result.success(resultPage);
     }
+
+    @Operation(summary = "获取指定旅行团的评价列表（分页）")
+    @GetMapping("/packages/comments/{packageId}")
+    public Result<PageResponseDto<PackageCommentDto>> getPackageComments(
+            @PathVariable String packageId,
+            @Valid @ParameterObject PageRequestDto pageRequestDto
+    ) {
+        log.info("正在获取旅行团 '{}' 的评价列表...", packageId);
+        PageResponseDto<PackageCommentDto> resultPage = userPackageCommentService.getPackageComments(packageId, pageRequestDto);
+        return Result.success(resultPage);
+    }
+
 }

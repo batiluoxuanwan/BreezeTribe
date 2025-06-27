@@ -5,6 +5,7 @@ import org.springframework.stereotype.Component;
 import org.whu.backend.dto.accounts.AuthorDto;
 import org.whu.backend.dto.mediafile.MediaFileDto;
 import org.whu.backend.dto.order.OrderSummaryForDealerDto;
+import org.whu.backend.dto.packagecomment.PackageCommentDto;
 import org.whu.backend.dto.post.PostDetailDto;
 import org.whu.backend.dto.post.PostSummaryDto;
 import org.whu.backend.dto.postcomment.CommentDto;
@@ -49,13 +50,43 @@ public class DtoConverter {
     }
 
     /**
-     * 将Comment实体转换为简单的DTO (不带嵌套回复)
+     * 将PackageComment实体转换为带少量预览回复的DTO
+     */
+    public PackageCommentDto convertPackageCommentToDto(PackageComment comment, List<PackageCommentDto> repliesPreview, long totalReplies) {
+        return PackageCommentDto.builder()
+                .id(comment.getId())
+                .rating(comment.getRating())
+                .content(comment.getContent())
+                .author(ConvertUserToAuthorDto(comment.getAuthor()))
+                .replyToUsername(comment.getParent() != null ? comment.getParent().getAuthor().getUsername() : null)
+                .createdTime(comment.getCreatedTime())
+                .repliesPreview(repliesPreview)
+                .totalReplies(totalReplies)
+                .build();
+    }
+
+    /**
+     * [新增] 将PackageComment实体转换为不带嵌套回复的简单DTO
+     */
+    public PackageCommentDto convertPackageCommentToSimpleDto(PackageComment comment) {
+        return PackageCommentDto.builder()
+                .id(comment.getId())
+                .rating(comment.getRating())
+                .content(comment.getContent())
+                .author(ConvertUserToAuthorDto(comment.getAuthor()))
+                .replyToUsername(comment.getParent() != null ? comment.getParent().getAuthor().getUsername() : null)
+                .createdTime(comment.getCreatedTime())
+                .build();
+    }
+
+    /**
+     * 将PostComment实体转换为简单的DTO (不带嵌套回复)
      */
     public CommentDto convertCommentToDto(Comment comment) {
         return CommentDto.builder()
                 .id(comment.getId())
                 .content(comment.getContent())
-                .author(UserConvertToAuthorDto(comment.getAuthor()))
+                .author(ConvertUserToAuthorDto(comment.getAuthor()))
                 .parentId(comment.getParent().getId())
                 .replyToUsername(comment.getParent() != null ? comment.getParent().getAuthor().getUsername() : null)
                 .replyToUserId(comment.getParent() != null ? comment.getParent().getAuthor().getId() : null)
@@ -64,13 +95,13 @@ public class DtoConverter {
     }
 
     /**
-     * 将Comment实体转换为带少量预览回复的DTO
+     * 将PostComment实体转换为带少量预览回复的DTO
      */
     public CommentWithRepliesDto convertCommentToDtoWithReplies(Comment comment, List<CommentDto> repliesPreview, long totalReplies) {
         return CommentWithRepliesDto.builder()
                 .id(comment.getId())
                 .content(comment.getContent())
-                .author(UserConvertToAuthorDto(comment.getAuthor()))
+                .author(ConvertUserToAuthorDto(comment.getAuthor()))
                 .replyToUsername(comment.getParent() != null ? comment.getParent().getAuthor().getUsername() : null)
                 .createdTime(comment.getCreatedTime())
                 .repliesPreview(repliesPreview)
@@ -79,7 +110,7 @@ public class DtoConverter {
     }
 
     // 把用户USER信息转换为dto
-    public AuthorDto UserConvertToAuthorDto(User author) {
+    public AuthorDto ConvertUserToAuthorDto(User author) {
         return AuthorDto.builder()
                 .id(author.getId())
                 .username(author.getUsername())
@@ -107,7 +138,7 @@ public class DtoConverter {
                 .id(post.getId())
                 .title(post.getTitle())
                 .coverImageUrl(coverUrl)
-                .author(UserConvertToAuthorDto(post.getAuthor()))
+                .author(ConvertUserToAuthorDto(post.getAuthor()))
                 .spot(spotDto)
                 .likeCount(post.getLikeCount())
                 .favoriteCount(post.getFavoriteCount())
@@ -123,7 +154,7 @@ public class DtoConverter {
         if (url != null) {
             url = AliyunOssUtil.generatePresignedGetUrl(url, EXPIRE_TIME, IMAGE_PROCESS);
         }
-        AuthorDto authorDto = UserConvertToAuthorDto(post.getAuthor());
+        AuthorDto authorDto = ConvertUserToAuthorDto(post.getAuthor());
 
         // 转换景点信息 (如果存在)
         SpotDetailDto spotDto = null;
