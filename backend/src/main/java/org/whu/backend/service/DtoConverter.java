@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 import org.whu.backend.dto.PageResponseDto;
 import org.whu.backend.dto.accounts.AuthorDto;
 import org.whu.backend.dto.mediafile.MediaFileDto;
+import org.whu.backend.dto.order.OrderDetailDto;
 import org.whu.backend.dto.order.OrderForReviewDto;
 import org.whu.backend.dto.order.OrderSummaryForDealerDto;
 import org.whu.backend.dto.packagecomment.PackageCommentDto;
@@ -71,6 +72,22 @@ public class DtoConverter {
                 .first(page.isFirst())
                 .last(page.isLast())
                 .numberOfElements(page.getNumberOfElements())
+                .build();
+    }
+
+    /**
+     *  将Order实体转换为详细的OrderDetailDto
+     */
+    public OrderDetailDto convertOrderToDetailDto(Order order) {
+        return OrderDetailDto.builder()
+                .orderId(order.getId())
+                .packageId(order.getTravelPackage().getId())
+                .packageTitle(order.getTravelPackage().getTitle())
+                .packageCoverImageUrl(AliyunOssUtil.generatePresignedGetUrl(order.getTravelPackage().getCoverImageUrl(), EXPIRE_TIME, IMAGE_PROCESS))
+                .travelerCount(order.getTravelerCount())
+                .totalPrice(order.getTotalPrice())
+                .status(order.getStatus().name())
+                .orderTime(order.getCreatedTime())
                 .build();
     }
 

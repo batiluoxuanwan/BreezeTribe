@@ -32,7 +32,6 @@ import org.whu.backend.repository.FavoriteRepository;
 import org.whu.backend.repository.LikeRepository;
 import org.whu.backend.repository.post.TravelPostRepository;
 import org.whu.backend.repository.travelRepo.*;
-import org.whu.backend.repository.authRepo.UserRepository;
 import org.whu.backend.service.DtoConverter;
 import org.whu.backend.util.AccountUtil;
 import org.whu.backend.util.JpaUtil;
@@ -45,9 +44,6 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 public class UserService {
-
-    @Autowired
-    private UserRepository userRepository;
     @Autowired
     private OrderRepository orderRepository;
     @Autowired
@@ -83,7 +79,7 @@ public class UserService {
             throw new BizException("该旅行团目前不可报名");
         }
         Integer capacity = travelPackage.getCapacity();
-        Integer participants = travelPackage.getParticipants() == null ? 0 : travelPackage.getParticipants();
+        int participants = travelPackage.getParticipants() == null ? 0 : travelPackage.getParticipants();
         if (capacity != null && participants >= capacity) {
             throw new BizException("旅行团报名人数已满");
         }
@@ -98,24 +94,16 @@ public class UserService {
         order.setStatus(Order.OrderStatus.PENDING_PAYMENT);
         order.setContactName(orderCreateRequestDto.getContactName());
         order.setContactPhone(orderCreateRequestDto.getContactPhone());
-        orderRepository.save(order);
+        Order saved = orderRepository.save(order);
 
-        // 4. 更新报名人数
-        travelPackage.setParticipants(participants + order.getTravelerCount());
-        travelPackageRepository.save(travelPackage);
+        // 4. 原子更新报名人数
+        travelPackageRepository.addParticipantCount(travelPackage.getId(),order.getTravelerCount());
 
-        OrderDetailDto dto = new OrderDetailDto();
-        dto.setTravelerCount(order.getTravelerCount());
-        dto.setTotalPrice(order.getTotalPrice());
-        dto.setStatus(order.getStatus());
-        dto.setUsername(user.getUsername());
-        dto.setTravelPackageTitle(travelPackage.getTitle());
-        dto.setOrderId(order.getId());
-        return dto;
+        return dtoConverter.convertOrderToDetailDto(saved);
     }
 
     public boolean confirmPayment(String orderId) {
-        User user = securityUtil.getCurrentUser();
+        // User user = securityUtil.getCurrentUser();
 
         // 获取订单
         Order order = JpaUtil.getOrThrow(orderRepository, orderId, "订单不存在");
@@ -129,7 +117,7 @@ public class UserService {
     }
 
     public boolean cancelOrder(String orderId) {
-        User user = securityUtil.getCurrentUser();
+        // User user = securityUtil.getCurrentUser();
 
         // 获取订单
         Order order = JpaUtil.getOrThrow(orderRepository, orderId, "订单不存在");
@@ -147,6 +135,23 @@ public class UserService {
         order.setStatus(Order.OrderStatus.CANCELED);
         orderRepository.save(order);
         return true;
+    }
+
+    // 获取当前用户的所有订单列表（分页）
+    @Transactional(readOnly = true)
+    public PageResponseDto<OrderDetailDto> getMyOrders(String currentUserId, PageRequestDto pageRequestDto) {
+        log.info("用户ID '{}' 正在查询自己的全部订单列表...", currentUserId);
+
+        Pageable pageable = PageRequest.of(pageRequestDto.getPage() - 1, pageRequestDto.getSize(),
+                Sort.by(Sort.Direction.fromString(pageRequestDto.getSortDirection()), pageRequestDto.getSortBy()));
+
+        Page<Order> orderPage = orderRepository.findByUserId(currentUserId, pageable);
+
+        List<OrderDetailDto> dtos = orderPage.getContent().stream()
+                .map(dtoConverter::convertOrderToDetailDto)
+                .collect(Collectors.toList());
+
+        return dtoConverter.convertPageToDto(orderPage, dtos);
     }
 
     // [新增] 根据评价状态，获取用户的订单列表

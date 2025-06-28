@@ -47,5 +47,10 @@ public interface TravelPackageRepository extends JpaRepository<TravelPackage, St
     @Query("UPDATE TravelPackage p SET p.viewCount = p.viewCount + 1 WHERE p.id = :packageId")
     void incrementViewCount(String packageId);
 
+    // 原子化地增加报名人数数
+    @Modifying
+    @Query("UPDATE TravelPackage p SET p.participants = p.participants + :num WHERE p.id = :packageId")
+    void addParticipantCount(String packageId, Integer num);
+
 
 }

@@ -22,5 +22,8 @@ public interface OrderRepository extends JpaRepository<Order, String> {
     // 查询用户已完成的、所有订单
     Page<Order> findByUserIdAndStatus(String userId, Order.OrderStatus status, Pageable pageable);
 
+    // 分页查询某个用户的所有订单
+    Page<Order> findByUserId(String userId, Pageable pageable);
+
     boolean existsByUserAndTravelPackageAndStatus(User author, TravelPackage travelPackage, Order.OrderStatus orderStatus);
 }
