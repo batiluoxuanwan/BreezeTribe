@@ -23,29 +23,41 @@ public interface PostCommentRepository extends JpaRepository<Comment, String> {
     long countByParentId(String parentId);
 
 
+    // 使用原生SQL的递归查询，分页获取一个评论下的所有子孙回复，过滤被屏蔽的评论和被逻辑删除的评论
+//    @Query(value = "WITH RECURSIVE ReplyTree AS (" +
+//            "  SELECT * FROM post_comments WHERE parent_id = :commentId AND deleted = false AND is_deleted_by_author = false" +
+//            "  UNION ALL" +
+//            "  SELECT c.* FROM post_comments c JOIN ReplyTree rt ON c.parent_id = rt.id WHERE c.deleted = false AND c.is_deleted_by_author = false" +
+//            ") SELECT * FROM ReplyTree",
+//            countQuery = "WITH RECURSIVE ReplyTree AS (" +
+//                    "  SELECT id FROM post_comments WHERE parent_id = :commentId AND deleted = false AND is_deleted_by_author = false" +
+//                    "  UNION ALL" +
+//                    "  SELECT c.id FROM post_comments c JOIN ReplyTree rt ON c.parent_id = rt.id WHERE c.deleted = false AND c.is_deleted_by_author = false" +
+//                    ") SELECT count(*) FROM ReplyTree",
+//            nativeQuery = true)
 
-    // 使用原生SQL的递归查询，分页获取一个评论下的所有子孙回复
+    // 使用原生SQL的递归查询，分页获取一个评论下的所有子孙回复，过滤被逻辑删除的评论
     @Query(value = "WITH RECURSIVE ReplyTree AS (" +
-            "  SELECT * FROM post_comments WHERE parent_id = :commentId" + // 1. 锚点成员：找到直接回复
+            "  SELECT * FROM post_comments WHERE parent_id = :commentId AND deleted = false" +
             "  UNION ALL" +
-            "  SELECT c.* FROM post_comments c JOIN ReplyTree rt ON c.parent_id = rt.id" + // 2. 递归成员：不断向下查找
+            "  SELECT c.* FROM post_comments c JOIN ReplyTree rt ON c.parent_id = rt.id WHERE c.deleted = false" +
             ") SELECT * FROM ReplyTree",
             countQuery = "WITH RECURSIVE ReplyTree AS (" +
-                    "  SELECT * FROM post_comments WHERE parent_id = :commentId" +
+                    "  SELECT id FROM post_comments WHERE parent_id = :commentId AND deleted = false" +
                     "  UNION ALL" +
-                    "  SELECT c.* FROM post_comments c JOIN ReplyTree rt ON c.parent_id = rt.id" +
+                    "  SELECT c.id FROM post_comments c JOIN ReplyTree rt ON c.parent_id = rt.id WHERE c.deleted = false" +
                     ") SELECT count(*) FROM ReplyTree",
             nativeQuery = true)
     Page<Comment> findAllRepliesByParentId(String commentId, Pageable pageable);
 
     /**
-     *  根据游记ID批量删除所有评论
+     * 根据游记ID批量删除所有评论
      */
     @Modifying
     void deleteAllByTravelPostId(String postId);
 
     /**
-     *  检查一条评论是否有任何直接的子回复
+     * 检查一条评论是否有任何直接的子回复
      */
     boolean existsByParentId(String parentId);
 
@@ -65,7 +77,7 @@ public interface PostCommentRepository extends JpaRepository<Comment, String> {
      * 批量删除（逻辑删除）一组评论
      * Spring Data JPA 默认的 deleteAllByIdInBatch 是物理删除，我们需要用@Query自定义
      */
-//    @Modifying // TODO：如果软删除无效再改
-//    @Query("UPDATE Comment c SET c.deleted = true WHERE c.id IN :ids")
+    @Modifying
+    @Query("UPDATE Comment c SET c.deleted = true WHERE c.id IN :ids")
     void softDeleteAllByIds(Set<String> ids);
 }

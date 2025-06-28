@@ -40,6 +40,10 @@ public class Comment {
     @ColumnDefault("false")
     private boolean isDeletedByAuthor = false;
 
+    // 让手写的sql语句认识这个字段
+    @Column(nullable = false, insertable = false, updatable = false)
+    private boolean deleted = false;
+
     @CreationTimestamp
     private LocalDateTime createdTime;
 

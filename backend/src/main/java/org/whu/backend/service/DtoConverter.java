@@ -76,7 +76,7 @@ public class DtoConverter {
     }
 
     /**
-     *  将Order实体转换为详细的OrderDetailDto
+     * 将Order实体转换为详细的OrderDetailDto
      */
     public OrderDetailDto convertOrderToDetailDto(Order order) {
         return OrderDetailDto.builder()
@@ -141,14 +141,14 @@ public class DtoConverter {
     public PostCommentDto convertCommentToDto(Comment comment) {
         // 处理被屏蔽的评论
         String content = comment.getContent();
-        if (comment.isDeletedByAuthor()){
+        if (comment.isDeletedByAuthor()) {
             content = "[该评论已被删除]";
         }
         return PostCommentDto.builder()
                 .id(comment.getId())
                 .content(content)
                 .author(ConvertUserToAuthorDto(comment.getAuthor()))
-                .parentId(comment.getParent().getId())
+                .parentId(comment.getParent() != null ? comment.getParent().getId() : null)
                 .replyToUsername(comment.getParent() != null ? comment.getParent().getAuthor().getUsername() : null)
                 .replyToUserId(comment.getParent() != null ? comment.getParent().getAuthor().getId() : null)
                 .createdTime(comment.getCreatedTime())
@@ -161,7 +161,7 @@ public class DtoConverter {
     public PostCommentWithRepliesDto convertCommentToDtoWithReplies(Comment comment, List<PostCommentDto> repliesPreview, long totalReplies) {
         // 处理被屏蔽的评论
         String content = comment.getContent();
-        if (comment.isDeletedByAuthor()){
+        if (comment.isDeletedByAuthor()) {
             content = "[该评论已被删除]";
         }
         return PostCommentWithRepliesDto.builder()
