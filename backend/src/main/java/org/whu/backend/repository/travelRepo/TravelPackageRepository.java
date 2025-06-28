@@ -52,5 +52,9 @@ public interface TravelPackageRepository extends JpaRepository<TravelPackage, St
     @Query("UPDATE TravelPackage p SET p.participants = p.participants + :num WHERE p.id = :packageId")
     void addParticipantCount(String packageId, Integer num);
 
+    // 原子化地减少报名人数数
+    @Modifying
+    @Query("UPDATE TravelPackage p SET p.participants = GREATEST(p.participants - :num, 0) WHERE p.id = :packageId")
+    void subParticipantCount(String packageId, Integer num);
 
 }

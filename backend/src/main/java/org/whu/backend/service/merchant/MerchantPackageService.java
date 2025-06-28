@@ -32,6 +32,7 @@ import org.whu.backend.repository.travelRepo.TravelPackageRepository;
 import org.whu.backend.service.BaiduMapService;
 import org.whu.backend.service.DtoConverter;
 
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -73,7 +74,7 @@ public class MerchantPackageService {
         newPackage.setPrice(dto.getPrice());
         newPackage.setCapacity(dto.getCapacity());
         newPackage.setParticipants(0);
-        newPackage.setDepartureDate(dto.getDepartureDate());
+        newPackage.setDepartureDate(dto.getDepartureDate().truncatedTo(ChronoUnit.DAYS)); // 截断到天
         newPackage.setDurationInDays(dto.getDurationInDays());
         newPackage.setDealer(dealer);
         newPackage.setStatus(TravelPackage.PackageStatus.PENDING_APPROVAL); // 初始状态为待审核
@@ -144,7 +145,7 @@ public class MerchantPackageService {
     }
 
 
-    // 更新旅行团的核心业务逻辑
+    // 更新旅行团的核心业务逻辑，只允许修改描述和标题
     @Transactional
     public TravelPackage updatePackage(String packageId, PackageUpdateRequestDto dto, String currentDealerId) {
         log.info("经销商ID '{}' 正在尝试更新旅行团ID '{}'...", currentDealerId, packageId);
@@ -172,6 +173,12 @@ public class MerchantPackageService {
 
         // 1. 查找并验证旅行团的所有权
         TravelPackage packageToDelete = findPackageByIdAndVerifyOwnership(packageId, currentDealerId);
+
+        boolean hasActiveOrders = orderRepository.existsByTravelPackageId(packageId);
+        if (hasActiveOrders) {
+            log.warn("删除失败：旅行团ID '{}' 存在有效的关联订单。", packageId);
+            throw new BizException("无法删除：该旅行团尚有未完成或未取消的订单，请先处理相关订单。");
+        }
 
         // 2. [核心修改] 在删除旅行团之前，先手动删除它关联的所有路线
         log.info("正在级联删除旅行团 '{}' 关联的路线...", packageToDelete.getTitle());

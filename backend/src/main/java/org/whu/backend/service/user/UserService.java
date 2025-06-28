@@ -78,6 +78,7 @@ public class UserService {
         if (travelPackage.getStatus() != TravelPackage.PackageStatus.PUBLISHED) {
             throw new BizException("该旅行团目前不可报名");
         }
+        // TODO: 可能会有并发带来的超售操作
         Integer capacity = travelPackage.getCapacity();
         int participants = travelPackage.getParticipants() == null ? 0 : travelPackage.getParticipants();
         if (capacity != null && participants >= capacity) {
@@ -97,11 +98,12 @@ public class UserService {
         Order saved = orderRepository.save(order);
 
         // 4. 原子更新报名人数
-        travelPackageRepository.addParticipantCount(travelPackage.getId(),order.getTravelerCount());
+        travelPackageRepository.addParticipantCount(travelPackage.getId(), order.getTravelerCount());
 
         return dtoConverter.convertOrderToDetailDto(saved);
     }
 
+    // 确认支付一个订单
     public boolean confirmPayment(String orderId) {
         // User user = securityUtil.getCurrentUser();
 
@@ -116,6 +118,7 @@ public class UserService {
         return true;
     }
 
+    // 取消一个订单
     public boolean cancelOrder(String orderId) {
         // User user = securityUtil.getCurrentUser();
 
@@ -123,16 +126,20 @@ public class UserService {
         Order order = JpaUtil.getOrThrow(orderRepository, orderId, "订单不存在");
 
         // 检查状态
-        if (order.getStatus() == Order.OrderStatus.CANCELED || order.getStatus() == Order.OrderStatus.COMPLETED) {
+        if (order.getStatus() == Order.OrderStatus.CANCELED
+                || order.getStatus() == Order.OrderStatus.COMPLETED
+                || order.getStatus() == Order.OrderStatus.ONGOING) {
             throw new BizException("订单状态错误");
         }
 
         // 检查是否需要退款
-        if (order.getStatus() == Order.OrderStatus.PAID) {
-            // TODO: 执行退款逻辑
-        }
+//        if (order.getStatus() == Order.OrderStatus.PAID) {
+//            // TODO: 执行退款逻辑
+//        }
 
         order.setStatus(Order.OrderStatus.CANCELED);
+        // 减少参团人数
+        travelPackageRepository.subParticipantCount(orderId, order.getTravelerCount());
         orderRepository.save(order);
         return true;
     }
@@ -172,8 +179,7 @@ public class UserService {
             orderPage = orderRepository.findByUserIdAndStatusAndTravelPackageIdIn(
                     currentUserId, Order.OrderStatus.COMPLETED, reviewedPackageIds, pageable
             );
-        }
-        else if ("ALL".equalsIgnoreCase(status)) { // 查询全部(ALL)
+        } else if ("ALL".equalsIgnoreCase(status)) { // 查询全部(ALL)
             orderPage = orderRepository.findByUserIdAndStatus(
                     currentUserId, Order.OrderStatus.COMPLETED, pageable
             );
