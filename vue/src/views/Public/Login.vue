@@ -17,7 +17,7 @@
       <div class="login-right">
         <h2 style="text-align: center;line-height: 2.0;">
           <span style="font-size: 32px; font-weight: bold;">LOGIN</span><br>
-          <span style="font-size: 18px; color: #555;">专业报团，放心出游，开启无忧旅行！</span>
+          <br>
         </h2>
         <!-- 登录方式切换（用 Tabs 实现） -->
         <el-tabs v-model="mode" class="login-switch" stretch>
@@ -161,7 +161,6 @@ const rules = {
 
 // 处理登录逻辑
 const handleLogin = () => {
-    // 在调用 validate 之前，确保 loginFormRef.value 存在
     if (!loginFormRef.value) {
         console.error('表单引用未初始化！请检查 <el-form> 上是否绑定了 ref="loginFormRef"。');
         ElMessage.error('表单组件未准备好，请稍后再试。');
@@ -193,8 +192,29 @@ const handleLogin = () => {
                     ElMessage.error(response.data.message || '登录失败');
                 }
             } catch (error) {
-                console.error(error);
-                ElMessage.error('用户名或密码错误');
+                console.error('登录请求发生错误:', error);
+
+                if (error.response) {
+                  if (error.response.data && error.response.data.message) {
+                    ElMessage.error(error.response.data.message);
+                  } else if (error.response.status === 400) {
+                    ElMessage.error('请求参数错误，请检查您的输入。');
+                  } else if (error.response.status === 401) {
+                    ElMessage.error('用户名或密码错误，或未授权访问。');
+                  } else if (error.response.status === 403) {
+                    ElMessage.error('您没有权限访问此资源。');
+                  } else if (error.response.status === 500) {
+                    ElMessage.error('服务器内部错误，请稍后再试。');
+                  } else {
+                    ElMessage.error(`登录失败: ${error.response.status} ${error.response.statusText}`);
+                  }
+                } else if (error.request) {
+                  // 请求已发出但未收到响应 (例如网络断开，服务器未启动)
+                  ElMessage.error('网络连接失败，请检查您的网络。');
+                } else {
+                  // 其他未知错误 (例如在设置请求时发生错误)
+                  ElMessage.error('发生未知错误，请稍后再试。');
+                }
             } finally {
                 loading.value = false;
             }
@@ -226,7 +246,7 @@ const goRegister = () => {
   display: flex;
   justify-content: center;
   align-items: center;
-  background-image: url('@/assets/background.png');
+  background-image: url('@/assets/background.jpg');
   background-size: cover;
   background-position: center;
   padding: 16px; 
@@ -265,7 +285,7 @@ const goRegister = () => {
   width: 400px;
   height:550px;
   padding: 50px 30px;
-  background: #84adbc;
+  background: #56899cce;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
   z-index: 10;
 

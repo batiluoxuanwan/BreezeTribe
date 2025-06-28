@@ -23,7 +23,7 @@ public class Favorite {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private FavoriteItemType itemType; // 收藏的项目的类型
+    private InteractionItemType itemType; // [修改] 使用统一枚举
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
@@ -37,13 +37,6 @@ public class Favorite {
     // 收藏的项目的ID (可能是TravelPackage的ID, Spot的ID等)
     @Column(length = 36, nullable = false)
     private String itemId;
-
-    public enum FavoriteItemType {
-        PACKAGE, // 旅行团
-        SPOT,    // 景点
-        ROUTE,   // 路线
-        POST     // 游记
-    }
 
     @PrePersist
     protected void onPrePersist() {

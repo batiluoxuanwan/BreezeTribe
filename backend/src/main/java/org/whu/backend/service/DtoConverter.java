@@ -1,18 +1,26 @@
 package org.whu.backend.service;
 
 
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
+import org.whu.backend.dto.PageResponseDto;
 import org.whu.backend.dto.accounts.AuthorDto;
 import org.whu.backend.dto.mediafile.MediaFileDto;
+import org.whu.backend.dto.order.OrderForReviewDto;
 import org.whu.backend.dto.order.OrderSummaryForDealerDto;
+import org.whu.backend.dto.packagecomment.PackageCommentDto;
 import org.whu.backend.dto.post.PostDetailDto;
 import org.whu.backend.dto.post.PostSummaryDto;
+import org.whu.backend.dto.postcomment.PostCommentDto;
+import org.whu.backend.dto.postcomment.PostCommentWithRepliesDto;
 import org.whu.backend.dto.route.RouteDetailDto;
 import org.whu.backend.dto.route.RouteSummaryDto;
 import org.whu.backend.dto.spot.SpotDetailDto;
 import org.whu.backend.dto.travelpack.PackageDetailDto;
 import org.whu.backend.dto.travelpack.PackageSummaryDto;
 import org.whu.backend.entity.*;
+import org.whu.backend.entity.accounts.User;
+import org.whu.backend.entity.travelpost.Comment;
 import org.whu.backend.entity.travelpost.TravelPost;
 import org.whu.backend.util.AliyunOssUtil;
 
@@ -44,6 +52,111 @@ public class DtoConverter {
                 .build();
     }
 
+    /**
+     * [新增] 一个通用的，将JPA的Page<T>对象转换为我们自定义PageResponseDto<U>的方法
+     *
+     * @param page    JPA返回的Page对象
+     * @param content DTO列表，由调用方提前转换好
+     * @param <T>     实体类型
+     * @param <U>     DTO类型
+     * @return 自定义的PageResponseDto
+     */
+    public <T, U> PageResponseDto<U> convertPageToDto(Page<T> page, List<U> content) {
+        return PageResponseDto.<U>builder()
+                .content(content)
+                .pageNumber(page.getNumber() + 1)
+                .pageSize(page.getSize())
+                .totalElements(page.getTotalElements())
+                .totalPages(page.getTotalPages())
+                .first(page.isFirst())
+                .last(page.isLast())
+                .numberOfElements(page.getNumberOfElements())
+                .build();
+    }
+
+    /**
+     * 将订单实体转换为给用户查看的DTO
+     */
+    public OrderForReviewDto convertOrderToReviewDto(Order order) {
+        return OrderForReviewDto.builder()
+                .orderId(order.getId())
+                .packageId(order.getTravelPackage().getId())
+                .packageTitle(order.getTravelPackage().getTitle())
+                .packageCoverImageUrl(AliyunOssUtil.generatePresignedGetUrl(order.getTravelPackage().getCoverImageUrl(), EXPIRE_TIME, IMAGE_PROCESS))
+                .orderTime(order.getCreatedTime())
+                .totalPrice(order.getTotalPrice().toString())
+                .build();
+    }
+
+    /**
+     * 将PackageComment实体转换为带少量预览回复的DTO
+     */
+    public PackageCommentDto convertPackageCommentToDto(PackageComment comment, List<PackageCommentDto> repliesPreview, long totalReplies) {
+        return PackageCommentDto.builder()
+                .id(comment.getId())
+                .rating(comment.getRating())
+                .content(comment.getContent())
+                .author(ConvertUserToAuthorDto(comment.getAuthor()))
+                .replyToUsername(comment.getParent() != null ? comment.getParent().getAuthor().getUsername() : null)
+                .createdTime(comment.getCreatedTime())
+                .repliesPreview(repliesPreview)
+                .totalReplies(totalReplies)
+                .build();
+    }
+
+    /**
+     * [新增] 将PackageComment实体转换为不带嵌套回复的简单DTO
+     */
+    public PackageCommentDto convertPackageCommentToSimpleDto(PackageComment comment) {
+        return PackageCommentDto.builder()
+                .id(comment.getId())
+                .rating(comment.getRating())
+                .content(comment.getContent())
+                .author(ConvertUserToAuthorDto(comment.getAuthor()))
+                .replyToUsername(comment.getParent() != null ? comment.getParent().getAuthor().getUsername() : null)
+                .createdTime(comment.getCreatedTime())
+                .build();
+    }
+
+    /**
+     * 将PostComment实体转换为简单的DTO (不带嵌套回复)
+     */
+    public PostCommentDto convertCommentToDto(Comment comment) {
+        return PostCommentDto.builder()
+                .id(comment.getId())
+                .content(comment.getContent())
+                .author(ConvertUserToAuthorDto(comment.getAuthor()))
+                .parentId(comment.getParent().getId())
+                .replyToUsername(comment.getParent() != null ? comment.getParent().getAuthor().getUsername() : null)
+                .replyToUserId(comment.getParent() != null ? comment.getParent().getAuthor().getId() : null)
+                .createdTime(comment.getCreatedTime())
+                .build();
+    }
+
+    /**
+     * 将PostComment实体转换为带少量预览回复的DTO
+     */
+    public PostCommentWithRepliesDto convertCommentToDtoWithReplies(Comment comment, List<PostCommentDto> repliesPreview, long totalReplies) {
+        return PostCommentWithRepliesDto.builder()
+                .id(comment.getId())
+                .content(comment.getContent())
+                .author(ConvertUserToAuthorDto(comment.getAuthor()))
+                .replyToUsername(comment.getParent() != null ? comment.getParent().getAuthor().getUsername() : null)
+                .createdTime(comment.getCreatedTime())
+                .repliesPreview(repliesPreview)
+                .totalReplies(totalReplies)
+                .build();
+    }
+
+    // 把用户USER信息转换为dto
+    public AuthorDto ConvertUserToAuthorDto(User author) {
+        return AuthorDto.builder()
+                .id(author.getId())
+                .username(author.getUsername())
+                .avatarUrl(AliyunOssUtil.generatePresignedGetUrl(author.getAvatarUrl(), EXPIRE_TIME, IMAGE_PROCESS))
+                .build();
+    }
+
     // 将TravelPost实体转换为摘要DTO
     public PostSummaryDto convertPostToSummaryDto(TravelPost post) {
         // 获取封面图URL
@@ -64,14 +177,12 @@ public class DtoConverter {
                 .id(post.getId())
                 .title(post.getTitle())
                 .coverImageUrl(coverUrl)
-                .author(AuthorDto.builder()
-                        .id(post.getAuthor().getId())
-                        .username(post.getAuthor().getUsername())
-                        .build())
+                .author(ConvertUserToAuthorDto(post.getAuthor()))
                 .spot(spotDto)
                 .likeCount(post.getLikeCount())
                 .favoriteCount(post.getFavoriteCount())
                 .commentCount(post.getCommentCount())
+                .viewCount(post.getViewCount())
                 .createdTime(post.getCreatedTime())
                 .build();
     }
@@ -79,15 +190,7 @@ public class DtoConverter {
     // 将TravelPost实体转换为详细的DTO
     public PostDetailDto convertPostToDetailDto(TravelPost post) {
         // 转换作者信息
-        String url = post.getAuthor().getAvatarUrl();
-        if (url != null) {
-            url = AliyunOssUtil.generatePresignedGetUrl(url, EXPIRE_TIME, IMAGE_PROCESS);
-        }
-        AuthorDto authorDto = AuthorDto.builder()
-                .id(post.getAuthor().getId())
-                .username(post.getAuthor().getUsername())
-                .avatarUrl(url)
-                .build();
+        AuthorDto authorDto = ConvertUserToAuthorDto(post.getAuthor());
 
         // 转换景点信息 (如果存在)
         SpotDetailDto spotDto = null;
@@ -114,6 +217,7 @@ public class DtoConverter {
                 .likeCount(post.getLikeCount())
                 .favoriteCount(post.getFavoriteCount())
                 .commentCount(post.getCommentCount())
+                .viewCount(post.getViewCount())
                 .createdTime(post.getCreatedTime())
                 .build();
     }
@@ -172,16 +276,23 @@ public class DtoConverter {
 
     // 把旅游团实体TravelPackage转化为简略的信息PackageSummaryDto
     public PackageSummaryDto convertPackageToSummaryDto(TravelPackage entity) {
-        PackageSummaryDto dto = new PackageSummaryDto();
-        dto.setId(entity.getId());
-        dto.setTitle(entity.getTitle());
-        if (entity.getCoverImageUrl() != null)
-            dto.setCoverImageUrl(AliyunOssUtil.generatePresignedGetUrl(entity.getCoverImageUrl(), EXPIRE_TIME, IMAGE_PROCESS));
-        dto.setPrice(entity.getPrice());
-        dto.setDescription(entity.getDetailedDescription());
-        dto.setDurationInDays(entity.getDurationInDays());
-        dto.setStatus(entity.getStatus().toString());
-        return dto;
+        String coverImageUrl = null;
+        if (entity.getCoverImageUrl() != null) {
+            coverImageUrl = AliyunOssUtil.generatePresignedGetUrl(entity.getCoverImageUrl(), EXPIRE_TIME, IMAGE_PROCESS);
+        }
+
+        return PackageSummaryDto.builder()
+                .id(entity.getId())
+                .title(entity.getTitle())
+                .coverImageUrl(coverImageUrl)
+                .price(entity.getPrice())
+                .description(entity.getDetailedDescription())
+                .durationInDays(entity.getDurationInDays())
+                .favouriteCount(entity.getFavoriteCount())
+                .commentCount(entity.getCommentCount())
+                .viewCount(entity.getViewCount())
+                .status(entity.getStatus().toString())
+                .build();
     }
 
     // 把旅游团实体TravelPackage转化为详细的信息PackageSummaryDto
@@ -208,6 +319,9 @@ public class DtoConverter {
                 .price(entity.getPrice())
                 .durationInDays(entity.getDurationInDays())
                 .detailedDescription(entity.getDetailedDescription())
+                .favouriteCount(entity.getFavoriteCount())
+                .commentCount(entity.getCommentCount())
+                .viewCount(entity.getViewCount())
                 .status(entity.getStatus().name())
                 .routes(routeDtos)
                 .build();

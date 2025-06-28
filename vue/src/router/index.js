@@ -19,12 +19,18 @@ const routes =[
     {
         path:'/square',
         name:'旅行广场',
-        component:() =>import('../views/Public/Square.vue')
+        component:() =>import('../views/Public/Square.vue'),
+        props: route => ({ keyword: route.query.keyword, tab: route.query.tab || 'groups', page: Number(route.query.page) || 1 })
     },
     {
         path:'/user/me',
         name:'用户个人主页',
         component:() =>import('../views/User/Profile.vue')
+    },
+    {
+        path:'/user/publish-travel-note',
+        name:'用户发布游记',
+        component:() =>import('../views/User/PublishTravelNote.vue')
     },
     {
         path:'/merchant/me',

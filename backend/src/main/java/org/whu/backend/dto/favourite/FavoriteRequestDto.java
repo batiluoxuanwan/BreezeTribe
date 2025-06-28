@@ -4,7 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
-import org.whu.backend.entity.Favorite;
+import org.whu.backend.entity.InteractionItemType;
 
 @Data
 public class FavoriteRequestDto {
@@ -14,12 +14,5 @@ public class FavoriteRequestDto {
 
     @Schema(description = "项目类型 (PACKAGE, SPOT, ROUTE,POST)", example = "PACKAGE")
     @NotNull
-    private Favorite.FavoriteItemType itemType;
-
-//    public enum ItemType {
-//        PACKAGE, // 旅行团
-//        SPOT,    // 景点
-//        ROUTE,    // 路线
-//        POST
-//    }
+    private InteractionItemType itemType;
 }

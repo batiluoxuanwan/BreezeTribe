@@ -17,7 +17,7 @@
       <p class="description">{{ note.description }}</p>
       <div class="author-info">
         <img class="avatar" :src="note.avatar" :alt="note.author" />
-        <span class="author-name">{{ note.author }}</span>
+        <span class="author-name">{{ note.author.username }}</span>
         <span class="publish-date">{{ formatDate(note.publishDate) }}</span>
       </div>
       <el-button type="primary" size="small" class="read-more-button">

@@ -206,16 +206,7 @@ public class MerchantPackageService {
                 .map(dtoConverter::convertPackageToSummaryDto)
                 .collect(Collectors.toList());
 
-        return PageResponseDto.<PackageSummaryDto>builder()
-                .content(summaryDtos)
-                .pageNumber(packagePage.getNumber() + 1)
-                .pageSize(packagePage.getSize())
-                .totalElements(packagePage.getTotalElements())
-                .totalPages(packagePage.getTotalPages())
-                .first(packagePage.isFirst())
-                .last(packagePage.isLast())
-                .numberOfElements(packagePage.getNumberOfElements())
-                .build();
+        return dtoConverter.convertPageToDto(packagePage, summaryDtos);
     }
 
 
@@ -241,16 +232,7 @@ public class MerchantPackageService {
                 .collect(Collectors.toList());
 
         // 5. 封装并返回分页结果
-        return PageResponseDto.<OrderSummaryForDealerDto>builder()
-                .content(dtos)
-                .pageNumber(orderPage.getNumber() + 1)
-                .pageSize(orderPage.getSize())
-                .totalElements(orderPage.getTotalElements())
-                .totalPages(orderPage.getTotalPages())
-                .first(orderPage.isFirst())
-                .last(orderPage.isLast())
-                .numberOfElements(orderPage.getNumberOfElements())
-                .build();
+        return dtoConverter.convertPageToDto(orderPage, dtos);
     }
 
 

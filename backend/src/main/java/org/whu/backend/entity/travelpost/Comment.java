@@ -12,7 +12,7 @@ import java.util.UUID;
 @Data
 @Entity
 @SoftDelete
-@Table(name = "comments")
+@Table(name = "post_comments")
 // 用于实现游记的评论功能
 public class Comment {
     @Id
