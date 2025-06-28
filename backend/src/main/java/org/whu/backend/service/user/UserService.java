@@ -11,6 +11,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.whu.backend.common.exception.BizException;
+import org.whu.backend.dto.PageRequestDto;
 import org.whu.backend.dto.favourite.FavoritePageReqDto;
 import org.whu.backend.dto.PageResponseDto;
 import org.whu.backend.dto.favourite.FavoriteRequestDto;
@@ -20,6 +21,7 @@ import org.whu.backend.dto.like.LikePageRequestDto;
 import org.whu.backend.dto.like.LikeRequestDto;
 import org.whu.backend.dto.order.OrderCreateRequestDto;
 import org.whu.backend.dto.order.OrderDetailDto;
+import org.whu.backend.dto.order.OrderForReviewDto;
 import org.whu.backend.dto.user.InteractionStatusRequestDto;
 import org.whu.backend.dto.user.InteractionStatusResponseDto;
 import org.whu.backend.dto.user.ItemIdentifierDto;
@@ -29,10 +31,7 @@ import org.whu.backend.entity.accounts.User;
 import org.whu.backend.repository.FavoriteRepository;
 import org.whu.backend.repository.LikeRepository;
 import org.whu.backend.repository.post.TravelPostRepository;
-import org.whu.backend.repository.travelRepo.OrderRepository;
-import org.whu.backend.repository.travelRepo.RouteRepository;
-import org.whu.backend.repository.travelRepo.SpotRepository;
-import org.whu.backend.repository.travelRepo.TravelPackageRepository;
+import org.whu.backend.repository.travelRepo.*;
 import org.whu.backend.repository.authRepo.UserRepository;
 import org.whu.backend.service.DtoConverter;
 import org.whu.backend.util.AccountUtil;
@@ -67,6 +66,8 @@ public class UserService {
     private LikeRepository likeRepository;
     @Autowired
     private DtoConverter dtoConverter;
+    @Autowired
+    private PackageCommentRepository packageCommentRepository;
 
     public OrderDetailDto createOrder(OrderCreateRequestDto orderCreateRequestDto) {
         // 1. 获取当前登录用户
@@ -103,7 +104,7 @@ public class UserService {
         travelPackage.setParticipants(participants + order.getTravelerCount());
         travelPackageRepository.save(travelPackage);
 
-        OrderDetailDto dto= new OrderDetailDto();
+        OrderDetailDto dto = new OrderDetailDto();
         dto.setTravelerCount(order.getTravelerCount());
         dto.setTotalPrice(order.getTotalPrice());
         dto.setStatus(order.getStatus());
@@ -126,6 +127,7 @@ public class UserService {
         orderRepository.save(order);
         return true;
     }
+
     public boolean cancelOrder(String orderId) {
         User user = securityUtil.getCurrentUser();
 
@@ -145,6 +147,43 @@ public class UserService {
         order.setStatus(Order.OrderStatus.CANCELED);
         orderRepository.save(order);
         return true;
+    }
+
+    // [新增] 根据评价状态，获取用户的订单列表
+    @Transactional(readOnly = true)
+    public PageResponseDto<OrderForReviewDto> getOrdersByReviewStatus(String currentUserId, String status, PageRequestDto pageRequestDto) {
+        log.info("用户ID '{}' 正在查询 '{}' 状态的订单列表...", currentUserId, status);
+
+        // 1. 先找出该用户已经评价过的所有旅行团ID
+        Set<String> reviewedPackageIds = packageCommentRepository.findTravelPackageIdsReviewedByUser(currentUserId);
+
+        Pageable pageable = PageRequest.of(pageRequestDto.getPage() - 1, pageRequestDto.getSize(),
+                Sort.by(Sort.Direction.DESC, "createdTime"));
+
+        Page<Order> orderPage;
+
+        // 2. 根据前端传来的状态，调用不同的查询方法
+        if ("REVIEWED".equalsIgnoreCase(status)) {
+            orderPage = orderRepository.findByUserIdAndStatusAndTravelPackageIdIn(
+                    currentUserId, Order.OrderStatus.COMPLETED, reviewedPackageIds, pageable
+            );
+        }
+        else if ("ALL".equalsIgnoreCase(status)) { // 查询全部(ALL)
+            orderPage = orderRepository.findByUserIdAndStatus(
+                    currentUserId, Order.OrderStatus.COMPLETED, pageable
+            );
+        } else { // 默认为查询“待评价” (PENDING_REVIEW)
+            orderPage = orderRepository.findByUserIdAndStatusAndTravelPackageIdNotIn(
+                    currentUserId, Order.OrderStatus.COMPLETED, reviewedPackageIds, pageable
+            );
+        }
+
+        // 3. 将查询结果转换为DTO
+        List<OrderForReviewDto> dtos = orderPage.getContent().stream()
+                .map(dtoConverter::convertOrderToReviewDto)
+                .collect(Collectors.toList());
+
+        return dtoConverter.convertPageToDto(orderPage, dtos);
     }
 
     @Transactional // 必须加上事务注解！！！！！！
@@ -177,7 +216,7 @@ public class UserService {
                 JpaUtil.getOrThrow(routeRepository, favoriteRequestDto.getItemId(), "路线不存在");
                 break;
             case POST:
-                JpaUtil.getOrThrow(travelPostRepository, favoriteRequestDto.getItemId(),"游记不存在");
+                JpaUtil.getOrThrow(travelPostRepository, favoriteRequestDto.getItemId(), "游记不存在");
                 travelPostRepository.incrementFavoriteCount(favoriteRequestDto.getItemId());
                 break;
             default:
@@ -205,7 +244,7 @@ public class UserService {
         }
 
         // 根据类型减少对应的统计数据
-        switch (existing.get().getItemType()){
+        switch (existing.get().getItemType()) {
             case PACKAGE:
                 travelPackageRepository.decrementFavoriteCount(favoriteRequestDto.getItemId());
                 break;
@@ -268,7 +307,7 @@ public class UserService {
         if (likeRequestDto.getItemType() == null || likeRequestDto.getItemId() == null) {
             throw new BizException("参数错误：itemType 或 itemId 为空");
         }
-        if (likeRequestDto.getItemType() != InteractionItemType.POST){
+        if (likeRequestDto.getItemType() != InteractionItemType.POST) {
             throw new BizException("仅允许对POST执行点赞操作");
         }
         Optional<Like> existingLike = likeRepository.findByUserAndItemIdAndItemType(
@@ -282,7 +321,7 @@ public class UserService {
 
         switch (likeRequestDto.getItemType()) {
             case POST:
-                JpaUtil.getOrThrow(travelPostRepository, likeRequestDto.getItemId(),"游记不存在");
+                JpaUtil.getOrThrow(travelPostRepository, likeRequestDto.getItemId(), "游记不存在");
                 travelPostRepository.incrementLikeCount(likeRequestDto.getItemId());
                 break;
             default:
@@ -309,7 +348,7 @@ public class UserService {
         if (existing.isEmpty()) {
             throw new BizException("点赞不存在");
         }
-        switch (existing.get().getItemType()){
+        switch (existing.get().getItemType()) {
             case POST:
                 travelPostRepository.decrementLikeCount(likeRequestDto.getItemId());
                 break;

@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 import org.whu.backend.dto.PageResponseDto;
 import org.whu.backend.dto.accounts.AuthorDto;
 import org.whu.backend.dto.mediafile.MediaFileDto;
+import org.whu.backend.dto.order.OrderForReviewDto;
 import org.whu.backend.dto.order.OrderSummaryForDealerDto;
 import org.whu.backend.dto.packagecomment.PackageCommentDto;
 import org.whu.backend.dto.post.PostDetailDto;
@@ -53,10 +54,11 @@ public class DtoConverter {
 
     /**
      * [新增] 一个通用的，将JPA的Page<T>对象转换为我们自定义PageResponseDto<U>的方法
-     * @param page JPA返回的Page对象
+     *
+     * @param page    JPA返回的Page对象
      * @param content DTO列表，由调用方提前转换好
-     * @param <T> 实体类型
-     * @param <U> DTO类型
+     * @param <T>     实体类型
+     * @param <U>     DTO类型
      * @return 自定义的PageResponseDto
      */
     public <T, U> PageResponseDto<U> convertPageToDto(Page<T> page, List<U> content) {
@@ -69,6 +71,20 @@ public class DtoConverter {
                 .first(page.isFirst())
                 .last(page.isLast())
                 .numberOfElements(page.getNumberOfElements())
+                .build();
+    }
+
+    /**
+     * 将订单实体转换为给用户查看的DTO
+     */
+    public OrderForReviewDto convertOrderToReviewDto(Order order) {
+        return OrderForReviewDto.builder()
+                .orderId(order.getId())
+                .packageId(order.getTravelPackage().getId())
+                .packageTitle(order.getTravelPackage().getTitle())
+                .packageCoverImageUrl(AliyunOssUtil.generatePresignedGetUrl(order.getTravelPackage().getCoverImageUrl(), EXPIRE_TIME, IMAGE_PROCESS))
+                .orderTime(order.getCreatedTime())
+                .totalPrice(order.getTotalPrice().toString())
                 .build();
     }
 

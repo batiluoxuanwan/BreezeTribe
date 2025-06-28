@@ -3,10 +3,12 @@ package org.whu.backend.repository.travelRepo;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import org.whu.backend.entity.PackageComment;
 
 import java.util.List;
+import java.util.Set;
 
 @Repository
 public interface PackageCommentRepository extends JpaRepository<PackageComment, String> {
@@ -20,4 +22,8 @@ public interface PackageCommentRepository extends JpaRepository<PackageComment, 
     long countByParentId(String parentId);
 
     Page<PackageComment> findByParentId(String commentId, Pageable repliesPageable);
+
+    // 一次性查询出某个用户评价过的所有旅行团的ID
+    @Query("SELECT pc.travelPackage.id FROM PackageComment pc WHERE pc.author.id = :userId")
+    Set<String> findTravelPackageIdsReviewedByUser(String userId);
 }

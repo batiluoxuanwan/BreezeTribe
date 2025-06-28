@@ -1,6 +1,7 @@
 package org.whu.backend.controller.user;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
@@ -10,6 +11,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.whu.backend.common.Result;
 import org.whu.backend.common.exception.BizException;
+import org.whu.backend.dto.PageRequestDto;
 import org.whu.backend.dto.favourite.FavoritePageReqDto;
 import org.whu.backend.dto.PageResponseDto;
 import org.whu.backend.dto.favourite.FavoriteRequestDto;
@@ -19,12 +21,13 @@ import org.whu.backend.dto.like.LikePageRequestDto;
 import org.whu.backend.dto.like.LikeRequestDto;
 import org.whu.backend.dto.order.OrderCreateRequestDto;
 import org.whu.backend.dto.order.OrderDetailDto;
+import org.whu.backend.dto.order.OrderForReviewDto;
 import org.whu.backend.dto.user.InteractionStatusRequestDto;
 import org.whu.backend.dto.user.InteractionStatusResponseDto;
 import org.whu.backend.service.user.UserService;
 import org.whu.backend.util.AccountUtil;
 
-@Tag(name = "用户-订单与收藏", description = "用户进行报名、收藏等操作的API")
+@Tag(name = "用户-订单与收藏", description = "登录用户进行报名、收藏等各种交互操作的API")
 @RestController
 @RequestMapping("/api/user")
 @PreAuthorize("hasRole('USER')") // 在类级别上统一进行权限控制
@@ -57,6 +60,23 @@ public class UserActionController {
         if(!userService.cancelOrder(orderId))
             throw new BizException("取消订单失败");
         return Result.success("订单已取消");
+    }
+
+    /**
+     * [新增] 获取用户的订单列表（按评价状态筛选）
+     */
+    @Operation(summary = "获取我的订单列表（按评价状态筛选）")
+    @GetMapping("/orders/for-review")
+    public Result<PageResponseDto<OrderForReviewDto>> getMyOrdersForReview(
+            @Parameter(description = "筛选状态: PENDING (待评价), REVIEWED (已评价)，ALL (全部)") @RequestParam(defaultValue = "PENDING") String status,
+            @Valid @ParameterObject PageRequestDto pageRequestDto
+    ) {
+        String currentUserId = AccountUtil.getCurrentAccountId();
+        log.info("用户ID '{}' 访问获取 '{}' 状态的订单列表接口", currentUserId, status);
+
+        PageResponseDto<OrderForReviewDto> resultPage = userService.getOrdersByReviewStatus(currentUserId, status, pageRequestDto);
+
+        return Result.success(resultPage);
     }
 
     @Operation(summary = "收藏一个项目（旅行团、景点等）")
