@@ -8,11 +8,19 @@ import org.whu.backend.entity.Favorite;
 import org.whu.backend.entity.accounts.Merchant;
 import org.whu.backend.entity.accounts.User;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface FavoriteRepository extends JpaRepository<Favorite, String> {
-    Optional<Favorite> findByUserAndItemIdAndItemType(User user, String itemId,Enum itemType);
-    void deleteByUserAndItemIdAndItemType(User user,String itemId,Enum itemType);
+    Optional<Favorite> findByUserAndItemIdAndItemType(User user, String itemId, Favorite.FavoriteItemType itemType);
+
+    // 批量查询用户对一批特定类型的项目的收藏记录
+    List<Favorite> findByUserIdAndItemTypeAndItemIdIn(String userId, Favorite.FavoriteItemType itemType, Set<String> itemIds);
+
+    void deleteByUserAndItemIdAndItemType(User user, String itemId, Favorite.FavoriteItemType itemType);
+
     Page<Favorite> findByUser(User user, Pageable pageable);
-    Page<Favorite> findByUserAndItemType(User user,Pageable pageable,Enum itemType);
+
+    Page<Favorite> findByUserAndItemType(User user, Pageable pageable, Favorite.FavoriteItemType itemType);
 }

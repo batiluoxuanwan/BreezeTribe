@@ -3,6 +3,7 @@ package org.whu.backend.controller.user;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -18,12 +19,16 @@ import org.whu.backend.dto.like.LikePageRequestDto;
 import org.whu.backend.dto.like.LikeRequestDto;
 import org.whu.backend.dto.order.OrderCreateRequestDto;
 import org.whu.backend.dto.order.OrderDetailDto;
+import org.whu.backend.dto.user.InteractionStatusRequestDto;
+import org.whu.backend.dto.user.InteractionStatusResponseDto;
 import org.whu.backend.service.user.UserService;
+import org.whu.backend.util.AccountUtil;
 
 @Tag(name = "用户-订单与收藏", description = "用户进行报名、收藏等操作的API")
 @RestController
 @RequestMapping("/api/user")
 @PreAuthorize("hasRole('USER')") // 在类级别上统一进行权限控制
+@Slf4j
 public class UserActionController {
 
     @Autowired
@@ -83,16 +88,16 @@ public class UserActionController {
     @PostMapping("/likes")
     public Result<?> addLike(@Valid @RequestBody LikeRequestDto dto) {
         if(!userService.addLike(dto))
-            throw new BizException("收藏失败");
-        return Result.success("收藏成功");
+            throw new BizException("点赞失败");
+        return Result.success("点赞成功");
     }
 
     @Operation(summary = "取消点赞一个项目")
     @DeleteMapping("/likes")
     public Result<?> removeLike(@Valid @RequestBody LikeRequestDto dto) {
         if(!userService.removeLike(dto))
-            throw new BizException("取消收藏失败");
-        return Result.success("取消收藏成功");
+            throw new BizException("取消点赞失败");
+        return Result.success("取消点赞成功");
     }
 
     @Operation(summary = "获取我的点赞列表（分页）")
@@ -101,6 +106,17 @@ public class UserActionController {
         PageResponseDto<LikeDetailDto> dto=userService.getMyLikes(pageRequestDto);
         if(dto==null)
             throw new BizException("获取失败");
-        return Result.success("获取收藏列表",dto);
+        return Result.success("获取点赞列表",dto);
+    }
+
+    @Operation(summary = "批量获取项目的互动状态（是否已点赞/收藏）")
+    @PostMapping("/interactions/status")
+    public Result<InteractionStatusResponseDto> getInteractionStatus(@Valid @RequestBody InteractionStatusRequestDto request) {
+        String currentUserId = AccountUtil.getCurrentAccountId();
+        log.info("用户ID '{}' 访问批量获取互动状态接口", currentUserId);
+
+        InteractionStatusResponseDto response = userService.getInteractionStatus(request, currentUserId);
+
+        return Result.success(response);
     }
 }

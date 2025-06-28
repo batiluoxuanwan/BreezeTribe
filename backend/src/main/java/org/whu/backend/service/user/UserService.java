@@ -20,6 +20,10 @@ import org.whu.backend.dto.like.LikePageRequestDto;
 import org.whu.backend.dto.like.LikeRequestDto;
 import org.whu.backend.dto.order.OrderCreateRequestDto;
 import org.whu.backend.dto.order.OrderDetailDto;
+import org.whu.backend.dto.user.InteractionStatusRequestDto;
+import org.whu.backend.dto.user.InteractionStatusResponseDto;
+import org.whu.backend.dto.user.ItemIdentifierDto;
+import org.whu.backend.dto.user.ItemStatusDto;
 import org.whu.backend.entity.*;
 import org.whu.backend.entity.accounts.User;
 import org.whu.backend.repository.FavoriteRepository;
@@ -35,8 +39,8 @@ import org.whu.backend.util.AccountUtil;
 import org.whu.backend.util.JpaUtil;
 
 import java.math.BigDecimal;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 
 @Slf4j
@@ -342,5 +346,66 @@ public class UserService {
                 }).toList();
 
         return dtoConverter.convertPageToDto(likePage, content);
+    }
+
+
+    // 用户查询自己的项目的互动状态
+    @Transactional(readOnly = true)
+    public InteractionStatusResponseDto getInteractionStatus(InteractionStatusRequestDto request, String currentUserId) {
+        log.info("用户ID '{}' 正在批量查询 {} 个项目的互动状态", currentUserId, request.getItems().size());
+
+        Map<String, ItemStatusDto> statusMap = new HashMap<>();
+
+        // 1. 按类型对ID进行分组
+        Map<Favorite.FavoriteItemType, Set<String>> itemIdsByType = request.getItems().stream()
+                .collect(Collectors.groupingBy(
+                        ItemIdentifierDto::getType,
+                        Collectors.mapping(ItemIdentifierDto::getId, Collectors.toSet())
+                ));
+
+        // 2. 初始化所有请求项目的状态为 "未点赞" & "未收藏"
+        for (ItemIdentifierDto item : request.getItems()) {
+            String key = item.getType().name() + "_" + item.getId();
+            statusMap.put(key, ItemStatusDto.builder().isLiked(false).isFavorited(false).build());
+        }
+
+        // 3. 批量查询并更新收藏状态
+        for (Map.Entry<Favorite.FavoriteItemType, Set<String>> entry : itemIdsByType.entrySet()) {
+            Favorite.FavoriteItemType itemType = entry.getKey();
+            Set<String> itemIds = entry.getValue();
+
+            Set<String> favoritedIds = favoriteRepository.findByUserIdAndItemTypeAndItemIdIn(currentUserId, itemType, itemIds)
+                    .stream()
+                    .map(Favorite::getItemId)
+                    .collect(Collectors.toSet());
+
+            for (String itemId : favoritedIds) {
+                String key = itemType.name() + "_" + itemId;
+                statusMap.get(key).setFavorited(true);
+            }
+        }
+
+        // 4. 批量查询并更新点赞状态 (只处理支持点赞的类型)
+        // 从请求中筛选出所有类型为POST的ID
+        Set<String> postIdsToCheckForLike = request.getItems().stream()
+                .filter(item -> item.getType() == Favorite.FavoriteItemType.POST)
+                .map(ItemIdentifierDto::getId)
+                .collect(Collectors.toSet());
+
+        if (!postIdsToCheckForLike.isEmpty()) {
+            Set<String> likedIds = likeRepository.findByUserIdAndItemTypeAndItemIdIn(currentUserId, Like.LikeItemType.POST, postIdsToCheckForLike)
+                    .stream()
+                    .map(Like::getItemId)
+                    .collect(Collectors.toSet());
+
+            for (String postId : likedIds) {
+                String key = Favorite.FavoriteItemType.POST.name() + "_" + postId;
+                if (statusMap.containsKey(key)) {
+                    statusMap.get(key).setLiked(true);
+                }
+            }
+        }
+
+        return InteractionStatusResponseDto.builder().statusMap(statusMap).build();
     }
 }
