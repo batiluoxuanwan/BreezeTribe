@@ -15,6 +15,7 @@ import org.whu.backend.dto.favourite.FavoriteRequestDto;
 import org.whu.backend.dto.favourite.FavouriteDetailDto;
 import org.whu.backend.dto.order.OrderCreateRequestDto;
 import org.whu.backend.dto.order.OrderDetailDto;
+import org.whu.backend.entity.Favorite;
 import org.whu.backend.service.user.UserService;
 
 @Tag(name = "用户-订单与收藏", description = "用户进行报名、收藏等操作的API")
@@ -74,5 +75,13 @@ public class UserActionController {
         if(dto==null)
             throw new BizException("获取失败");
         return Result.success("获取收藏列表",dto);
+    }
+    @Operation(summary = "获取我的订单列表（分页）")
+    @GetMapping("/orders")
+    public Result<PageResponseDto<OrderDetailDto>> getMyOrders(@Valid @ParameterObject FavoritePageReqDto pageRequestDto) {
+        PageResponseDto<OrderDetailDto> dto=userService.getMyOrders(pageRequestDto);
+        if(dto==null)
+            throw new BizException("获取失败");
+        return Result.success("获取订单列表",dto);
     }
 }

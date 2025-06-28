@@ -32,5 +32,8 @@ public interface AuthRepository extends JpaRepository<Account, String> {
     Page<Account> findByUsernameContaining(String username, Pageable pageable);
 
     Page<Account> findByUsernameContainingAndRole(String username, Role role, Pageable pageable);
+
+    boolean existsByEmailAndRoleAndIdNot(String email,Role role,String Id);
+    boolean existsByPhoneAndRoleAndIdNot(String phone,Role role,String Id);
 }
 

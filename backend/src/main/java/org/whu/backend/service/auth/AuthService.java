@@ -243,4 +243,36 @@ public class AuthService {
         return phone != null && phone.matches("^1[3-9]\\d{9}$");
     }
 
+    public Result<?> rebind(RebindRequest request) {
+            String email = request.getNewEmail();
+            String phone = request.getNewPhone();
+            Role role = request.getRole();
+            String code = request.getCode();
+
+            if ((email == null || email.isBlank()) && (phone == null || phone.isBlank())) {
+                throw new BizException("邮箱或手机号必须提供其中之一");
+            }
+
+            Account account = accountUtil.getCurrentAccount();
+            boolean exists;
+
+            if (email != null && !email.isBlank()) {
+                if (!isValidEmail(email)) throw new BizException("邮箱格式错误");
+                if (!captchaService.verifyEmailCode(email, code)) throw new BizException("邮箱验证码错误");
+                exists = authRepository.existsByEmailAndRoleAndIdNot(email, role, account.getId());
+                if (exists) throw new BizException("该邮箱已被注册");
+                account.setEmail(email);
+            }
+
+            if (phone != null && !phone.isBlank()) {
+                if (!isValidPhone(phone)) throw new BizException("手机号格式错误");
+                if (!captchaService.verifySmsCode(phone, code)) throw new BizException("手机验证码错误");
+                exists = authRepository.existsByPhoneAndRoleAndIdNot(phone, role, account.getId());
+                if (exists) throw new BizException("该手机号已被注册");
+                account.setPhone(phone);
+            }
+
+            authRepository.save(account);
+            return Result.success("修改成功");
+    }
 }
