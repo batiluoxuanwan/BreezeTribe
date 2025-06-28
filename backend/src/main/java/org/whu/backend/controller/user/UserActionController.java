@@ -13,6 +13,9 @@ import org.whu.backend.dto.favourite.FavoritePageReqDto;
 import org.whu.backend.dto.PageResponseDto;
 import org.whu.backend.dto.favourite.FavoriteRequestDto;
 import org.whu.backend.dto.favourite.FavouriteDetailDto;
+import org.whu.backend.dto.like.LikeDetailDto;
+import org.whu.backend.dto.like.LikePageRequestDto;
+import org.whu.backend.dto.like.LikeRequestDto;
 import org.whu.backend.dto.order.OrderCreateRequestDto;
 import org.whu.backend.dto.order.OrderDetailDto;
 import org.whu.backend.service.user.UserService;
@@ -71,6 +74,31 @@ public class UserActionController {
     @GetMapping("/favorites")
     public Result<PageResponseDto<FavouriteDetailDto>> getMyFavorites(@Valid @ParameterObject FavoritePageReqDto pageRequestDto) {
         PageResponseDto<FavouriteDetailDto> dto=userService.getMyFavorites(pageRequestDto);
+        if(dto==null)
+            throw new BizException("获取失败");
+        return Result.success("获取收藏列表",dto);
+    }
+
+    @Operation(summary = "点赞一个项目（旅行团、景点等）")
+    @PostMapping("/likes")
+    public Result<?> addLike(@Valid @RequestBody LikeRequestDto dto) {
+        if(!userService.addLike(dto))
+            throw new BizException("收藏失败");
+        return Result.success("收藏成功");
+    }
+
+    @Operation(summary = "取消点赞一个项目")
+    @DeleteMapping("/likes")
+    public Result<?> removeLike(@Valid @RequestBody LikeRequestDto dto) {
+        if(!userService.removeLike(dto))
+            throw new BizException("取消收藏失败");
+        return Result.success("取消收藏成功");
+    }
+
+    @Operation(summary = "获取我的点赞列表（分页）")
+    @GetMapping("/likes")
+    public Result<PageResponseDto<LikeDetailDto>> getMyLikes(@Valid @ParameterObject LikePageRequestDto pageRequestDto) {
+        PageResponseDto<LikeDetailDto> dto=userService.getMyLikes(pageRequestDto);
         if(dto==null)
             throw new BizException("获取失败");
         return Result.success("获取收藏列表",dto);

@@ -15,16 +15,22 @@ import org.whu.backend.dto.favourite.FavoritePageReqDto;
 import org.whu.backend.dto.PageResponseDto;
 import org.whu.backend.dto.favourite.FavoriteRequestDto;
 import org.whu.backend.dto.favourite.FavouriteDetailDto;
+import org.whu.backend.dto.like.LikeDetailDto;
+import org.whu.backend.dto.like.LikePageRequestDto;
+import org.whu.backend.dto.like.LikeRequestDto;
 import org.whu.backend.dto.order.OrderCreateRequestDto;
 import org.whu.backend.dto.order.OrderDetailDto;
 import org.whu.backend.entity.*;
 import org.whu.backend.entity.accounts.User;
 import org.whu.backend.repository.FavoriteRepository;
+import org.whu.backend.repository.LikeRepository;
+import org.whu.backend.repository.post.TravelPostRepository;
 import org.whu.backend.repository.travelRepo.OrderRepository;
 import org.whu.backend.repository.travelRepo.RouteRepository;
 import org.whu.backend.repository.travelRepo.SpotRepository;
 import org.whu.backend.repository.travelRepo.TravelPackageRepository;
 import org.whu.backend.repository.authRepo.UserRepository;
+import org.whu.backend.service.DtoConverter;
 import org.whu.backend.util.AccountUtil;
 import org.whu.backend.util.JpaUtil;
 
@@ -51,6 +57,12 @@ public class UserService {
     private FavoriteRepository favoriteRepository;
     @Autowired
     private AccountUtil securityUtil;
+    @Autowired
+    private TravelPostRepository travelPostRepository;
+    @Autowired
+    private LikeRepository likeRepository;
+    @Autowired
+    private DtoConverter dtoConverter;
 
     public OrderDetailDto createOrder(OrderCreateRequestDto orderCreateRequestDto) {
         // 1. 获取当前登录用户
@@ -131,6 +143,7 @@ public class UserService {
         return true;
     }
 
+    @Transactional // 必须加上事务注解！！！！！！
     public boolean addFavorite(FavoriteRequestDto favoriteRequestDto) {
         User user = securityUtil.getCurrentUser();
 
@@ -146,6 +159,7 @@ public class UserService {
             throw new BizException("已经收藏过该对象");
         }
 
+        // 根据类型增加对应的统计数据
         switch (favoriteRequestDto.getItemType()) {
             case PACKAGE:
                 JpaUtil.getOrThrow(travelPackageRepository, favoriteRequestDto.getItemId(), "旅行团不存在");
@@ -159,7 +173,8 @@ public class UserService {
                 JpaUtil.getOrThrow(routeRepository, favoriteRequestDto.getItemId(), "路线不存在");
                 break;
             case POST:
-                // TODO: 检查游记是否存在
+                JpaUtil.getOrThrow(travelPostRepository, favoriteRequestDto.getItemId(),"游记不存在");
+                travelPostRepository.incrementFavoriteCount(favoriteRequestDto.getItemId());
                 break;
             default:
                 throw new BizException("非法参数：未知的收藏类型");
@@ -184,11 +199,14 @@ public class UserService {
         if (existing.isEmpty()) {
             throw new BizException("收藏不存在");
         }
+
+        // 根据类型减少对应的统计数据
         switch (existing.get().getItemType()){
             case PACKAGE:
                 travelPackageRepository.decrementFavoriteCount(favoriteRequestDto.getItemId());
                 break;
             case POST:
+                travelPostRepository.decrementFavoriteCount(favoriteRequestDto.getItemId());
                 break;
         }
         favoriteRepository.delete(existing.get());
@@ -235,5 +253,94 @@ public class UserService {
                 .last(favoritePage.isLast())
                 .numberOfElements(favoritePage.getNumberOfElements())
                 .build();
+    }
+
+
+    // 用户进行点赞操作，目前只能点赞游记
+    @Transactional // 必须加上事务注解！！！！！！
+    public boolean addLike(LikeRequestDto likeRequestDto) {
+        User user = securityUtil.getCurrentUser();
+
+        if (likeRequestDto.getItemType() == null || likeRequestDto.getItemId() == null) {
+            throw new BizException("参数错误：itemType 或 itemId 为空");
+        }
+        Optional<Like> existingLike = likeRepository.findByUserAndItemIdAndItemType(
+                user,
+                likeRequestDto.getItemId(),
+                likeRequestDto.getItemType()
+        );
+        if (existingLike.isPresent()) {
+            throw new BizException("不能重复点赞");
+        }
+
+        switch (likeRequestDto.getItemType()) {
+            case POST:
+                JpaUtil.getOrThrow(travelPostRepository, likeRequestDto.getItemId(),"游记不存在");
+                travelPostRepository.incrementLikeCount(likeRequestDto.getItemId());
+                break;
+            default:
+                throw new BizException("非法参数：未知的点赞类型");
+        }
+
+        Like like = new Like();
+        like.setUser(user);
+        like.setItemId(likeRequestDto.getItemId());
+        like.setItemType(likeRequestDto.getItemType());
+
+        likeRepository.save(like);
+
+        return true;
+    }
+
+    // 用户取消点赞操作，目前只能点赞游记
+    @Transactional // 必须加上事务注解！！！！！！
+    public boolean removeLike(LikeRequestDto likeRequestDto) {
+        User user = securityUtil.getCurrentUser();
+        // 2. 查找并删除对应的点赞记录
+        // 检查是否存在
+        Optional<Like> existing = likeRepository.findByUserAndItemIdAndItemType(user, likeRequestDto.getItemId(), likeRequestDto.getItemType());
+        if (existing.isEmpty()) {
+            throw new BizException("点赞不存在");
+        }
+        switch (existing.get().getItemType()){
+            case POST:
+                travelPostRepository.decrementLikeCount(likeRequestDto.getItemId());
+                break;
+        }
+        likeRepository.delete(existing.get());
+        return true;
+    }
+
+    // 用户查询自己的所有点赞
+    public PageResponseDto<LikeDetailDto> getMyLikes(@Valid @ParameterObject LikePageRequestDto pageRequestDto) {
+        User user = securityUtil.getCurrentUser();
+        // 检查参数合法性
+        Sort.Direction direction = Sort.Direction.fromString(pageRequestDto.getSortDirection());
+
+        Pageable pageable = PageRequest.of(
+                pageRequestDto.getPage() - 1,
+                pageRequestDto.getSize(),
+                Sort.by(direction, pageRequestDto.getSortBy())
+        );
+
+        Page<Like> likePage;
+        if (pageRequestDto.getType() != null) {
+            likePage = likeRepository.findByUserAndItemType(user, pageable, pageRequestDto.getType());
+        } else {
+            likePage = likeRepository.findByUser(user, pageable);
+        }
+
+        List<LikeDetailDto> content = likePage.getContent().stream()
+                .map(like -> {
+                    LikeDetailDto dto = new LikeDetailDto();
+                    dto.setItemid(like.getItemId());
+                    dto.setItemType(like.getItemType());
+                    dto.setCreatedTime(like.getCreatedTime());
+                    dto.setUsername(user.getUsername());
+                    dto.setUserid(user.getId());
+                    return dto;
+                }).toList();
+
+        return dtoConverter.convertPageToDto(likePage, content);
     }
 }

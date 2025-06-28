@@ -47,11 +47,18 @@ public class TravelPackage {
 
     private Integer durationInDays; // 持续天数
 
+
+    // ------- 统计数据 -----------
+
     @ColumnDefault("0")
     private Integer favoriteCount; // 收藏量
 
     @ColumnDefault("0")
     private Integer commentCount; // 评论数量
+
+    @ColumnDefault("0")
+    private Integer viewCount; // 浏览量
+
 
     @Enumerated(EnumType.STRING)
     private PackageStatus status; // 旅行团状态

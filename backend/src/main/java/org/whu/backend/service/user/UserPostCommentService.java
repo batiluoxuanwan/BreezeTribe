@@ -72,7 +72,7 @@ public class UserPostCommentService {
 
         Comment savedComment = commentRepository.save(newComment);
 
-        post.setCommentCount(post.getCommentCount() + 1);
+        postRepository.incrementCommentCount(post.getId());
         postRepository.save(post);
 
         log.info("评论ID '{}' 已成功发布。", savedComment.getId());

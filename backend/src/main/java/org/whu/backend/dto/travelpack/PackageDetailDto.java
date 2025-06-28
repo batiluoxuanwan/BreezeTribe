@@ -40,6 +40,9 @@ public class PackageDetailDto {
     @Schema(description = "旅行团的评论数量")
     private Integer commentCount;
 
+    @Schema(description = "旅行团的浏览量")
+    private Integer viewCount;
+
     @Schema(description = "旅行团状态")
     private String status;
 

@@ -18,5 +18,6 @@ public class PostSummaryDto {
     private int likeCount;
     private int favoriteCount;
     private int commentCount;
+    private int viewCount;
     private LocalDateTime createdTime;
 }

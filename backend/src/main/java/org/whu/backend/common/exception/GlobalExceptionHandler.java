@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.whu.backend.common.Result;
 
@@ -138,6 +139,13 @@ public class GlobalExceptionHandler {
     public Result<?> handleDateTimeParseException(DateTimeParseException e) {
         log.warn("日期时间格式解析错误: {}", e.getMessage());
         return Result.failure(HttpStatus.BAD_REQUEST.value(), "日期时间格式无效，期望格式：yyyy-MM-dd HH:mm:ss");
+    }
+
+    @ExceptionHandler(MultipartException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Result<?> handleMultipartException(MultipartException e) {
+        log.warn("文件上传错误: {}", e.getMessage());
+        return Result.failure(HttpStatus.BAD_REQUEST.value(), "文件上传出错，请稍后重试");
     }
 
     @ExceptionHandler(NumberFormatException.class)

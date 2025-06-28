@@ -166,6 +166,7 @@ public class DtoConverter {
                 .likeCount(post.getLikeCount())
                 .favoriteCount(post.getFavoriteCount())
                 .commentCount(post.getCommentCount())
+                .viewCount(post.getViewCount())
                 .createdTime(post.getCreatedTime())
                 .build();
     }
@@ -200,6 +201,7 @@ public class DtoConverter {
                 .likeCount(post.getLikeCount())
                 .favoriteCount(post.getFavoriteCount())
                 .commentCount(post.getCommentCount())
+                .viewCount(post.getViewCount())
                 .createdTime(post.getCreatedTime())
                 .build();
     }
@@ -272,6 +274,7 @@ public class DtoConverter {
                 .durationInDays(entity.getDurationInDays())
                 .favouriteCount(entity.getFavoriteCount())
                 .commentCount(entity.getCommentCount())
+                .viewCount(entity.getViewCount())
                 .status(entity.getStatus().toString())
                 .build();
     }
@@ -302,6 +305,7 @@ public class DtoConverter {
                 .detailedDescription(entity.getDetailedDescription())
                 .favouriteCount(entity.getFavoriteCount())
                 .commentCount(entity.getCommentCount())
+                .viewCount(entity.getViewCount())
                 .status(entity.getStatus().name())
                 .routes(routeDtos)
                 .build();
