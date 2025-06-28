@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 import org.whu.backend.entity.travelpost.Comment;
 
 import java.util.List;
+import java.util.Set;
 
 @Repository
 public interface PostCommentRepository extends JpaRepository<Comment, String> {
@@ -42,4 +43,29 @@ public interface PostCommentRepository extends JpaRepository<Comment, String> {
      */
     @Modifying
     void deleteAllByTravelPostId(String postId);
+
+    /**
+     *  检查一条评论是否有任何直接的子回复
+     */
+    boolean existsByParentId(String parentId);
+
+    /**
+     * 使用原生SQL递归查询，一次性找出一条评论下的所有后代评论的ID
+     * 这用于“铲掉整栋楼”的操作
+     */
+    @Query(value = "WITH RECURSIVE ReplyTree AS (" +
+            "  SELECT id FROM post_comments WHERE parent_id = :commentId" +
+            "  UNION ALL" +
+            "  SELECT c.id FROM post_comments c JOIN ReplyTree rt ON c.parent_id = rt.id" +
+            ") SELECT id FROM ReplyTree",
+            nativeQuery = true)
+    List<String> findAllDescendantIds(String commentId);
+
+    /**
+     * 批量删除（逻辑删除）一组评论
+     * Spring Data JPA 默认的 deleteAllByIdInBatch 是物理删除，我们需要用@Query自定义
+     */
+//    @Modifying // TODO：如果软删除无效再改
+//    @Query("UPDATE Comment c SET c.deleted = true WHERE c.id IN :ids")
+    void softDeleteAllByIds(Set<String> ids);
 }

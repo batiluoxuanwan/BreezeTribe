@@ -139,9 +139,14 @@ public class DtoConverter {
      * 将PostComment实体转换为简单的DTO (不带嵌套回复)
      */
     public PostCommentDto convertCommentToDto(Comment comment) {
+        // 处理被屏蔽的评论
+        String content = comment.getContent();
+        if (comment.isDeletedByAuthor()){
+            content = "[该评论已被删除]";
+        }
         return PostCommentDto.builder()
                 .id(comment.getId())
-                .content(comment.getContent())
+                .content(content)
                 .author(ConvertUserToAuthorDto(comment.getAuthor()))
                 .parentId(comment.getParent().getId())
                 .replyToUsername(comment.getParent() != null ? comment.getParent().getAuthor().getUsername() : null)
@@ -154,9 +159,14 @@ public class DtoConverter {
      * 将PostComment实体转换为带少量预览回复的DTO
      */
     public PostCommentWithRepliesDto convertCommentToDtoWithReplies(Comment comment, List<PostCommentDto> repliesPreview, long totalReplies) {
+        // 处理被屏蔽的评论
+        String content = comment.getContent();
+        if (comment.isDeletedByAuthor()){
+            content = "[该评论已被删除]";
+        }
         return PostCommentWithRepliesDto.builder()
                 .id(comment.getId())
-                .content(comment.getContent())
+                .content(content)
                 .author(ConvertUserToAuthorDto(comment.getAuthor()))
                 .replyToUsername(comment.getParent() != null ? comment.getParent().getAuthor().getUsername() : null)
                 .createdTime(comment.getCreatedTime())
