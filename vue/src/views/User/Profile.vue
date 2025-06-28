@@ -103,20 +103,40 @@
         </el-tab-pane>
 
         <el-tab-pane label="我的游记" name="notes">
-          <div v-if="notes.length > 0" class="card-grid">
-            <el-card
-              v-for="note in notes"
-              :key="note.id"
-              class="note-card hover-card"
-            >
-              <img v-if="note.image" :src="note.image" class="note-img" />
-              <div class="card-info">
-                <h3>{{ note.title }}</h3>
-                <p>{{ note.description }}</p>
-              </div>
-            </el-card>
+          <div class="notes-header">
+            <h3 class="notes-section-title">我的游记</h3>
+            <el-button type="primary" :icon="Plus" @click="goToPublishTravelNote">发布新游记</el-button>
           </div>
-          <el-empty v-else description="暂无游记"></el-empty>
+          <div v-loading="noteLoading">
+            <div v-if="notes.length > 0" class="card-grid">
+              <el-card
+                v-for="note in notes"
+                :key="note.id"
+                class="note-card hover-card"
+              >
+                <img v-if="note.coverImageUrl" :src="note.coverImageUrl" class="note-img" />
+                <div class="card-info">
+                  <h3>{{ note.title }}</h3>
+                </div>
+              </el-card>
+            </div>
+            <el-empty v-else description="暂无游记"></el-empty>
+          </div>
+
+          <div class="load-more-container">
+            <el-button
+              v-if="hasMoreNotes"
+              type="primary"
+              :loading="noteLoading"
+              @click="fetchNotes(false)"
+              class="load-more-btn"
+            >
+              {{ noteLoading ? '加载中...' : '加载更多游记' }}
+            </el-button>
+            <p v-else-if="notes.length > 0 && noMoreNotes" class="no-more-text">
+              已加载全部游记
+            </p>
+          </div>
         </el-tab-pane>
 
         <el-tab-pane label="我的评价" name="reviews">
@@ -180,13 +200,14 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { Star, Tickets, EditPen, Comment, Bell,ArrowLeft } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
+import { onMounted, ref,computed } from 'vue'
+import { Star, Tickets, EditPen, Comment, Bell, ArrowLeft, Plus } from '@element-plus/icons-vue' 
+import { ElTabs, ElTabPane, ElCard, ElForm, ElFormItem, ElInput, ElSelect, ElOption, ElButton, ElPagination, ElEmpty, ElMessage } from 'element-plus';
 import AccountOverview from '@/components/AccountOverview.vue' 
 import ChangePassword from '@/components/ChangePassword.vue'  
 
 import { useRouter } from 'vue-router';
+import { authAxios } from '@/utils/request';
 
 const router = useRouter();
 
@@ -208,12 +229,6 @@ const collectedTours = ref([
 const joinedTours = ref([
   { id: 3, title: '成都美食团', image: 'https://picsum.photos/id/50/120/90', date: '2025-07-10', progress: 50 }, // 添加进度
   { id: 4, title: '上海迪士尼乐园', image: 'https://picsum.photos/id/60/120/90', date: '2025-08-01', progress: 80 }, // 添加进度
-])
-
-const notes = ref([
-  { id: 1, title: '稻城亚丁旅行记', description: '遇见最蓝的湖，洗涤心灵', image: 'https://picsum.photos/id/70/120/90' },
-  { id: 2, title: '重庆火锅之旅', description: '麻辣鲜香，不虚此行', image: 'https://picsum.photos/id/80/120/90' },
-  { id: 3, title: '徽州古村落探秘', description: '白墙黛瓦，如诗如画', image: 'https://picsum.photos/id/90/120/90' },
 ])
 
 // 示例评价数据
@@ -244,6 +259,86 @@ function saveProfile() {
 const goToHome = () => {
   router.push('/')
 }
+
+// 跳转到发布游记页面
+const goToPublishTravelNote = () => {
+  router.push('/user/publish-travel-note'); 
+};
+
+const notes = ref([]);
+const currentPage = ref(1);
+const pageSize = ref(3); // 每页记录数
+const totalNotes = ref(0); // 总游记数量
+const noteLoading = ref(false); // 加载状态
+const noMoreNotes = ref(false); // 是否没有更多游记了
+
+// 判断是否还有更多游记
+const hasMoreNotes = computed(() => {
+  return notes.value.length < totalNotes.value && !noMoreNotes.value;
+});
+
+const fetchNotes = async (reset = false) => {
+  if (noteLoading.value) return; // 如果正在加载中，则跳过
+  if (noMoreNotes.value && !reset) { // 如果已经没有更多，且不是重置操作，则跳过
+    ElMessage.info('没有更多游记了。');
+    return;
+  }
+
+  noteLoading.value = true;
+  if (reset) {
+    currentPage.value = 0; // 重置页码
+    notes.value = []; // 清空现有游记
+    noMoreNotes.value = false; // 重置没有更多的状态
+  }
+
+  const nextPage = currentPage.value + 1; // 下一页的页码
+
+  try {
+    const response = await authAxios.get('/user/posts', {
+      params: {
+        page: nextPage, // 请求下一页的数据
+        size: pageSize.value,
+        sortBy: 'createdTime',
+        sortDirection: 'DESC',
+      },
+    });
+
+    if (response.data.code === 200 && response.data.data) {
+      const newNotes = response.data.data.content;
+      totalNotes.value = response.data.data.totalElements;
+
+      if (reset) {
+        notes.value = newNotes; // 重置时直接替换
+      } else {
+        notes.value = [...notes.value, ...newNotes]; // 追加新数据
+      }
+
+      currentPage.value = nextPage; // 更新当前页码
+
+      // 判断是否加载完所有数据
+      if (notes.value.length >= totalNotes.value) {
+        noMoreNotes.value = true;
+        ElMessage.info('所有游记已加载完毕。');
+      } else {
+        // ElMessage.success(`成功加载第 ${nextPage} 页游记！`); // 加载成功提示
+      }
+    } else {
+      ElMessage.warning('未能获取游记数据，请稍后再试。');
+      noMoreNotes.value = true; 
+    }
+  } catch (error) {
+    console.error('获取游记列表失败:', error);
+    ElMessage.error('获取游记列表失败，请检查网络或稍后再试。');
+    noMoreNotes.value = true; 
+  } finally {
+    noteLoading.value = false;
+  }
+};
+
+onMounted(() => {
+  fetchNotes(true);
+})
+
 </script>
 
 <style scoped>
@@ -271,7 +366,7 @@ const goToHome = () => {
   padding: 32px 24px;
   text-align: center;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
-  height: 100vh;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -342,7 +437,7 @@ const goToHome = () => {
   letter-spacing: 0.5px;
 }
 
-/* 新增：左侧功能导航菜单样式 */
+/* 左侧功能导航菜单样式 */
 .sidebar-menu {
   width: 100%;
   padding-top: 20px;
@@ -399,7 +494,6 @@ const goToHome = () => {
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
 }
 
-/* 隐藏 Element Plus Tabs 的标签头 */
 .hidden-tabs-header .el-tabs__header {
   display: none;
 }
@@ -408,12 +502,29 @@ const goToHome = () => {
   padding: 0;
 }
 
+/* 我的游记部分的标题和按钮容器 */
+.notes-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px; 
+  padding-bottom: 10px; 
+  border-bottom: 1px solid #eee; 
+}
+
+.notes-section-title {
+  font-size: 1.5rem; 
+  font-weight: 600;
+  color: #333;
+  margin: 0; 
+}
+
 /* 内容卡片网格布局 */
 .card-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 20px;
-  margin-top: 10px;
+  margin-top: 10px; 
 }
 
 /* 卡片 */
@@ -476,8 +587,8 @@ const goToHome = () => {
 
 /* 评价卡片样式 */
 .review-card {
-  flex-direction: column; /* 垂直排列 */
-  align-items: flex-start; /* 左对齐 */
+  flex-direction: column; 
+  align-items: flex-start; 
 }
 
 .review-info h3 {
@@ -495,7 +606,6 @@ const goToHome = () => {
   margin-top: 8px;
 }
 
-/* 通知卡片样式 */
 .notification-list {
   display: flex;
   flex-direction: column;
@@ -529,7 +639,6 @@ const goToHome = () => {
   margin-top: 8px;
 }
 
-/* Element Plus 对话框美化 */
 .el-dialog {
   border-radius: 15px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
@@ -547,5 +656,29 @@ const goToHome = () => {
 
 .el-input {
   border-radius: 8px;
+}
+
+.load-more-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid #eee;
+}
+
+.load-more-btn {
+  width: 200px;
+  padding: 12px 20px;
+  font-size: 1rem;
+  font-weight: 500;
+  border-radius: 8px;
+}
+
+
+.no-more-text {
+  text-align: center;
+  color: #999;
+  font-size: 0.9rem;
+  margin-top: 15px;
 }
 </style>

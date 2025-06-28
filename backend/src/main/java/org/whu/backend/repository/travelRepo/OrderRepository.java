@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.whu.backend.entity.Order;
+import org.whu.backend.entity.accounts.User;
 import org.whu.backend.entity.TravelPackage;
 import org.whu.backend.entity.accounts.User;
 
@@ -15,6 +16,7 @@ import java.util.Set;
 public interface OrderRepository extends JpaRepository<Order, String> {
     // 根据旅行团ID和订单状态分页查询订单
     Page<Order> findByTravelPackageIdAndStatus(String packageId, Order.OrderStatus status, Pageable pageable);
+    Page<Order> findByUser(User user, Pageable pageable);
 
     // 查询用户已完成的、且旅行团ID在指定列表中的订单（用于查询“已评价”）
     Page<Order> findByUserIdAndStatusAndTravelPackageIdIn(String userId, Order.OrderStatus status, Set<String> packageIds, Pageable pageable);

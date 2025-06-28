@@ -15,9 +15,22 @@
           <template #header>
             <div class="card-header">
               <h2 class="group-title">{{ travelGroupDetail.title }}</h2>
-              <el-tag :type="getTourStatusTagType(travelGroupDetail.status)" size="large">
-                {{ getTourStatusText(travelGroupDetail.status) }}
-              </el-tag>
+              <div class="header-actions">
+                <el-tag :type="getTourStatusTagType(travelGroupDetail.status)" size="large">
+                  {{ getTourStatusText(travelGroupDetail.status) }}
+                </el-tag>
+                <el-button
+                  :type="isFavorite ? 'danger' : 'primary'"
+                  :icon="isFavorite ? StarFilled : Star"
+                  circle
+                  size="large"
+                  class="favorite-button"
+                  @click="toggleFavorite"
+                  :loading="favoriteLoading"
+                  :disabled="!authStore.isLoggedIn"
+                >
+                </el-button>
+              </div>
             </div>
           </template>
 
@@ -143,12 +156,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted ,reactive} from 'vue';
+import { ref, onMounted, reactive } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ElMessage, ElCard, ElRow, ElCol, ElImage, ElDivider, ElTag, ElRate, ElEmpty, ElButton,ElCarousel, ElCarouselItem, ElTimeline, ElTimelineItem, ElIcon, ElMessageBox } from 'element-plus';
-import { ArrowLeftBold, Picture } from '@element-plus/icons-vue'; 
-import { publicAxios,authAxios } from '@/utils/request'; 
-import moment from 'moment'; 
+import { ElMessage, ElCard, ElRow, ElCol, ElImage, ElDivider, ElTag, ElRate, ElEmpty, ElButton, ElCarousel, ElCarouselItem, ElTimeline, ElTimelineItem, ElIcon, ElMessageBox, ElDialog, ElForm, ElFormItem, ElInput, ElInputNumber } from 'element-plus';
+import { ArrowLeftBold, Picture, Star, StarFilled, Tickets } from '@element-plus/icons-vue'; // Import Star and StarFilled icons
+import { publicAxios, authAxios } from '@/utils/request';
+import moment from 'moment';
 import { useAuthStore } from '@/stores/auth';
 
 const route = useRoute();
@@ -157,13 +170,15 @@ const authStore = useAuthStore();
 
 const travelGroupDetail = ref(null);
 const loading = ref(true);
+const isFavorite = ref(false); 
+const favoriteLoading = ref(false); 
 
 const enrollDialogVisible = ref(false); // 控制报名弹窗的显示与隐藏
 const enrollFormRef = ref(null); // 用于获取表单实例，进行表单校验
 
 // 报名表单数据
 const enrollForm = reactive({
-  numberOfParticipants: 1, 
+  numberOfParticipants: 1,
   contactName: '',
   contactPhone: '',
 });
@@ -197,9 +212,12 @@ const fetchTravelGroupDetail = async (id) => {
 
     if (response.data.code === 200) {
       travelGroupDetail.value = response.data.data;
+      if (authStore.isLoggedIn) {
+        await checkFavoriteStatus(id);
+      }
     } else {
       ElMessage.error(response.data.message || '获取旅行团详情失败！');
-      travelGroupDetail.value = null; 
+      travelGroupDetail.value = null;
     }
   } catch (error) {
     console.error(`获取旅行团详情 (ID: ${id}) 失败:`, error);
@@ -208,11 +226,85 @@ const fetchTravelGroupDetail = async (id) => {
     } else {
       ElMessage.error('网络请求失败，请检查您的网络或稍后再试！');
     }
-    travelGroupDetail.value = null; 
+    travelGroupDetail.value = null;
   } finally {
     loading.value = false;
   }
 };
+
+const checkFavoriteStatus = async (itemId) => {
+  if (!authStore.isLoggedIn) {
+    isFavorite.value = false;
+    return;
+  }
+  try {
+    const response = await authAxios.get(`/user/favorites/status`, {
+      params: { itemId: itemId, itemType: 'PACKAGE' }
+    });
+    if (response.data.code === 200) {
+      isFavorite.value = response.data.data; 
+    } else {
+      console.warn('Failed to get favorite status:', response.data.message);
+      isFavorite.value = false;
+    }
+  } catch (error) {
+    console.error('Error checking favorite status:', error);
+    isFavorite.value = false;
+  }
+};
+
+
+// --- Toggle Favorite Status ---
+const toggleFavorite = async () => {
+  if (!authStore.isLoggedIn) {
+    ElMessageBox.confirm('您尚未登录，请先登录才能收藏。', '提示', {
+      confirmButtonText: '去登录',
+      cancelButtonText: '取消',
+      type: 'info',
+    })
+    .then(() => {
+      router.push('/login');
+    })
+    .catch(() => {
+      ElMessage.info('已取消收藏。');
+    });
+    return;
+  }
+
+  favoriteLoading.value = true;
+  const itemId = travelGroupDetail.value.id;
+  const itemType = 'PACKAGE'; 
+
+  try {
+    const method = isFavorite.value ? 'delete' : 'post';
+    const url = `/user/favorites`;
+    const data = { itemId, itemType };
+
+    let response;
+    if (method === 'post') {
+      response = await authAxios.post(url, data);
+    } else { 
+      response = await authAxios.delete(url, data); 
+    }
+
+    if (response.data.code === 200) {
+      isFavorite.value = !isFavorite.value;
+      ElMessage.success(isFavorite.value ? '收藏成功！' : '取消收藏成功！');
+    } else {
+      ElMessage.error(response.data.message || '操作失败，请重试。');
+    }
+  } catch (error) {
+    console.error('收藏/取消收藏失败:', error);
+    if (error.response && error.response.data && error.response.data.message) {
+      ElMessage.error(error.response.data.message);
+    } else {
+      ElMessage.error('网络请求失败，请检查您的网络或稍后再试！');
+    }
+  } finally {
+    favoriteLoading.value = false;
+  }
+};
+
 
 // --- 辅助函数：根据状态获取文本 ---
 const getTourStatusText = (status) => {
@@ -258,7 +350,7 @@ const handleEnrollClick = async () => {
       type: 'info',
     })
     .then(() => {
-      router.push('/login'); 
+      router.push('/login');
     })
     .catch(() => {
       ElMessage.info('已取消报名。');
@@ -284,7 +376,7 @@ const handleEnrollClick = async () => {
   if (enrollFormRef.value) {
     enrollFormRef.value.resetFields();
   }
-  enrollDialogVisible.value = true; 
+  enrollDialogVisible.value = true;
 };
 
 // --- 提交报名表单 ---
@@ -303,7 +395,7 @@ const submitEnrollForm = async () => {
 
     if (response.data.code === 200) {
       ElMessage.success(`成功报名 ${enrollForm.numberOfParticipants} 人！请等待后续通知。`);
-      enrollDialogVisible.value = false; 
+      enrollDialogVisible.value = false;
     } else {
       ElMessage.error(response.data.message || '报名失败，请重试。');
     }
@@ -324,7 +416,7 @@ const submitEnrollForm = async () => {
 // 组件挂载时执行
 onMounted(() => {
   // 从路由参数中获取旅行团 ID
-  const groupId = route.params.id; 
+  const groupId = route.params.id;
   if (groupId) {
     fetchTravelGroupDetail(groupId);
   } else {
@@ -346,21 +438,23 @@ onMounted(() => {
 }
 
 .travel-group-detail-container {
-  padding: 30px; 
+  padding: 30px;
   max-width: 1200px;
   margin: 30px auto;
   background-color: #ffffff;
-  border-radius: 12px; 
+  border-radius: 12px;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
-  position: relative; 
+  position: relative;
   font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif;
 }
 
 .back-button {
   position: absolute;
-  top: 10px;
-  left: 10px;
+  top: 20px; /* Adjusted for better spacing */
+  left: 20px; /* Adjusted for better spacing */
   z-index: 10;
+  border-radius: 20px; /* More rounded */
+  padding: 8px 15px; /* Slightly more padding */
 }
 
 /* 加载状态样式 */
@@ -372,14 +466,14 @@ onMounted(() => {
 
 /* 详情内容容器，避免被返回按钮遮挡 */
 .detail-content-wrapper {
-  margin-top: 20px;
+  margin-top: 20px; /* Ensure content is below back button */
 }
 
 /* 卡片样式 */
 .detail-card {
   border-radius: 10px;
-  box-shadow: none;
-  border: 1px solid #e6e6e6;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* Softer, more pronounced shadow */
+  border: none; /* Remove default border */
 }
 
 /* 卡片头部样式 */
@@ -391,14 +485,42 @@ onMounted(() => {
   border-bottom: 1px solid #ebeef5;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 15px; /* Space between tag and button */
+}
+
 /* 旅行团标题 */
 .group-title {
-  font-size: 2.8em; 
+  font-size: 2.8em;
   color: #303133;
   margin: 0;
   font-weight: bold;
-  letter-spacing: 0.5px; 
+  letter-spacing: 0.5px;
 }
+
+/* Favorite button styles */
+.favorite-button {
+  transition: all 0.3s ease; /* Smooth transition for hover/active states */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.favorite-button.el-button--primary {
+  background-color: #409eff; /* Default blue for non-favorited */
+  border-color: #409eff;
+}
+
+.favorite-button.el-button--danger {
+  background-color: #f56c6c; /* Red for favorited */
+  border-color: #f56c6c;
+}
+
+.favorite-button:hover {
+  transform: translateY(-2px); /* Slight lift on hover */
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
 
 /* 主信息区 */
 .main-info-section {
@@ -409,18 +531,18 @@ onMounted(() => {
 .group-carousel {
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); 
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 .carousel-image {
   width: 100%;
   height: 100%;
-  object-fit: cover; 
+  object-fit: cover;
 }
 
 /* 单张图片样式 */
 .group-image-single {
   width: 100%;
-  height: 400px; 
+  height: 400px;
   border-radius: 8px;
   object-fit: cover;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -432,13 +554,13 @@ onMounted(() => {
   align-items: center;
   width: 100%;
   height: 100%;
-  background: #f0f2f5; 
-  color: #909399; 
-  font-size: 2em; 
+  background: #f0f2f5;
+  color: #909399;
+  font-size: 2em;
   flex-direction: column;
 }
 .image-slot span {
-  font-size: 0.5em; 
+  font-size: 0.5em;
   margin-top: 10px;
 }
 
@@ -447,15 +569,15 @@ onMounted(() => {
   padding-left: 20px;
 }
 .detail-info p {
-  font-size: 1.15em; 
+  font-size: 1.15em;
   color: #606266;
   margin-bottom: 12px;
   line-height: 1.6;
 }
 .detail-info strong {
   color: #303133;
-  min-width: 80px; 
-  display: inline-block; 
+  min-width: 80px;
+  display: inline-block;
 }
 .info-value {
   color: #303133;
@@ -463,12 +585,12 @@ onMounted(() => {
 }
 /* 价格显示样式 */
 .price-display {
-  font-size: 1.4em; 
+  font-size: 1.4em;
   font-weight: bold;
   color: #e6a23c;
 }
 .price-value {
-  font-size: 1.8em; 
+  font-size: 1.8em;
   color: #e6a23c;
 }
 /* 评分组件对齐 */
@@ -476,10 +598,35 @@ onMounted(() => {
   vertical-align: middle;
 }
 
+/* 报名按钮部分 */
+.enroll-button-section {
+  margin-top: 30px;
+  text-align: center; /* Center the button */
+}
+
+.enroll-button-section .el-button {
+  padding: 12px 30px; /* Larger button */
+  font-size: 1.2em; /* Larger text */
+  border-radius: 30px; /* More rounded button */
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* Add shadow to button */
+  transition: all 0.3s ease;
+}
+
+.enroll-button-section .el-button:hover {
+  transform: translateY(-3px); /* Lift effect on hover */
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+}
+
+.enroll-disabled-tip {
+  color: #909399;
+  font-size: 0.9em;
+  margin-top: 10px;
+}
+
 /* 分隔线样式 */
 .section-divider {
-  margin: 40px 0; 
-  border-top: 2px dashed #ebeef5; 
+  margin: 40px 0;
+  border-top: 2px dashed #ebeef5;
 }
 
 /* 各个内容区块的标题样式 */
@@ -487,7 +634,7 @@ onMounted(() => {
   font-size: 1.8em;
   color: #303133;
   margin-bottom: 25px;
-  border-left: 5px solid #4cb1a3; 
+  border-left: 5px solid #4cb1a3;
   padding-left: 10px;
   font-weight: bold;
 }
@@ -495,11 +642,11 @@ onMounted(() => {
 /* 详细描述文本样式 */
 .detailed-description-text {
   font-size: 1.05em;
-  line-height: 1.9; 
+  line-height: 1.9;
   color: #303133;
   margin-bottom: 20px;
-  text-align: justify; 
-  white-space: pre-wrap; 
+  text-align: justify;
+  white-space: pre-wrap;
 }
 /* 占位符文本样式 */
 .placeholder-text {
@@ -520,16 +667,16 @@ onMounted(() => {
 /* 时间轴时间戳样式 */
 .el-timeline-item__timestamp {
   font-size: 1.1em;
-  color: #4bb6a8; 
+  color: #4bb6a8;
   font-weight: bold;
 }
 
 /* 时间轴中的卡片样式 */
 .itinerary-card {
   margin-top: 5px;
-  margin-left: 10px; 
+  margin-left: 10px;
   border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08); 
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
   border: none;
 }
 .itinerary-card h4 {
@@ -558,8 +705,8 @@ onMounted(() => {
   margin-right: 8px;
   margin-bottom: 8px;
   border-radius: 4px;
-  height: 32px; 
-  line-height: 30px; 
+  height: 32px;
+  line-height: 30px;
 }
 
 /* 响应式调整 */

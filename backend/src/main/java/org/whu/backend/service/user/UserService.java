@@ -446,4 +446,44 @@ public class UserService {
 
         return InteractionStatusResponseDto.builder().statusMap(statusMap).build();
     }
+
+    public PageResponseDto<OrderDetailDto> getMyOrders(@Valid FavoritePageReqDto pageRequestDto) {
+        User user = securityUtil.getCurrentUser();
+
+        // 构造分页与排序对象
+        Sort.Direction direction = Sort.Direction.fromString(pageRequestDto.getSortDirection());
+        Pageable pageable = PageRequest.of(
+                pageRequestDto.getPage() - 1,
+                pageRequestDto.getSize(),
+                Sort.by(direction, pageRequestDto.getSortBy())
+        );
+
+        // 查询订单数据
+        Page<Order> orderPage = orderRepository.findByUser(user, pageable);
+
+        // 构造返回 DTO 列表
+        List<OrderDetailDto> content = orderPage.getContent().stream()
+                .map(order -> {
+                    OrderDetailDto dto = new OrderDetailDto();
+                    dto.setOrderId(order.getId());
+                    dto.setTravelerCount(order.getTravelerCount());
+                    dto.setTotalPrice(order.getTotalPrice());
+                    dto.setStatus(order.getStatus());
+                    dto.setUsername(user.getUsername());
+                    dto.setTravelPackageTitle(order.getTravelPackage().getTitle());
+                    return dto;
+                }).toList();
+
+        // 返回分页响应结果
+        return PageResponseDto.<OrderDetailDto>builder()
+                .content(content)
+                .pageNumber(pageRequestDto.getPage())
+                .pageSize(pageRequestDto.getSize())
+                .totalElements(orderPage.getTotalElements())
+                .totalPages(orderPage.getTotalPages())
+                .first(orderPage.isFirst())
+                .last(orderPage.isLast())
+                .numberOfElements(orderPage.getNumberOfElements())
+                .build();
+    }
 }

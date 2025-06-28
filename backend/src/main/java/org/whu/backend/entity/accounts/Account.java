@@ -58,4 +58,6 @@ public class Account {
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
     }
+
+    private boolean active = false;
 }
