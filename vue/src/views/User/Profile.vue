@@ -54,6 +54,13 @@
           <span>我的通知</span>
           <el-badge v-if="unreadNotifications > 0" :value="unreadNotifications" class="notification-badge" />
         </div>
+        <div
+          :class="{ 'menu-item': true, 'active': activeTab === 'systemSettings' }"
+          @click="activeTab = 'systemSettings'"
+        >
+          <el-icon><Setting /></el-icon>
+          <span>系统设置</span>
+        </div>
       </div>
     </aside>
 
@@ -146,6 +153,12 @@
           </div>
           <el-empty v-else description="暂无通知"></el-empty>
         </el-tab-pane>
+        <el-tab-pane label="系统设置" name="systemSettings">
+          <div style="margin-bottom: 32px;">
+            <AccountOverview />
+          </div>
+          <ChangePassword role="ROLE_USER" />
+        </el-tab-pane>
       </el-tabs>
     </main>
 
@@ -170,6 +183,9 @@
 import { ref } from 'vue'
 import { Star, Tickets, EditPen, Comment, Bell,ArrowLeft } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import AccountOverview from '@/components/AccountOverview.vue' 
+import ChangePassword from '@/components/ChangePassword.vue'  
+
 
 const user = ref({
   username: '旅行者小明',

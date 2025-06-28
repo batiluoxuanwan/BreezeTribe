@@ -18,8 +18,8 @@
         </template>
       </nav>
       <div class="search-box">
-        <input type="text" placeholder="请输入团名或景点...">
-        <el-icon><Search /></el-icon>
+        <input v-model="keyword" type="text" placeholder="请输入团名或景点..." @keyup.enter="doSearch" />
+        <el-icon @click="doSearch"><Search /></el-icon>
       </div>
     </header>
 
@@ -85,34 +85,10 @@ const authStore = useAuthStore();
 
 // 定义一个响应式变量来存储旅行团数据，初始为空数组
 const tours = ref([]);
-
-
-const notes = [
-  {
-    id: 101,
-    title: '夏日青海湖，一场关于色彩的旅行体验', // 标题可以稍微长一点测试截断
-    description: '青海湖的夏天，是碧蓝与金黄的交织，是心灵的洗涤。这里有你向往的一切，包括壮丽的油菜花海和神秘的湖畔风光，每一次呼吸都充满纯净。', // 描述可以稍微长一点测试截断
-    author: '小马快跑',
-    avatar: 'https://via.placeholder.com/50/FFD700/FFFFFF?text=MP', // 示例头像
-    image: 'https://via.placeholder.com/400x250?text=QinghaiLake', // 示例封面图
-    views: 12345, // 新增：浏览量
-    likes: 2890, // 新增：点赞数
-    category: '风光摄影', // 新增：分类标签
-    publishDate: '2025-06-20' // 新增：发布日期
-  },
-  {
-    id: 102,
-    title: '一个人也能玩转成都，吃喝玩乐全指南与心得分享',
-    description: '从火锅串串到熊猫基地，一个人的成都也能精彩纷呈，带你吃遍大街小巷，体验地道川味美食和悠闲茶馆文化，感受这座城市的慢生活节奏。',
-    author: '吃货小C',
-    avatar: 'https://via.placeholder.com/50/87CEEB/FFFFFF?text=CC',
-    image: 'https://via.placeholder.com/400x250?text=ChengduFood',
-    views: 9876,
-    likes: 1567,
-    category: '美食攻略',
-    publishDate: '2025-06-18'
-  }
-];
+// 定义一个响应式变量来存储旅游记数据，初始为空数组
+const notes = ref([]);
+// 搜索关键词
+const keyword = ref('');
 
 // 判断用户是否已登录
 const isLoggedIn = computed(() => {
@@ -202,11 +178,58 @@ const fetchAndSelectRandomTours = async () => {
   }
 };
 
+// 获取所有游记并随机选择4个
+const fetchAndSelectRandomNotes = async () => {
+  try {
+    const response = await publicAxios.get('/public', {
+      params: {
+        page: 1,       // 从第一页获取
+        size: 20,      // 获取足够多的数据
+        // sortBy: 'createdTime',
+        // sortDirection: 'DESC'
+      }
+    });
+
+    if (response.data.code === 200 && response.data.data?.content) {
+      const allNotes = response.data.data.content;
+
+      if (allNotes.length <= 4) {
+        notes.value = allNotes;
+      } else {
+        const selectedNotes = [];
+        const tempNotes = [...allNotes];
+
+        for (let i = 0; i < 4; i++) {
+          const randomIndex = Math.floor(Math.random() * tempNotes.length);
+          selectedNotes.push(tempNotes[randomIndex]);
+          tempNotes.splice(randomIndex, 1);
+        }
+
+        travelNotes.value = selectedNotes;
+      }
+    } else {
+      ElMessage.error(response.data.message || '获取游记数据失败。');
+    }
+  } catch (error) {
+    console.error('获取游记数据时发生错误:', error);
+    ElMessage.error('加载热门游记失败，请稍后再试。');
+  }
+};
+
+
 // 在组件挂载时调用获取数据的方法
 onMounted(() => {
   fetchAndSelectRandomTours();
+  fetchAndSelectRandomNotes();
 });
 
+//搜索
+const doSearch = () => {
+  if (keyword.value.trim()) {
+    console.log('keyword:', keyword.value)
+    router.push({ name: '旅行广场', query: { keyword: keyword.value, tab: 'group' , page: 1 } })
+  }
+}
 </script>
 
 <style scoped>

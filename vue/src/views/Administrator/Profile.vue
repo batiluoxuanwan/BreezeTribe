@@ -181,23 +181,7 @@
 
         <el-tab-pane label="系统设置" name="systemSettings">
           <h3 class="tab-header">系统配置</h3>
-          <el-card class="setting-card">
-            <h4>管理员密码修改</h4>
-            <el-form :model="adminSettingsForm" label-width="120px">
-              <el-form-item label="旧密码">
-                <el-input type="password" v-model="adminSettingsForm.oldPassword"></el-input>
-              </el-form-item>
-              <el-form-item label="新密码">
-                <el-input type="password" v-model="adminSettingsForm.newPassword"></el-input>
-              </el-form-item>
-              <el-form-item label="确认新密码">
-                <el-input type="password" v-model="adminSettingsForm.confirmNewPassword"></el-input>
-              </el-form-item>
-              <el-form-item>
-                <el-button type="primary" @click="saveAdminSettings">保存密码</el-button>
-              </el-form-item>
-            </el-form>
-          </el-card>
+          <ChangePassword role="ROLE_ADMIN" />
           </el-tab-pane>
       </el-tabs>
     </main>
@@ -304,6 +288,7 @@ import { ref, onMounted, nextTick } from 'vue';
 import { User, Shop, PictureFilled, Document, Setting, EditPen } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { authAxios } from '@/utils/request'; // 假设你的认证请求实例
+import ChangePassword from '@/components/ChangePassword.vue'  
 
 // --- 管理员信息及侧边栏数据 ---
 const adminInfo = ref({

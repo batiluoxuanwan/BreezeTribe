@@ -25,7 +25,6 @@
             <el-select v-model="registerForm.role" placeholder="请选择注册角色" style="width: 100%;">
               <el-option label="普通用户" value="ROLE_USER"></el-option>
               <el-option label="经销商" value="ROLE_MERCHANT"></el-option>
-              <el-option label="管理员" value="ROLE_ADMIN"></el-option>
             </el-select>
           </el-form-item>
 
@@ -283,7 +282,7 @@ const sendEmailCode = () => {
   formRef.value.validateField('email', async (isValid) => {
     if (isValid) {
       try {
-        const response = await publicAxios.post('/captcha/sendEmail', { email: registerForm.email });
+        const response = await publicAxios.post('/captcha/sendEmail', null, {params:{ email: registerForm.email }});
         if (response.data.code === 200) {
           ElMessage.success(`邮箱验证码已发送至 ${registerForm.email}`);
           emailCodeCountdown.value = 60;
