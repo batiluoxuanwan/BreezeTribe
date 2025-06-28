@@ -19,5 +19,5 @@ public class UserManagementDto {
     //private String avatarUrl;
     private LocalDateTime banStartTime; // 封禁开始时间
     private int banDurationDays;        // 封禁时长，0=未封禁，-1=永久封禁，正数=天数
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private LocalDateTime createdAt;
 }

@@ -8,7 +8,7 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.whu.backend.entity.accounts.Account;
 import org.whu.backend.entity.accounts.Role;
 import org.whu.backend.repository.authRepo.AuthRepository;
-import org.whu.backend.service.JwtService;
+import org.whu.backend.service.auth.JwtService;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;

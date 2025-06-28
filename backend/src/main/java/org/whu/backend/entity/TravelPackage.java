@@ -2,6 +2,7 @@ package org.whu.backend.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.SoftDelete;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -45,6 +46,12 @@ public class TravelPackage {
     private LocalDateTime departureDate; // 出发日期
 
     private Integer durationInDays; // 持续天数
+
+    @ColumnDefault("0")
+    private Integer favoriteCount; // 收藏量
+
+    @ColumnDefault("0")
+    private Integer commentCount; // 评论数量
 
     @Enumerated(EnumType.STRING)
     private PackageStatus status; // 旅行团状态

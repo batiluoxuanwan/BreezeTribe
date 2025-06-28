@@ -186,6 +186,9 @@ import { ElMessage } from 'element-plus'
 import AccountOverview from '@/components/AccountOverview.vue' 
 import ChangePassword from '@/components/ChangePassword.vue'  
 
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
 
 const user = ref({
   username: '旅行者小明',
@@ -235,6 +238,11 @@ function saveProfile() {
   user.value.username = editForm.value.username
   ElMessage.success('资料保存成功！')
   editProfileDialog.value = false
+}
+
+// 跳转首页
+const goToHome = () => {
+  router.push('/')
 }
 </script>
 

@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.mail.MailException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -56,10 +57,11 @@ public class GlobalExceptionHandler {
     public Result<?> handleHttpMessageNotReadableException(HttpMessageNotReadableException e, HttpServletRequest request) {
         String requestPath = request.getRequestURI();
         // 尝试获取更具体的根本原因，特别是JSON解析相关的错误
-        Throwable cause = e.getCause();
-        log.warn("请求体JSON解析失败 (400) for path: {} from client: {}. Jackson Error: {}",
-                requestPath, request.getRemoteAddr(), cause.getMessage()); // 日志记录更具体的Jackson错误
+//        Throwable cause = e.getCause();
+//        log.warn("请求体JSON解析失败 (400) for path: {} from client: {}. Jackson Error: {}",
+//                requestPath, request.getRemoteAddr(), cause.getMessage()); // 日志记录更具体的Jackson错误
         // 给前端一个相对友好的提示
+        log.warn("请求格式无法正确解析: {}", e.getMessage());
         String userMessage = "请检查请求数据的格式或内容是否正确。";
         return Result.failure(HttpStatus.BAD_REQUEST.value(), userMessage);
     }
@@ -80,10 +82,11 @@ public class GlobalExceptionHandler {
     public Result<?> handleNoResourceFoundException(NoResourceFoundException e, HttpServletRequest request) {
         String requestUrl = request.getRequestURI();
         // 对于404错误，通常记录为WARN级别，并包含请求的URL和方法，一般不需要完整堆栈
-        log.warn("请求的资源未找到 (404): {} {} (Referer: {})",
+        log.warn("请求的资源未找到 (404): {} {} (Referer: {})，错误信息: {}",
                 request.getMethod(),
                 requestUrl,
-                request.getHeader("Referer")); // 记录访问来源，有助于分析
+                request.getHeader("Referer"),
+                e.getMessage()); // 记录访问来源，有助于分析
         return Result.failure(HttpStatus.NOT_FOUND.value(), "您访问的页面或资源不存在");
     }
 
@@ -147,8 +150,15 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AuthorizationDeniedException.class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
     public Result<?> handleAuthenticationException(AuthorizationDeniedException e) {
-        log.warn("未认证的用户 {}", e.getMessage());
+        log.warn("未认证的用户:  {}", e.getMessage());
         return Result.failure(HttpStatus.UNAUTHORIZED.value(), "未认证的用户");
+    }
+
+    @ExceptionHandler(MailException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public Result<?> handleMailException(MailException e) {
+        log.warn("邮件发送失败:  {}", e.getMessage());
+        return Result.failure(HttpStatus.BAD_REQUEST.value(), "邮件发送失败，请稍后再试");
     }
 
     // 处理数据库相关的常见异常，这里捕获一个比较通用的父类，避免暴露过多底层细节。
@@ -160,6 +170,7 @@ public class GlobalExceptionHandler {
         // 返回给前端一个通用的、友好的错误提示
         return Result.failure(HttpStatus.INTERNAL_SERVER_ERROR.value(), "数据查询操作失败，请联系管理员");
     }
+
 
     // --- JWT 相关异常处理 ---
 //    @ExceptionHandler(ExpiredJwtException.class)
