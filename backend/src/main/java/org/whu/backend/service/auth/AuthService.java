@@ -217,7 +217,7 @@ public class AuthService {
         account.setAvatarUrl(objectkey);
         // 调用 Service 完成保存头像操作
         authRepository.save(account);
-        return Result.success("修改成功");
+        return Result.success("修改成功",AliyunOssUtil.generatePresignedGetUrl(account.getAvatarUrl(), 3600));
     }
     public Medto me()
     {
