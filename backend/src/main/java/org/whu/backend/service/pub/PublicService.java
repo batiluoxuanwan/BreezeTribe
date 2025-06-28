@@ -19,9 +19,10 @@ import org.whu.backend.dto.travelpack.PackageSearchRequestDto;
 import org.whu.backend.dto.travelpack.PackageSummaryDto;
 import org.whu.backend.entity.TravelPackage;
 import org.whu.backend.entity.travelpost.TravelPost;
-import org.whu.backend.repository.TravelPostRepository;
+import org.whu.backend.repository.post.TravelPostRepository;
 import org.whu.backend.repository.travelRepo.TravelPackageRepository;
 import org.whu.backend.service.DtoConverter;
+import org.whu.backend.service.ViewCountService;
 import org.whu.backend.service.specification.TravelPackageSpecification;
 
 import java.util.List;
@@ -37,6 +38,8 @@ public class PublicService {
     private DtoConverter dtoConverter;
     @Autowired
     private TravelPostRepository travelPostRepository;
+    @Autowired
+    private ViewCountService viewCountService;
 
     // 获取已发布的旅行团列表（分页）
     public PageResponseDto<PackageSummaryDto> getPublishedPackages(PageRequestDto pageRequestDto) {
@@ -55,22 +58,21 @@ public class PublicService {
                 .map(dtoConverter::convertPackageToSummaryDto)
                 .collect(Collectors.toList());
 
-        // 4. 使用Builder模式构建分页响应对象
-        return PageResponseDto.<PackageSummaryDto>builder()
-                .content(summaryDtos)
-                .pageNumber(packagePage.getNumber() + 1)
-                .pageSize(packagePage.getSize())
-                .totalElements(packagePage.getTotalElements())
-                .totalPages(packagePage.getTotalPages())
-                .first(packagePage.isFirst())
-                .last(packagePage.isLast())
-                .numberOfElements(packagePage.getNumberOfElements())
-                .build();
+        return dtoConverter.convertPageToDto(packagePage,summaryDtos);
     }
 
     // 获取单个旅行团的详情
-    public PackageDetailDto getPackageDetails(String id) {
-        log.info("开始查询ID为 '{}' 的旅行团详情。", id);
+    public PackageDetailDto getPackageDetails(String id, String ipAddress) {
+        log.info("IP地址 '{}' 正在获取旅行团ID '{}' 的详情...", ipAddress, id);
+
+        // 1. 调用防刷服务来尝试增加浏览量
+        // 这个操作是异步的或者非常快，不会阻塞主流程
+        try {
+            viewCountService.incrementViewCountIfAbsent(id, ipAddress, ViewCountService.EntityType.TRAVEL_PACKAGE);
+        } catch (Exception e) {
+            // 即使浏览量增加失败（比如Redis挂了），也绝不能影响用户看详情
+            log.error("增加浏览量失败，但不影响主流程。Package ID: {}, IP: {}", id, ipAddress, e);
+        }
 
         // 1. 调用Repository中定义好的方法
         TravelPackage travelPackage = travelPackageRepository.findByIdAndStatus(id, TravelPackage.PackageStatus.PUBLISHED)
@@ -98,16 +100,7 @@ public class PublicService {
                 .map(dtoConverter::convertPostToSummaryDto)
                 .collect(Collectors.toList());
 
-        return PageResponseDto.<PostSummaryDto>builder()
-                .content(dtos)
-                .pageNumber(postPage.getNumber() + 1)
-                .pageSize(postPage.getSize())
-                .totalElements(postPage.getTotalElements())
-                .totalPages(postPage.getTotalPages())
-                .first(postPage.isFirst())
-                .last(postPage.isLast())
-                .numberOfElements(postPage.getNumberOfElements())
-                .build();
+        return dtoConverter.convertPageToDto(postPage,dtos);
     }
 
     // 实现复杂的、多条件的搜索逻辑
@@ -131,24 +124,22 @@ public class PublicService {
                 .map(dtoConverter::convertPackageToSummaryDto)
                 .collect(Collectors.toList());
 
-        return PageResponseDto.<PackageSummaryDto>builder()
-                .content(summaryDtos)
-                .pageNumber(packagePage.getNumber() + 1)
-                .pageSize(packagePage.getSize())
-                .totalElements(packagePage.getTotalElements())
-                .totalPages(packagePage.getTotalPages())
-                .first(packagePage.isFirst())
-                .last(packagePage.isLast())
-                .numberOfElements(packagePage.getNumberOfElements())
-                .build();
+        return dtoConverter.convertPageToDto(packagePage,summaryDtos);
     }
 
     // 获取单篇已发布的游记详情
-    public PostDetailDto getPostDetails(String postId) {
+    public PostDetailDto getPostDetails(String postId,String ipAddress) {
         log.info("正在获取公共游记详情, ID: {}", postId);
 
         TravelPost post = travelPostRepository.findById(postId)
                 .orElseThrow(() -> new BizException("找不到ID为 " + postId + " 的游记"));
+
+        // 调用防刷服务来尝试增加浏览量
+        try {
+            viewCountService.incrementViewCountIfAbsent(postId, ipAddress, ViewCountService.EntityType.POST);
+        } catch (Exception e) {
+            log.error("增加浏览量失败，但不影响主流程。Package ID: {}, IP: {}", postId, ipAddress, e);
+        }
 
         // TODO: 可以在这里增加一个状态判断，比如只返回状态为“已发布”的游记，还有只查询公共权限的游记
 

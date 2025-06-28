@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.whu.backend.common.Result;
 
@@ -57,10 +58,11 @@ public class GlobalExceptionHandler {
     public Result<?> handleHttpMessageNotReadableException(HttpMessageNotReadableException e, HttpServletRequest request) {
         String requestPath = request.getRequestURI();
         // 尝试获取更具体的根本原因，特别是JSON解析相关的错误
-        Throwable cause = e.getCause();
-        log.warn("请求体JSON解析失败 (400) for path: {} from client: {}. Jackson Error: {}",
-                requestPath, request.getRemoteAddr(), cause.getMessage()); // 日志记录更具体的Jackson错误
+//        Throwable cause = e.getCause();
+//        log.warn("请求体JSON解析失败 (400) for path: {} from client: {}. Jackson Error: {}",
+//                requestPath, request.getRemoteAddr(), cause.getMessage()); // 日志记录更具体的Jackson错误
         // 给前端一个相对友好的提示
+        log.warn("请求格式无法正确解析: {}", e.getMessage());
         String userMessage = "请检查请求数据的格式或内容是否正确。";
         return Result.failure(HttpStatus.BAD_REQUEST.value(), userMessage);
     }
@@ -137,6 +139,13 @@ public class GlobalExceptionHandler {
     public Result<?> handleDateTimeParseException(DateTimeParseException e) {
         log.warn("日期时间格式解析错误: {}", e.getMessage());
         return Result.failure(HttpStatus.BAD_REQUEST.value(), "日期时间格式无效，期望格式：yyyy-MM-dd HH:mm:ss");
+    }
+
+    @ExceptionHandler(MultipartException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Result<?> handleMultipartException(MultipartException e) {
+        log.warn("文件上传错误: {}", e.getMessage());
+        return Result.failure(HttpStatus.BAD_REQUEST.value(), "文件上传出错，请稍后重试");
     }
 
     @ExceptionHandler(NumberFormatException.class)

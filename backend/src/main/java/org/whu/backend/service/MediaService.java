@@ -77,16 +77,7 @@ public class MediaService {
                 .map(dtoConverter::convertMediaFileToDto)
                 .collect(Collectors.toList());
 
-        return PageResponseDto.<MediaFileDto>builder()
-                .content(dtos)
-                .pageNumber(mediaFilePage.getNumber() + 1)
-                .pageSize(mediaFilePage.getSize())
-                .totalElements(mediaFilePage.getTotalElements())
-                .totalPages(mediaFilePage.getTotalPages())
-                .first(mediaFilePage.isFirst())
-                .last(mediaFilePage.isLast())
-                .numberOfElements(mediaFilePage.getNumberOfElements())
-                .build();
+        return dtoConverter.convertPageToDto(mediaFilePage,dtos);
     }
 
 
