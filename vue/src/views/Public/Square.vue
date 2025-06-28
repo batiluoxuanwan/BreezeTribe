@@ -78,10 +78,14 @@ import { ref, onMounted, watch } from 'vue';
 import { ElTabs, ElTabPane, ElCard, ElForm, ElFormItem, ElInput, ElSelect, ElOption, ElButton, ElPagination, ElEmpty, ElMessage } from 'element-plus'; 
 import TravelGroupCard from '@/components/TravelGroupCard.vue';
 import TravelNoteCard from '@/components/TravelNoteCard.vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { publicAxios } from '@/utils/request'
 
 const router = useRouter(); 
+const route = useRoute(); // 当前路由信息
+const searchKeyword = ref('')  // 需要初始化，从路由 query 里读取
+const isSearchMode = ref(false) // 标识当前是否是搜索场景
+
 
 // --- 返回主页 ---
 const goHome = () => {
@@ -198,15 +202,45 @@ const mockFetchData = (data, currentPage, pageSize, destination, keyword, sortBy
 const fetchTravelGroups = async () => {
   loading.value = true; // 开始加载
   try {
-    const params = {
-      page: groupCurrentPage.value,
-      size: groupPageSize,
-      // destination: searchForm.value.destination,
-      // keyword: searchForm.value.keyword,
-      // sortBy: searchForm.value.sortBy,
-    };
-
-    const response = await publicAxios.get('/public/travel-packages', { params });
+    let response = null
+    let searchTried = false;
+    if (isSearchMode.value && searchKeyword.value.trim()) {
+      // 走搜索接口
+      response = await publicAxios.get('/public/travel-packages/search', {
+        params: {
+          keyword: searchKeyword.value,
+          page: groupCurrentPage.value,
+          size: groupPageSize,
+          // sortBy: 'createdTime',
+          // sortDirection: 'DESC',
+        },
+      })
+     
+    const resultList = response.data.data?.content || [];
+      // 如果搜索无结果，尝试普通接口
+      if (resultList.length === 0) {
+        ElMessage.warning('未找到匹配的旅行团，为您推荐其他旅行团。');
+        isSearchMode.value = false; // 取消搜索模式
+        response = await publicAxios.get('/public/travel-packages', {
+          params: {
+            page: groupCurrentPage.value,
+            size: groupPageSize,
+          },
+        });
+      }
+    }
+    else {
+      // 走普通获取广场列表接口
+      response = await publicAxios.get('/public/travel-packages', {
+        params: {
+          page: groupCurrentPage.value,
+          size: groupPageSize,
+          // destination: searchForm.value.destination,
+          // keyword: searchForm.value.keyword,
+          // sortBy: searchForm.value.sortBy,
+        },
+      })
+    }
 
     if (response.data.code === 200) {
       travelGroups.value = response.data.data.content; // 更新旅行团数据
@@ -225,22 +259,44 @@ const fetchTravelGroups = async () => {
 const fetchTravelNotes = async () => {
   loading.value = true;
   try {
-    const response = await mockFetchData(
-      ALL_TRAVEL_NOTES,
-      noteCurrentPage.value,
-      notePageSize,
-      searchForm.value.destination,
-      searchForm.value.keyword,
-      searchForm.value.sortBy,
-      'note'
-    );
-    travelNotes.value = response.data.list;
-    noteTotal.value = response.data.total;
+    let response = null
+    if (isSearchMode.value && searchKeyword.value.trim()) {
+      // 走搜索接口
+      response = await publicAxios.get('/public/travel-packages/search', {
+        params: {
+          keyword: searchKeyword.value,
+          page: noteCurrentPage.value,    // 当前页码
+          size: notePageSize,             // 每页数量
+          // sortBy: 'createdTime',
+          // sortDirection: 'DESC',
+        },
+      })
+    } 
+    else{
+      response = await publicAxios.get('/public', {
+      params: {
+        page: noteCurrentPage.value,    // 当前页码
+        size: notePageSize,             // 每页数量
+        // sortBy: 'createdTime',          
+        // sortDirection: 'DESC',
+      },
+    });
+  }
+    if (response.data.code === 200) {
+      travelNotes.value = response.data.data.content;  // 更新游记列表数据
+      noteTotal.value = response.data.data.totalElements || 0; // 总条数，用于分页
+    } else {
+      ElMessage.error(response.data.message || '获取游记数据失败！');
+      travelNotes.value = [];
+      noteTotal.value = 0;
+    }
   } catch (error) {
     console.error('获取游记失败:', error);
-    ElMessage.error('获取游记数据失败，请稍后再试！');
+    ElMessage.error('网络请求失败，请检查您的网络或稍后再试！');
+    travelNotes.value = [];
+    noteTotal.value = 0;
   } finally {
-    loading.value = false;
+    loading.value = false; // 结束加载
   }
 };
 
@@ -277,20 +333,42 @@ const resetFilters = () => {
   applyFilters(); // 重置后重新加载数据
 };
 
-// --- 监听tab切换，加载对应数据 ---
-watch(activeTab, (newTab) => {
-  // 切换Tab时，如果当前Tab的数据未加载或需要刷新，则重新加载
-  if (newTab === 'groups') {
-    // 每次切换都重新加载，确保筛选条件生效
-    fetchTravelGroups();
-  } else if (newTab === 'notes') {
-    // 每次切换都重新加载，确保筛选条件生效
-    fetchTravelNotes();
-  }
-});
+watch(
+  [activeTab, searchKeyword], // 监听 activeTab 和 keyword
+  ([newTab, newKeyword], [oldTab, oldKeyword]) => {
+    // 只有当 activeTab 改变或者 keyword 改变时才触发刷新
+    // 避免不必要的重复加载，可以根据需求更精细地控制
+
+    // 如果是 activeTab 改变，根据新的 tab 加载数据
+    if (newTab !== oldTab) {
+      if (newTab === 'groups') {
+        console.log('Tab switched to groups, fetching travel groups...');
+        fetchTravelGroups();
+      } else if (newTab === 'notes') {
+        console.log('Tab switched to notes, fetching travel notes...');
+        fetchTravelNotes();
+      }
+    } 
+    
+    // 如果是 keyword 改变，并且当前 tab 匹配，也加载数据
+    // 注意：这里需要确保 newTab 是你想要加载数据的 tab
+    if (newKeyword !== oldKeyword && newKeyword.trim() !== '') { // 确保 keyword 不为空
+        if (newTab === 'groups') {
+            console.log('Keyword changed in groups tab, fetching travel groups...');
+            fetchTravelGroups();
+        } else if (newTab === 'notes') {
+            console.log('Keyword changed in notes tab, fetching travel notes...');
+            fetchTravelNotes();
+        }
+    }
+  },
+  { immediate: true } // 可选：组件初始化时立即执行一次回调
+);
 
 // --- 组件挂载时默认加载旅行团数据 ---
 onMounted(() => {
+  searchKeyword.value = route.query.keyword || ''
+  isSearchMode.value = !!searchKeyword.value.trim()
   fetchTravelGroups();
 });
 </script>

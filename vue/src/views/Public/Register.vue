@@ -25,7 +25,6 @@
             <el-select v-model="registerForm.role" placeholder="请选择注册角色" style="width: 100%;">
               <el-option label="普通用户" value="ROLE_USER"></el-option>
               <el-option label="经销商" value="ROLE_MERCHANT"></el-option>
-              <el-option label="管理员" value="ROLE_ADMIN"></el-option>
             </el-select>
           </el-form-item>
 
