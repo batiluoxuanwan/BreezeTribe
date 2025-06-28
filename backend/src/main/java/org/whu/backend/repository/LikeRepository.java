@@ -22,4 +22,6 @@ public interface LikeRepository extends JpaRepository<Like, String> {
     Page<Like> findByUser(User user, Pageable pageable);
 
     Page<Like> findByUserAndItemType(User user, Pageable pageable, InteractionItemType itemType);
+
+    void deleteAllByItemIdAndItemType(String postId,InteractionItemType itemType);
 }

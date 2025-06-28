@@ -22,4 +22,6 @@ public interface FavoriteRepository extends JpaRepository<Favorite, String> {
     Page<Favorite> findByUser(User user, Pageable pageable);
 
     Page<Favorite> findByUserAndItemType(User user, Pageable pageable, InteractionItemType itemType);
+
+    void deleteAllByItemIdAndItemType(String itemId,InteractionItemType itemType);
 }

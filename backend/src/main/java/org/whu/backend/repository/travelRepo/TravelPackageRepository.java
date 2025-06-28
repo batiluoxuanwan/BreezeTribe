@@ -39,8 +39,8 @@ public interface TravelPackageRepository extends JpaRepository<TravelPackage, St
 
     // 原子化地减少评论数
     @Modifying
-    @Query("UPDATE TravelPackage p SET p.commentCount = p.commentCount - 1 WHERE p.id = :packageId AND p.commentCount > 0")
-    void decrementCommentCount(String packageId);
+    @Query("UPDATE TravelPackage p SET p.commentCount = p.commentCount - :count WHERE p.id = :packageId AND p.commentCount >= :count")
+    void decrementCommentCount(String packageId, long count);
 
     // 原子化地增加浏览量
     @Modifying

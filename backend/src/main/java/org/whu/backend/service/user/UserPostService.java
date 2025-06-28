@@ -16,12 +16,16 @@ import org.whu.backend.dto.post.PostCreateRequestDto;
 import org.whu.backend.dto.post.PostDetailDto;
 import org.whu.backend.dto.post.PostSummaryDto;
 import org.whu.backend.dto.post.PostUpdateRequestDto;
+import org.whu.backend.entity.InteractionItemType;
 import org.whu.backend.entity.MediaFile;
 import org.whu.backend.entity.Spot;
 import org.whu.backend.entity.accounts.User;
 import org.whu.backend.entity.travelpost.PostImage;
 import org.whu.backend.entity.travelpost.TravelPost;
+import org.whu.backend.repository.FavoriteRepository;
+import org.whu.backend.repository.LikeRepository;
 import org.whu.backend.repository.MediaFileRepository;
+import org.whu.backend.repository.post.PostCommentRepository;
 import org.whu.backend.repository.post.TravelPostRepository;
 import org.whu.backend.repository.authRepo.UserRepository;
 import org.whu.backend.service.DtoConverter;
@@ -43,6 +47,12 @@ public class UserPostService {
     private MerchantPackageService merchantPackageService;
     @Autowired
     private DtoConverter dtoConverter;
+    @Autowired
+    private PostCommentRepository postCommentRepository;
+    @Autowired
+    private LikeRepository likeRepository;
+    @Autowired
+    private FavoriteRepository favoriteRepository;
 
     @Transactional
     public TravelPost createPost(PostCreateRequestDto dto, String currentUserId) {
@@ -119,13 +129,34 @@ public class UserPostService {
     }
 
 
-    // 删除一篇游记
+    // 删除一篇游记（实现了安全的级联逻辑删除）
     @Transactional
     public void deletePost(String postId, String currentUserId) {
         log.info("用户ID '{}' 正在尝试删除游记ID '{}'...", currentUserId, postId);
+
+        // 1. 查找游记并验证所有权
         TravelPost postToDelete = findPostByIdAndVerifyOwnership(postId, currentUserId);
+
+        // 2. [核心修改] 在删除游记前，先删除所有关联的子记录
+
+        log.info("正在级联删除游记 '{}' 的所有关联数据...", postToDelete.getTitle());
+
+        // a. 删除所有评论
+        postCommentRepository.deleteAllByTravelPostId(postId);
+        log.info(" -> 已删除游记 '{}' 的所有评论。", postId);
+
+        // b. 删除所有点赞
+        likeRepository.deleteAllByItemIdAndItemType(postId, InteractionItemType.POST);
+        log.info(" -> 已删除游记 '{}' 的所有点赞记录。", postId);
+
+        // c. 删除所有收藏
+        favoriteRepository.deleteAllByItemIdAndItemType(postId,InteractionItemType.POST);
+        log.info(" -> 已删除游记 '{}' 的所有收藏记录。", postId);
+
+        // 3. 最后，（逻辑）删除游记本身
         postRepository.delete(postToDelete);
-        log.info("游记ID '{}' 已被用户ID '{}' 成功删除。", postId, currentUserId);
+
+        log.info("游记ID '{}' 及其所有关联数据已成功删除。", postId);
     }
 
     // 更新一篇游记

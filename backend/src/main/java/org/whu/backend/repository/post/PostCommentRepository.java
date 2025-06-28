@@ -3,6 +3,7 @@ package org.whu.backend.repository.post;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import org.whu.backend.entity.travelpost.Comment;
@@ -22,8 +23,7 @@ public interface PostCommentRepository extends JpaRepository<Comment, String> {
 
 
 
-    // [高级功能] 使用原生SQL的递归查询，分页获取一个评论下的所有子孙回复
-    // 注意：这需要MySQL 8.0或更高版本
+    // 使用原生SQL的递归查询，分页获取一个评论下的所有子孙回复
     @Query(value = "WITH RECURSIVE ReplyTree AS (" +
             "  SELECT * FROM post_comments WHERE parent_id = :commentId" + // 1. 锚点成员：找到直接回复
             "  UNION ALL" +
@@ -36,4 +36,10 @@ public interface PostCommentRepository extends JpaRepository<Comment, String> {
                     ") SELECT count(*) FROM ReplyTree",
             nativeQuery = true)
     Page<Comment> findAllRepliesByParentId(String commentId, Pageable pageable);
+
+    /**
+     *  根据游记ID批量删除所有评论
+     */
+    @Modifying
+    void deleteAllByTravelPostId(String postId);
 }
