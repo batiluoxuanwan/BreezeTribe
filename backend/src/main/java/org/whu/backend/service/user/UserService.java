@@ -268,6 +268,9 @@ public class UserService {
         if (likeRequestDto.getItemType() == null || likeRequestDto.getItemId() == null) {
             throw new BizException("参数错误：itemType 或 itemId 为空");
         }
+        if (likeRequestDto.getItemType() != InteractionItemType.POST){
+            throw new BizException("仅允许对POST执行点赞操作");
+        }
         Optional<Like> existingLike = likeRepository.findByUserAndItemIdAndItemType(
                 user,
                 likeRequestDto.getItemId(),
@@ -357,51 +360,36 @@ public class UserService {
         Map<String, ItemStatusDto> statusMap = new HashMap<>();
 
         // 1. 按类型对ID进行分组
-        Map<Favorite.FavoriteItemType, Set<String>> itemIdsByType = request.getItems().stream()
+        Map<InteractionItemType, Set<String>> itemIdsByType = request.getItems().stream()
                 .collect(Collectors.groupingBy(
                         ItemIdentifierDto::getType,
                         Collectors.mapping(ItemIdentifierDto::getId, Collectors.toSet())
                 ));
 
-        // 2. 初始化所有请求项目的状态为 "未点赞" & "未收藏"
+        // 2. 初始化所有请求项目的状态
         for (ItemIdentifierDto item : request.getItems()) {
             String key = item.getType().name() + "_" + item.getId();
             statusMap.put(key, ItemStatusDto.builder().isLiked(false).isFavorited(false).build());
         }
 
-        // 3. 批量查询并更新收藏状态
-        for (Map.Entry<Favorite.FavoriteItemType, Set<String>> entry : itemIdsByType.entrySet()) {
-            Favorite.FavoriteItemType itemType = entry.getKey();
+        // 3. 遍历所有需要查询的类型，分别处理收藏和点赞
+        for (Map.Entry<InteractionItemType, Set<String>> entry : itemIdsByType.entrySet()) {
+            InteractionItemType itemType = entry.getKey();
             Set<String> itemIds = entry.getValue();
 
+            // 批量更新收藏状态
             Set<String> favoritedIds = favoriteRepository.findByUserIdAndItemTypeAndItemIdIn(currentUserId, itemType, itemIds)
-                    .stream()
-                    .map(Favorite::getItemId)
-                    .collect(Collectors.toSet());
-
+                    .stream().map(Favorite::getItemId).collect(Collectors.toSet());
             for (String itemId : favoritedIds) {
-                String key = itemType.name() + "_" + itemId;
-                statusMap.get(key).setFavorited(true);
+                statusMap.get(itemType.name() + "_" + itemId).setFavorited(true);
             }
-        }
 
-        // 4. 批量查询并更新点赞状态 (只处理支持点赞的类型)
-        // 从请求中筛选出所有类型为POST的ID
-        Set<String> postIdsToCheckForLike = request.getItems().stream()
-                .filter(item -> item.getType() == Favorite.FavoriteItemType.POST)
-                .map(ItemIdentifierDto::getId)
-                .collect(Collectors.toSet());
-
-        if (!postIdsToCheckForLike.isEmpty()) {
-            Set<String> likedIds = likeRepository.findByUserIdAndItemTypeAndItemIdIn(currentUserId, Like.LikeItemType.POST, postIdsToCheckForLike)
-                    .stream()
-                    .map(Like::getItemId)
-                    .collect(Collectors.toSet());
-
-            for (String postId : likedIds) {
-                String key = Favorite.FavoriteItemType.POST.name() + "_" + postId;
-                if (statusMap.containsKey(key)) {
-                    statusMap.get(key).setLiked(true);
+            // 业务规则：只有POST类型支持点赞
+            if (itemType == InteractionItemType.POST) {
+                Set<String> likedIds = likeRepository.findByUserIdAndItemTypeAndItemIdIn(currentUserId, itemType, itemIds)
+                        .stream().map(Like::getItemId).collect(Collectors.toSet());
+                for (String itemId : likedIds) {
+                    statusMap.get(itemType.name() + "_" + itemId).setLiked(true);
                 }
             }
         }

@@ -23,7 +23,7 @@ public class Like {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private LikeItemType itemType; // 点赞的项目的类型
+    private InteractionItemType itemType; // [修改] 使用统一枚举
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
@@ -37,10 +37,6 @@ public class Like {
     // 收藏的项目的ID
     @Column(length = 36, nullable = false)
     private String itemId;
-
-    public enum LikeItemType {
-        POST     // 游记
-    }
 
     @PrePersist
     protected void onPrePersist() {

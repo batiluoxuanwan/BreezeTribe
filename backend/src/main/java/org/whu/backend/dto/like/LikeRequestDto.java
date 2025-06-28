@@ -4,7 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
-import org.whu.backend.entity.Like;
+import org.whu.backend.entity.InteractionItemType;
 
 @Data
 public class LikeRequestDto {
@@ -14,5 +14,5 @@ public class LikeRequestDto {
 
     @Schema(description = "项目类型，目前只支持POST点赞", example = "POST")
     @NotNull
-    private Like.LikeItemType itemType;
+    private InteractionItemType itemType;
 }
