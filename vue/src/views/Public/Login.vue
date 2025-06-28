@@ -17,7 +17,7 @@
       <div class="login-right">
         <h2 style="text-align: center;line-height: 2.0;">
           <span style="font-size: 32px; font-weight: bold;">LOGIN</span><br>
-          <span style="font-size: 18px; color: #555;">专业报团，放心出游，开启无忧旅行！</span>
+          <br>
         </h2>
         <!-- 登录方式切换（用 Tabs 实现） -->
         <el-tabs v-model="mode" class="login-switch" stretch>
@@ -161,7 +161,6 @@ const rules = {
 
 // 处理登录逻辑
 const handleLogin = () => {
-    // 在调用 validate 之前，确保 loginFormRef.value 存在
     if (!loginFormRef.value) {
         console.error('表单引用未初始化！请检查 <el-form> 上是否绑定了 ref="loginFormRef"。');
         ElMessage.error('表单组件未准备好，请稍后再试。');
@@ -207,7 +206,6 @@ const handleLogin = () => {
                   } else if (error.response.status === 500) {
                     ElMessage.error('服务器内部错误，请稍后再试。');
                   } else {
-                    // 其他 HTTP 错误状态码
                     ElMessage.error(`登录失败: ${error.response.status} ${error.response.statusText}`);
                   }
                 } else if (error.request) {

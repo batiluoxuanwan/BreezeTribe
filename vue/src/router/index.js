@@ -27,6 +27,11 @@ const routes =[
         component:() =>import('../views/User/Profile.vue')
     },
     {
+        path:'/user/publish-travel-note',
+        name:'用户发布游记',
+        component:() =>import('../views/User/PublishTravelNote.vue')
+    },
+    {
         path:'/merchant/me',
         name:'团长个人主页',
         component:() =>import('../views/Merchant/Profile.vue')

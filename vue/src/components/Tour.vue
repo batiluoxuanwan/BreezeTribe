@@ -17,7 +17,7 @@
           <span class="tour-price">¥{{ tour.price }}</span>
           <span class="price-unit">起</span>
         </div>
-        <el-button type="primary" size="small" class="view-details-button">
+        <el-button type="primary" size="small" class="view-details-button" @click.stop="goToDetail">
           查看详情 
         </el-button>
       </div>
@@ -28,13 +28,23 @@
 <script setup>
 import { defineProps } from 'vue';
 import { ElButton } from 'element-plus'; // 确保导入 ElButton
+import {useRouter} from 'vue-router';
 
-defineProps({
+const router = useRouter();
+
+const props = defineProps({
   tour: {
     type: Object,
-    required: true,
-  },
+    required: true
+  }
 });
+
+// 跳转详情页并传递旅行团id
+const goToDetail = () => {
+  console.log('查看旅行团详情:', props.tour.id);
+  router.push({ name: 'TravelGroupDetail', params: { id: props.tour.id } });
+};
+
 </script>
 
 <style scoped>
