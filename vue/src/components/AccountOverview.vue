@@ -194,6 +194,8 @@ import { Iphone, Message, ArrowRight,Key,EditPen } from '@element-plus/icons-vue
 import { watch } from 'vue'
 import ChangePassword from '@/components/ChangePassword.vue';
 
+const emit = defineEmits(['userUpdated']);
+
 const router = useRouter()
 const user = reactive({
   username: '',
@@ -264,6 +266,7 @@ const customUpload = async ({ file }) => {
             ElMessage.success('头像上传成功')
             console.log(response.data.data)
             user.avatarUrl = response.data.data.url || ''
+            emit('userUpdated');
             console.log(user.value.avatarUrl)
         } else {
             ElMessage.error(response.data.message || '上传失败')
@@ -287,6 +290,7 @@ const updateUsername = async () => {
     if (response.data.code === 200) {
       ElMessage.success('用户名更新成功')
       user.username = newUsername.value
+      emit('userUpdated');
       editMode.value = false
     } else {
       ElMessage.error(response.data.message || '更新失败')
