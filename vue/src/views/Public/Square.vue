@@ -146,64 +146,11 @@ const noteCurrentPage = ref(1);
 
 const loading = ref(false); // 全局加载状态
 
-// --- 模拟后端 API 调用函数 ---
-const mockFetchData = (data, currentPage, pageSize, destination, keyword, sortBy, type) => {
-  return new Promise(resolve => {
-    setTimeout(() => {
-      let filteredData = [...data]; // 复制一份数据以进行筛选和排序
-
-      // 模拟目的地筛选
-      if (destination) {
-        if (type === 'group') {
-          filteredData = filteredData.filter(item => item.destination.includes(destination));
-        } else if (type === 'note' && item.tags) { // 游记可以基于tags进行目的地筛选，这里假设tags中包含目的地
-          filteredData = filteredData.filter(item => item.tags.some(tag => tag.includes(destination)));
-        }
-      }
-
-      // 模拟关键词筛选 (标题或描述)
-      if (keyword) {
-        filteredData = filteredData.filter(item =>
-          item.title.includes(keyword) || (item.description && item.description.includes(keyword))
-        );
-      }
-
-      // 模拟排序
-      if (sortBy === 'latest') {
-        if (type === 'group') {
-          filteredData.sort((a, b) => new Date(b.startDate) - new Date(a.startDate)); // 按开始日期最新
-        } else if (type === 'note') {
-          filteredData.sort((a, b) => new Date(b.publishDate) - new Date(a.publishDate)); // 按发布日期最新
-        }
-      } else if (sortBy === 'popular') {
-        if (type === 'group') {
-          filteredData.sort((a, b) => b.rating - a.rating || b.views - a.views); // 按评分或浏览量
-        } else if (type === 'note') {
-          filteredData.sort((a, b) => b.views - a.views || b.likes - a.likes); // 按浏览量或点赞数
-        }
-      }
-
-      const totalItems = filteredData.length;
-      const start = (currentPage - 1) * pageSize;
-      const end = start + pageSize;
-      const paginatedList = filteredData.slice(start, end);
-
-      resolve({
-        data: {
-          list: paginatedList,
-          total: totalItems,
-        },
-      });
-    }, 500); // 模拟500毫秒的网络延迟
-  });
-};
-
 // --- 获取旅行团数据 ---
 const fetchTravelGroups = async () => {
   loading.value = true; // 开始加载
   try {
-    let response = null
-    let searchTried = false;
+    let response = null;
     if (isSearchMode.value && searchKeyword.value.trim()) {
       // 走搜索接口
       response = await publicAxios.get('/public/travel-packages/search', {
@@ -273,7 +220,7 @@ const fetchTravelNotes = async () => {
       })
     } 
     else{
-      response = await publicAxios.get('/public', {
+      response = await publicAxios.get('/public/posts', {
       params: {
         page: noteCurrentPage.value,    // 当前页码
         size: notePageSize,             // 每页数量
@@ -362,7 +309,7 @@ watch(
         }
     }
   },
-  { immediate: true } // 可选：组件初始化时立即执行一次回调
+  { immediate: true } 
 );
 
 // --- 组件挂载时默认加载旅行团数据 ---
@@ -370,6 +317,7 @@ onMounted(() => {
   searchKeyword.value = route.query.keyword || ''
   isSearchMode.value = !!searchKeyword.value.trim()
   fetchTravelGroups();
+  fetchTravelNotes();
 });
 </script>
 

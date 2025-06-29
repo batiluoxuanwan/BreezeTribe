@@ -113,6 +113,7 @@
                 v-for="note in notes"
                 :key="note.id"
                 class="note-card hover-card"
+                @click.stop="goToDetail(note.id)"
               >
                 <img v-if="note.coverImageUrl" :src="note.coverImageUrl" class="note-img" />
                 <div class="card-info">
@@ -267,7 +268,7 @@ const goToPublishTravelNote = () => {
 
 const notes = ref([]);
 const currentPage = ref(1);
-const pageSize = ref(3); // 每页记录数
+const pageSize = ref(9); // 每页记录数
 const totalNotes = ref(0); // 总游记数量
 const noteLoading = ref(false); // 加载状态
 const noMoreNotes = ref(false); // 是否没有更多游记了
@@ -338,6 +339,12 @@ const fetchNotes = async (reset = false) => {
 onMounted(() => {
   fetchNotes(true);
 })
+
+// 跳转详情页并传递游记id
+const goToDetail = (id) => {
+  console.log('查看游记详情:', id);
+  router.push({ name: 'EditNote', params: { id: id } });
+};
 
 </script>
 

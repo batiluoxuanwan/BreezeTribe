@@ -3,28 +3,27 @@
   <el-card class="note-card" shadow="hover">
     <template #header>
       <div class="card-header">
-        <img :src="note.coverImage || defaultNoteCover" alt="游记封面" class="card-cover-image">
+        <img :src="note.coverImageUrl || defaultNoteCover" alt="游记封面" class="card-cover-image">
       </div>
     </template>
     <div class="card-body">
       <h3 class="card-title">{{ note.title }}</h3>
       <div class="card-author">
-        <el-avatar :src="note.authorAvatar || defaultAvatar" :size="24" class="author-avatar"></el-avatar>
-        <span class="author-name">{{ note.authorName }}</span>
-        <span class="publish-date">{{ note.publishDate }}</span>
+        <el-avatar :src="note.author.avatarUrl || defaultAvatar" :size="24" class="author-avatar"></el-avatar>
+        <span class="author-name">{{ note.author.username }}</span>
+        <span class="publish-date">{{ note.createdTime }}</span>
       </div>
-      <p class="card-description">{{ note.summary }}</p>
       <div class="card-footer">
         <span class="meta-item">
-          <el-icon><View /></el-icon> {{ note.views || 0 }}
+          <el-icon><View /></el-icon> {{ note.viewCount || 0 }}
         </span>
         <span class="meta-item">
-          <el-icon><ChatDotRound /></el-icon> {{ note.comments || 0 }}
+          <el-icon><ChatDotRound /></el-icon> {{ note.commentCount || 0 }}
         </span>
         <span class="meta-item">
-          <el-icon><Star /></el-icon> {{ note.likes || 0 }}
+          <el-icon><Star /></el-icon> {{ note.likeCount || 0 }}
         </span>
-        <el-button type="primary" link @click="viewNoteDetail(note.id)">阅读全文</el-button>
+        <el-button type="primary" link @click.stop="goToDetail">阅读全文</el-button>
       </div>
     </div>
   </el-card>
@@ -34,6 +33,8 @@
 import { defineProps } from 'vue';
 import { ElCard, ElAvatar, ElButton, ElIcon } from 'element-plus';
 import { View, ChatDotRound, Star } from '@element-plus/icons-vue';
+import {useRouter} from 'vue-router';
+const router = useRouter();
 
 const props = defineProps({
   note: {
@@ -45,9 +46,10 @@ const props = defineProps({
 const defaultNoteCover = '/assets/images/default_note_cover.jpg';
 const defaultAvatar = '/assets/images/default_avatar.png';
 
-const viewNoteDetail = (id) => {
-  // 导航到游记详情页
-  console.log('查看游记详情:', id);
+// 跳转详情页并传递游记id
+const goToDetail = () => {
+  console.log('查看游记详情:', props.note.id);
+  router.push({ name: 'TravelNoteDetail', params: { id: props.note.id } });
 };
 </script>
 

@@ -181,7 +181,7 @@ const fetchAndSelectRandomTours = async () => {
 // 获取所有游记并随机选择4个
 const fetchAndSelectRandomNotes = async () => {
   try {
-    const response = await publicAxios.get('/public', {
+    const response = await publicAxios.get('/public/posts', {
       params: {
         page: 1,       // 从第一页获取
         size: 20,      // 获取足够多的数据
@@ -205,7 +205,7 @@ const fetchAndSelectRandomNotes = async () => {
           tempNotes.splice(randomIndex, 1);
         }
 
-        travelNotes.value = selectedNotes;
+        notes.value = selectedNotes;
       }
     } else {
       ElMessage.error(response.data.message || '获取游记数据失败。');
