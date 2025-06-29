@@ -10,13 +10,13 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
- * 单个路线收藏，每一个实体都对应一个被收藏的东西和收藏的账号
+ * 每一个实体都对应一个被点赞的东西和收藏的账号
  */
 @Data
 @Entity
-@Table(name = "favorites",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"user_account_id", "item_id", "item_type"})) // 一个人对同一个东西只能收藏一次
-public class Favorite {
+@Table(name = "likes",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"user_account_id", "item_id", "item_type"})) // 一个人对同一个东西只能点赞一次
+public class Like {
     @Id
     @Column(length = 36)
     private String id;
@@ -34,7 +34,7 @@ public class Favorite {
     @JoinColumn(name = "user_account_id", referencedColumnName = "id",nullable = false)
     private User user;
 
-    // 收藏的项目的ID (可能是TravelPackage的ID, Spot的ID等)
+    // 收藏的项目的ID
     @Column(length = 36, nullable = false)
     private String itemId;
 

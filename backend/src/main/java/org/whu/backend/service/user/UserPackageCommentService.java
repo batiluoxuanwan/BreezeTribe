@@ -59,6 +59,12 @@ public class UserPackageCommentService {
             throw new BizException("尚未购买该旅行团，无法评价");
         }
 
+        // 2.1  不允许重复评价旅游团
+        boolean hasCommented = packageCommentRepository.existsByAuthorIdAndTravelPackageId(currentUserId,packageId);
+        if (hasCommented){
+            throw new BizException("请不要重复评价");
+        }
+
         // 3. 创建新评价
         PackageComment newComment = new PackageComment();
         newComment.setRating(dto.getRating());
@@ -81,10 +87,42 @@ public class UserPackageCommentService {
             }
             newComment.setParent(parentComment);
         }
-        // 增加评论数
+        // 原子地增加评论数
         packageRepository.incrementCommentCount(packageId);
 
         return commentRepository.save(newComment);
+    }
+
+    // 删除自己的一条评价（会级联删除其所有直接回复）
+    @Transactional
+    public void deleteComment(String commentId, String currentUserId) {
+        log.info("用户ID '{}' 正在尝试删除旅行团评价ID '{}'...", currentUserId, commentId);
+
+        // 1. 查找评价并验证所有权
+        PackageComment commentToDelete = commentRepository.findById(commentId)
+                .orElseThrow(() -> new BizException("找不到ID为 " + commentId + " 的评价"));
+
+        if (!commentToDelete.getAuthor().getId().equals(currentUserId)) {
+            log.error("权限拒绝：用户ID '{}' 试图删除不属于自己的评价ID '{}'。", currentUserId, commentId);
+            throw new BizException("无权删除此评价");
+        }
+
+        // 2. 查找并删除该评价下的所有直接回复 (楼中楼)
+        long repliesCount = commentRepository.countByParentId(commentId);
+        if (repliesCount > 0) {
+            commentRepository.deleteAllByParentId(commentId);
+            log.info(" -> 已级联删除 {} 条对该评价的回复。", repliesCount);
+        }
+
+        // 3. 删除主评价本身
+        commentRepository.delete(commentToDelete);
+
+        // 4. 原子化地更新旅行团的总评论数
+        // 总共删除的评论数 = 主评论(1) + 回复数
+        long totalDeleted = 1 + repliesCount;
+        packageRepository.decrementCommentCount(commentToDelete.getTravelPackage().getId(), totalDeleted);
+
+        log.info("评价ID '{}' 及其所有关联数据已成功删除，总计 {} 条记录。", commentId, totalDeleted);
     }
 
     // 获取指定旅行团的评价列表（分页）

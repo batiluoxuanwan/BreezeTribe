@@ -6,6 +6,8 @@ import org.springframework.stereotype.Component;
 import org.whu.backend.dto.PageResponseDto;
 import org.whu.backend.dto.accounts.AuthorDto;
 import org.whu.backend.dto.mediafile.MediaFileDto;
+import org.whu.backend.dto.order.OrderDetailDto;
+import org.whu.backend.dto.order.OrderForReviewDto;
 import org.whu.backend.dto.order.OrderSummaryForDealerDto;
 import org.whu.backend.dto.packagecomment.PackageCommentDto;
 import org.whu.backend.dto.post.PostDetailDto;
@@ -53,10 +55,11 @@ public class DtoConverter {
 
     /**
      * [新增] 一个通用的，将JPA的Page<T>对象转换为我们自定义PageResponseDto<U>的方法
-     * @param page JPA返回的Page对象
+     *
+     * @param page    JPA返回的Page对象
      * @param content DTO列表，由调用方提前转换好
-     * @param <T> 实体类型
-     * @param <U> DTO类型
+     * @param <T>     实体类型
+     * @param <U>     DTO类型
      * @return 自定义的PageResponseDto
      */
     public <T, U> PageResponseDto<U> convertPageToDto(Page<T> page, List<U> content) {
@@ -69,6 +72,36 @@ public class DtoConverter {
                 .first(page.isFirst())
                 .last(page.isLast())
                 .numberOfElements(page.getNumberOfElements())
+                .build();
+    }
+
+    /**
+     * 将Order实体转换为详细的OrderDetailDto
+     */
+    public OrderDetailDto convertOrderToDetailDto(Order order) {
+        return OrderDetailDto.builder()
+                .orderId(order.getId())
+                .packageId(order.getTravelPackage().getId())
+                .packageTitle(order.getTravelPackage().getTitle())
+                .packageCoverImageUrl(AliyunOssUtil.generatePresignedGetUrl(order.getTravelPackage().getCoverImageUrl(), EXPIRE_TIME, IMAGE_PROCESS))
+                .travelerCount(order.getTravelerCount())
+                .totalPrice(order.getTotalPrice())
+                .status(order.getStatus().name())
+                .orderTime(order.getCreatedTime())
+                .build();
+    }
+
+    /**
+     * 将订单实体转换为给用户查看的DTO
+     */
+    public OrderForReviewDto convertOrderToReviewDto(Order order) {
+        return OrderForReviewDto.builder()
+                .orderId(order.getId())
+                .packageId(order.getTravelPackage().getId())
+                .packageTitle(order.getTravelPackage().getTitle())
+                .packageCoverImageUrl(AliyunOssUtil.generatePresignedGetUrl(order.getTravelPackage().getCoverImageUrl(), EXPIRE_TIME, IMAGE_PROCESS))
+                .orderTime(order.getCreatedTime())
+                .totalPrice(order.getTotalPrice().toString())
                 .build();
     }
 
@@ -106,11 +139,16 @@ public class DtoConverter {
      * 将PostComment实体转换为简单的DTO (不带嵌套回复)
      */
     public PostCommentDto convertCommentToDto(Comment comment) {
+        // 处理被屏蔽的评论
+        String content = comment.getContent();
+        if (comment.isDeletedByAuthor()) {
+            content = "[该评论已被删除]";
+        }
         return PostCommentDto.builder()
                 .id(comment.getId())
-                .content(comment.getContent())
+                .content(content)
                 .author(ConvertUserToAuthorDto(comment.getAuthor()))
-                .parentId(comment.getParent().getId())
+                .parentId(comment.getParent() != null ? comment.getParent().getId() : null)
                 .replyToUsername(comment.getParent() != null ? comment.getParent().getAuthor().getUsername() : null)
                 .replyToUserId(comment.getParent() != null ? comment.getParent().getAuthor().getId() : null)
                 .createdTime(comment.getCreatedTime())
@@ -121,9 +159,14 @@ public class DtoConverter {
      * 将PostComment实体转换为带少量预览回复的DTO
      */
     public PostCommentWithRepliesDto convertCommentToDtoWithReplies(Comment comment, List<PostCommentDto> repliesPreview, long totalReplies) {
+        // 处理被屏蔽的评论
+        String content = comment.getContent();
+        if (comment.isDeletedByAuthor()) {
+            content = "[该评论已被删除]";
+        }
         return PostCommentWithRepliesDto.builder()
                 .id(comment.getId())
-                .content(comment.getContent())
+                .content(content)
                 .author(ConvertUserToAuthorDto(comment.getAuthor()))
                 .replyToUsername(comment.getParent() != null ? comment.getParent().getAuthor().getUsername() : null)
                 .createdTime(comment.getCreatedTime())
@@ -166,6 +209,7 @@ public class DtoConverter {
                 .likeCount(post.getLikeCount())
                 .favoriteCount(post.getFavoriteCount())
                 .commentCount(post.getCommentCount())
+                .viewCount(post.getViewCount())
                 .createdTime(post.getCreatedTime())
                 .build();
     }
@@ -200,6 +244,7 @@ public class DtoConverter {
                 .likeCount(post.getLikeCount())
                 .favoriteCount(post.getFavoriteCount())
                 .commentCount(post.getCommentCount())
+                .viewCount(post.getViewCount())
                 .createdTime(post.getCreatedTime())
                 .build();
     }
@@ -272,6 +317,7 @@ public class DtoConverter {
                 .durationInDays(entity.getDurationInDays())
                 .favouriteCount(entity.getFavoriteCount())
                 .commentCount(entity.getCommentCount())
+                .viewCount(entity.getViewCount())
                 .status(entity.getStatus().toString())
                 .build();
     }
@@ -302,6 +348,7 @@ public class DtoConverter {
                 .detailedDescription(entity.getDetailedDescription())
                 .favouriteCount(entity.getFavoriteCount())
                 .commentCount(entity.getCommentCount())
+                .viewCount(entity.getViewCount())
                 .status(entity.getStatus().name())
                 .routes(routeDtos)
                 .build();

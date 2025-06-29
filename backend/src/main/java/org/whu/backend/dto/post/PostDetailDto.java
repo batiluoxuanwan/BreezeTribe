@@ -20,5 +20,6 @@ public class PostDetailDto {
     private int likeCount;
     private int favoriteCount;
     private int commentCount;
+    private int viewCount;
     private LocalDateTime createdTime;
 }

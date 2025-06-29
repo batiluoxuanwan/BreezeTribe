@@ -19,7 +19,15 @@ import org.springframework.web.client.RestTemplate;
 import org.whu.backend.common.exception.BizException;
 import org.whu.backend.util.JpaUtil;
 
+import javax.imageio.ImageIO;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.Base64;
+import java.util.Map;
 import java.util.Random;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import static org.aspectj.weaver.tools.cache.SimpleCacheFactory.path;
@@ -57,7 +65,6 @@ public class CaptchaService {
 
     @Value("${spring.mail.username}")
     private String from;
-    private static final String CODE_KEY_PREFIX = "email:code:";
 
 
     // 生成6位数字验证码
@@ -133,7 +140,7 @@ public class CaptchaService {
 
     public void sendVerificationEmail(String toEmail) {
             String code = generateCode();
-            redisTemplate.opsForValue().set(CODE_KEY_PREFIX + toEmail, code, 5, TimeUnit.MINUTES);
+            redisTemplate.opsForValue().set("email:" + toEmail, code, 5, TimeUnit.MINUTES);
 
             String title = "您正在注册 BreezeTribe，您的验证码为：";
             String url = "https://yourdomain.com/verify?code=" + code + "&email=" + toEmail;
@@ -144,7 +151,7 @@ public class CaptchaService {
 
     public void resetVerificationEmail(String email) {
         String code = generateCode();
-        redisTemplate.opsForValue().set(CODE_KEY_PREFIX + email, code, 5, TimeUnit.MINUTES);
+        redisTemplate.opsForValue().set("email:" + email, code, 5, TimeUnit.MINUTES);
 
         String title = "您正在重置 BreezeTribe 账号密码，您的验证码为：";
         String url = "https://yourdomain.com/reset?code=" + code + "&email=" + email;
@@ -153,8 +160,8 @@ public class CaptchaService {
     }
 
     // 校验验证码
-    public boolean verifyCode(String email, String code) {
-        String key = CODE_KEY_PREFIX + email;
+    public boolean verifyEmailCode(String email, String code) {
+        String key = "email:" + email;
         String cachedCode = redisTemplate.opsForValue().get(key);
 
         if (cachedCode != null && cachedCode.equals(code)) {
@@ -181,22 +188,117 @@ public class CaptchaService {
             throw new BizException("短信发送失败，请稍后再试");
         }
     }
-//    public void sendVerificationSms(String mobile) {
-//            JpaUtil.notNull(mobile, "手机号不能为空");
-//
-////            String rateLimitKey = "sms:rate:" + mobile;
-////            if (Boolean.TRUE.equals(redisTemplate.hasKey(rateLimitKey))) {
-////                throw new BizException("验证码发送过于频繁，请稍后再试");
-////            }
-//        int minutes = 5;
-//        String code = generateCode(); // 6位验证码
-//        // 发送短信（复用封装方法）
-//        sendAliyunSms(mobile, code, minutes);
-//        // 设置验证码及频率限制
-//        //redisTemplate.opsForValue().set(rateLimitKey, "1", 60, TimeUnit.SECONDS);
-//        redisTemplate.opsForValue().set("sms:" + mobile, code, 5, TimeUnit.MINUTES);
-//    }
-//
-//    public void resetVerificationSms(String phone) {
-//    }
+    public void sendVerificationSms(String mobile) {
+            JpaUtil.notNull(mobile, "手机号不能为空");
+
+//            String rateLimitKey = "sms:rate:" + mobile;
+//            if (Boolean.TRUE.equals(redisTemplate.hasKey(rateLimitKey))) {
+//                throw new BizException("验证码发送过于频繁，请稍后再试");
+//            }
+        int minutes = 5;
+        String code = generateCode(); // 6位验证码
+        // 发送短信（复用封装方法）
+        sendAliyunSms(mobile, code, minutes);
+        // 设置验证码及频率限制
+        //redisTemplate.opsForValue().set(rateLimitKey, "1", 60, TimeUnit.SECONDS);
+        redisTemplate.opsForValue().set("sms:" + mobile, code, 5, TimeUnit.MINUTES);
+    }
+
+    public void resetVerificationSms(String phone) {
+        JpaUtil.notNull(phone, "手机号不能为空");
+
+        int minutes = 5;
+        String code = generateCode(); // 通用6位验证码生成方法
+
+        // 1. 发送短信（调用复用方法）
+        sendAliyunSms(phone, code, minutes);
+
+        // 2. 存入 Redis（用于后续验证）
+        redisTemplate.opsForValue().set("sms:" + phone, code, minutes, TimeUnit.MINUTES);
+    }
+    public boolean verifySmsCode(String phone, String code) {
+        String key = "sms:" + phone;
+        String cachedCode = redisTemplate.opsForValue().get(key);
+
+        if (cachedCode != null && cachedCode.equals(code)) {
+            // 验证通过后删除验证码（可选）
+            redisTemplate.delete(key);
+            return true;
+        }
+        return false;
+    }
+
+    private final int width = 280, height = 200, blockSize = 50;
+
+    public Map<String, String> generateSliderCaptcha() throws IOException {
+
+        BufferedImage bgImg = loadRandomBackgroundImage();
+
+        int x = new Random().nextInt(width - blockSize - 20) + 10;
+        int y = new Random().nextInt(height - blockSize - 20) + 10;
+
+        BufferedImage block = bgImg.getSubimage(x, y, blockSize, blockSize);
+
+        Graphics2D g2d = bgImg.createGraphics();
+        g2d.setComposite(AlphaComposite.Clear);
+        g2d.fillRect(x, y, blockSize, blockSize);
+        g2d.dispose();
+
+        String bgBase64 = encodeBase64(bgImg);
+        String blockBase64 = encodeBase64(block);
+
+        String captchaId = UUID.randomUUID().toString();
+        String X=""+x;
+        redisTemplate.opsForValue().set("slider:" + captchaId, X, 2, TimeUnit.MINUTES);
+
+        return Map.of(
+                "captchaId", captchaId,
+                "bgImage", bgBase64,
+                "blockImage", blockBase64
+        );
+    }
+
+    public boolean verifySliderCaptcha(String captchaId, Integer userX) {
+        String key = "slider:" + captchaId;
+        Integer trueX = Integer.valueOf(redisTemplate.opsForValue().get(key));
+
+        if (trueX == null) return false;
+
+        redisTemplate.delete(key);
+        int tolerance = 5;
+        return Math.abs(userX - trueX) <= tolerance;
+    }
+
+    private String encodeBase64(BufferedImage image) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ImageIO.write(image, "png", baos);
+        return Base64.getEncoder().encodeToString(baos.toByteArray());
+    }
+    private BufferedImage loadRandomBackgroundImage() throws IOException {
+        String[] imageNames = { "1.jpg", "2.jpg", "3.jpg", "4.jpg", "5.jpg" };
+        int index = new Random().nextInt(imageNames.length);
+        String selected = imageNames[index];
+
+        return ImageIO.read(getClass().getResourceAsStream("/pic/" + selected));
+    }
+
+    public void resetEmail(String newEmail) {
+        String code = generateCode();
+        redisTemplate.opsForValue().set("email:" + newEmail, code, 5, TimeUnit.MINUTES);
+
+        String title = "您正在换绑邮箱 BreezeTribe，您的验证码为：";
+        String url = "https://yourdomain.com/verify?code=" + code + "&email=" + newEmail;
+
+        sendEmail(newEmail, "【风旅集】换绑验证码", title, title, code, url);
+    }
+
+    public void resetPhone(String newPhone) {
+        JpaUtil.notNull(newPhone, "手机号不能为空");
+        int minutes = 5;
+        String code = generateCode(); // 6位验证码
+        // 发送短信（复用封装方法）
+        sendAliyunSms(newPhone, code, minutes);
+        // 设置验证码及频率限制
+        redisTemplate.opsForValue().set("sms:" + newPhone, code, 5, TimeUnit.MINUTES);
+    }
 }

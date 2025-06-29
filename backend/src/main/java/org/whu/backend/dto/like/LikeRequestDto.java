@@ -1,4 +1,4 @@
-package org.whu.backend.dto.favourite;
+package org.whu.backend.dto.like;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
@@ -7,12 +7,12 @@ import lombok.Data;
 import org.whu.backend.entity.InteractionItemType;
 
 @Data
-public class FavoriteRequestDto {
+public class LikeRequestDto {
     @Schema(description = "要收藏/取消收藏的项目ID")
     @NotBlank
     private String itemId;
 
-    @Schema(description = "项目类型 (PACKAGE, SPOT, ROUTE,POST)", example = "PACKAGE")
+    @Schema(description = "项目类型，目前只支持POST点赞", example = "POST")
     @NotNull
     private InteractionItemType itemType;
 }

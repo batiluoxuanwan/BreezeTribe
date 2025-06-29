@@ -4,15 +4,14 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Data;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- *  用于展示用户个人订单详情的DTO
+ * [新增] 用于在“我的评价”页面展示的订单信息DTO
  */
 @Data
 @Builder
-public class OrderDetailDto {
+public class OrderForReviewDto {
 
     @Schema(description = "订单ID")
     private String orderId;
@@ -23,18 +22,12 @@ public class OrderDetailDto {
     @Schema(description = "旅行团标题")
     private String packageTitle;
 
-    @Schema(description = "旅行团封面图URL")
+    @Schema(description = "旅行团封面图URL (带签名)")
     private String packageCoverImageUrl;
-
-    @Schema(description = "出行人数")
-    private Integer travelerCount;
-
-    @Schema(description = "订单总价")
-    private BigDecimal totalPrice;
-
-    @Schema(description = "订单状态")
-    private String status;
 
     @Schema(description = "下单时间")
     private LocalDateTime orderTime;
+
+    @Schema(description = "订单总价")
+    private String totalPrice;
 }

@@ -2,6 +2,7 @@ package org.whu.backend.controller.pub;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springdoc.core.annotations.ParameterObject;
@@ -23,6 +24,7 @@ import org.whu.backend.service.BaiduMapService;
 import org.whu.backend.service.pub.PublicService;
 import org.whu.backend.service.user.UserPackageCommentService;
 import org.whu.backend.service.user.UserPostCommentService;
+import org.whu.backend.util.IpUtil;
 
 import java.util.List;
 
@@ -61,8 +63,10 @@ public class PublicController {
 
     @Operation(summary = "获取单个旅行团的公开详情", description = "包含其所有的路线和景点信息")
     @GetMapping("/travel-packages/{id}")
-    public Result<PackageDetailDto> getPackageDetails(@PathVariable String id) {
-        PackageDetailDto packageDetails = publicService.getPackageDetails(id);
+    public Result<PackageDetailDto> getPackageDetails(@PathVariable String id, HttpServletRequest request) {
+        // 调用工具类获取真实IP地址
+        String ipAddress = IpUtil.getRealIp(request);
+        PackageDetailDto packageDetails = publicService.getPackageDetails(id,ipAddress);
         return Result.success(packageDetails);
     }
 
@@ -87,9 +91,11 @@ public class PublicController {
 
     @Operation(summary = "获取单篇已发布的游记详情")
     @GetMapping("/posts/{postId}")
-    public Result<PostDetailDto> getPostDetails(@PathVariable String postId) {
+    public Result<PostDetailDto> getPostDetails(@PathVariable String postId,HttpServletRequest request) {
+        // 调用工具类获取真实IP地址
+        String ipAddress = IpUtil.getRealIp(request);
         log.info("访问获取公共游记详情接口, ID: {}", postId);
-        PostDetailDto postDetails = publicService.getPostDetails(postId);
+        PostDetailDto postDetails = publicService.getPostDetails(postId,ipAddress);
         return Result.success(postDetails);
     }
 

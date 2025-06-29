@@ -39,4 +39,15 @@ public class UserPostCommentController {
 
         return Result.success(dtoConverter.convertCommentToDto(savedComment));
     }
+
+    @Operation(summary = "删除自己发布的对游记的评论")
+    @DeleteMapping("/{commentId}")
+    public Result<?> deleteComment(@PathVariable String commentId) {
+        String currentUserId = AccountUtil.getCurrentAccountId();
+        log.info("用户ID '{}' 访问删除游记评论接口, Comment ID: {}", currentUserId, commentId);
+
+        userCommentService.deleteComment(commentId, currentUserId);
+
+        return Result.success("评论删除成功");
+    }
 }
