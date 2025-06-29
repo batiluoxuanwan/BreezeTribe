@@ -98,7 +98,7 @@ import { ref, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElCard, ElButton, ElMessage, ElLoading, ElSkeleton, ElResult, ElEmpty, ElAvatar, ElIcon, ElDivider, ElImage, ElTag, ElPopconfirm } from 'element-plus';
 import { ArrowLeftBold, Edit, Delete, View, ChatDotRound, Picture } from '@element-plus/icons-vue';
-import { authAxios } from '@/utils/request'; // 假设您有认证过的请求实例
+import { authAxios } from '@/utils/request'; 
 
 const route = useRoute();
 const router = useRouter();
@@ -132,10 +132,7 @@ const fetchNoteDetail = async (noteId) => {
   note.value = null; // 清空旧数据
 
   try {
-    // 假设这是获取用户自己游记详情的 API 接口
-    // 注意：这个接口通常会需要认证信息，所以使用 authAxios
-    const response = await authAxios.get(`/user/posts/${noteId}`); // 假设您的接口是 /user/posts/{id}
-
+    const response = await authAxios.get(`/user/posts/${noteId}`); 
     if (response.data.code === 200) {
       note.value = response.data.data;
       ElMessage.success('游记详情加载成功！');
@@ -154,7 +151,7 @@ const fetchNoteDetail = async (noteId) => {
 
 // --- 返回我的游记列表 ---
 const goBackToMyNotes = () => {
-  router.push('/user/me'); 
+  router.push({ name: '用户个人主页', query: { tab: 'notes' } }); 
 };
 
 // --- 编辑游记 ---
@@ -174,11 +171,10 @@ const deleteNote = async () => {
     return;
   }
   try {
-    const response = await authAxios.delete(`/user/posts/${note.value.id}`); // 假设删除接口是 DELETE /user/posts/{id}
+    const response = await authAxios.delete(`/user/posts/${note.value.id}`); 
     if (response.data.code === 200) {
       ElMessage.success('游记删除成功！');
-      // 删除成功后，返回我的游记列表
-      router.push({ name: 'myTravelNotes' });
+      router.push({ name: '用户个人主页', query: { tab: 'notes' } });
     } else {
       ElMessage.error(response.data.message || '删除游记失败！');
     }

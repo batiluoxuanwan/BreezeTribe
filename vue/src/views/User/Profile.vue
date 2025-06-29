@@ -185,16 +185,17 @@
 </template>
 
 <script setup>
-import { onMounted, ref,computed } from 'vue'
+import { onMounted, ref,computed,watch } from 'vue'
 import { Star, Tickets, EditPen, Comment, Bell, ArrowLeft, Plus } from '@element-plus/icons-vue' 
 import { ElTabs, ElTabPane, ElCard, ElForm, ElFormItem, ElInput, ElSelect, ElOption, ElButton, ElPagination, ElEmpty, ElMessage } from 'element-plus';
 import AccountOverview from '@/components/AccountOverview.vue' 
 import ChangePassword from '@/components/ChangePassword.vue'  
 
-import { useRouter } from 'vue-router';
+import { useRoute,useRouter } from 'vue-router';
 import { authAxios } from '@/utils/request';
 
 const router = useRouter();
+const route = useRoute();
 
 const user = ref({
   username: '旅行者小明',
@@ -330,10 +331,21 @@ const goToDetail = (id) => {
   router.push({ name: 'EditNote', params: { id: id } });
 };
 
+// --- 监听路由查询参数，用于激活对应的Tab ---
+watch(
+  () => route.query.tab,
+  (newTab) => {
+    if (newTab) {
+      activeTab.value = newTab;
+    }
+  },
+  { immediate: true } 
+);
+
+
 </script>
 
 <style scoped>
-/* 引入 Google Fonts - Poppins 用于更好的字体视觉效果 */
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
 
 .user-profile-page {
