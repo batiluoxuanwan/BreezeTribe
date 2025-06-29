@@ -1,7 +1,7 @@
 <template>
   <div class="travel-note-card">
     <div class="image-wrapper">
-      <img class="cover" :src="note.image" :alt="note.title" />
+      <img class="cover" :src="note.coverImageUrl" :alt="note.title" />
       <div v-if="note.category" class="category-badge">{{ note.category }}</div>
       <div class="stats-overlay">
         <span class="view-count">
@@ -16,11 +16,11 @@
       <h3 class="title">{{ note.title }}</h3>
       <p class="description">{{ note.description }}</p>
       <div class="author-info">
-        <img class="avatar" :src="note.avatar" :alt="note.author" />
+        <img class="avatar" :src="note.author.avatarUrl" :alt="note.author" />
         <span class="author-name">{{ note.author.username }}</span>
         <span class="publish-date">{{ formatDate(note.publishDate) }}</span>
       </div>
-      <el-button type="primary" size="small" class="read-more-button">
+      <el-button type="primary" size="small" class="read-more-button" @click.stop="goToDetail">
         阅读详情 <i class="el-icon-arrow-right el-icon--right"></i>
       </el-button>
     </div>
@@ -30,13 +30,20 @@
 <script setup>
 import { defineProps } from 'vue';
 import { ElButton } from 'element-plus'; // 确保导入 ElButton
-
-defineProps({
+import {useRouter} from 'vue-router';
+const router = useRouter();
+const props = defineProps({
   note: {
     type: Object,
-    required: true
-  }
+    required: true,
+  },
 });
+
+// 跳转详情页并传递游记id
+const goToDetail = () => {
+  console.log('查看游记详情:', props.note.id);
+  router.push({ name: 'TravelNoteDetail', params: { id: props.note.id } });
+};
 
 // 辅助函数，用于格式化数字（如浏览量、点赞数）和日期
 const formatNumber = (num) => {

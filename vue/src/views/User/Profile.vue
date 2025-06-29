@@ -113,6 +113,7 @@
                 v-for="note in notes"
                 :key="note.id"
                 class="note-card hover-card"
+                @click.stop="goToDetail(note.id)"
               >
                 <img v-if="note.coverImageUrl" :src="note.coverImageUrl" class="note-img" />
                 <div class="card-info">
@@ -177,25 +178,9 @@
           <div style="margin-bottom: 32px;">
             <AccountOverview />
           </div>
-          <ChangePassword role="ROLE_USER" />
         </el-tab-pane>
       </el-tabs>
     </main>
-
-    <el-dialog v-model="editProfileDialog" title="编辑资料" width="400px">
-      <el-form label-width="80px">
-        <el-form-item label="用户名">
-          <el-input v-model="editForm.username" />
-        </el-form-item>
-        <el-form-item label="新密码">
-          <el-input type="password" v-model="editForm.password" show-password />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="editProfileDialog = false">取消</el-button>
-        <el-button type="primary" @click="saveProfile">保存</el-button>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
@@ -267,7 +252,7 @@ const goToPublishTravelNote = () => {
 
 const notes = ref([]);
 const currentPage = ref(1);
-const pageSize = ref(3); // 每页记录数
+const pageSize = ref(9); // 每页记录数
 const totalNotes = ref(0); // 总游记数量
 const noteLoading = ref(false); // 加载状态
 const noMoreNotes = ref(false); // 是否没有更多游记了
@@ -338,6 +323,12 @@ const fetchNotes = async (reset = false) => {
 onMounted(() => {
   fetchNotes(true);
 })
+
+// 跳转详情页并传递游记id
+const goToDetail = (id) => {
+  console.log('查看游记详情:', id);
+  router.push({ name: 'EditNote', params: { id: id } });
+};
 
 </script>
 
