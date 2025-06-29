@@ -20,6 +20,7 @@ public class ScheduledService {
      * [核心] 这是一个定时任务方法
      * cron = "0 0 1 * * ?" 的意思是：在每天凌晨1点整，自动执行这个方法。
      * (秒 分 时 日 月 周)
+     * 批量更新订单状态
      */
     @Scheduled(cron = "0 0 1 * * ?", zone = "Asia/Shanghai")
     @Transactional

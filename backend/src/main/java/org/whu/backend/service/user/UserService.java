@@ -463,27 +463,9 @@ public class UserService {
 
         // 构造返回 DTO 列表
         List<OrderDetailDto> content = orderPage.getContent().stream()
-                .map(order -> {
-                    OrderDetailDto dto = new OrderDetailDto();
-                    dto.setOrderId(order.getId());
-                    dto.setTravelerCount(order.getTravelerCount());
-                    dto.setTotalPrice(order.getTotalPrice());
-                    dto.setStatus(order.getStatus());
-                    dto.setUsername(user.getUsername());
-                    dto.setTravelPackageTitle(order.getTravelPackage().getTitle());
-                    return dto;
-                }).toList();
+                .map(dtoConverter::convertOrderToDetailDto).toList();
 
         // 返回分页响应结果
-        return PageResponseDto.<OrderDetailDto>builder()
-                .content(content)
-                .pageNumber(pageRequestDto.getPage())
-                .pageSize(pageRequestDto.getSize())
-                .totalElements(orderPage.getTotalElements())
-                .totalPages(orderPage.getTotalPages())
-                .first(orderPage.isFirst())
-                .last(orderPage.isLast())
-                .numberOfElements(orderPage.getNumberOfElements())
-                .build();
+        return dtoConverter.convertPageToDto(orderPage,content);
     }
 }

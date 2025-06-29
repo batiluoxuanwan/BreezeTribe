@@ -46,7 +46,12 @@ public interface OrderRepository extends JpaRepository<Order, String> {
      * @return 更新的记录数
      */
     @Modifying
-    @Query("UPDATE Order o SET o.status = 'ONGOING' WHERE o.status = 'PAID' AND o.travelPackage.departureDate <= :currentTime")
+    @Query(value = "UPDATE orders o, travel_packages tp " +
+            "SET o.status = 'ONGOING' " +
+            "WHERE o.package_id = tp.id " +
+            "AND o.status = 'PAID' " +
+            "AND tp.departure_date <= :currentTime",
+            nativeQuery = true)
     int updatePaidToOngoing(LocalDateTime currentTime);
 
     /**
