@@ -32,7 +32,6 @@ import org.whu.backend.repository.FavoriteRepository;
 import org.whu.backend.repository.LikeRepository;
 import org.whu.backend.repository.post.TravelPostRepository;
 import org.whu.backend.repository.travelRepo.*;
-import org.whu.backend.repository.authRepo.UserRepository;
 import org.whu.backend.service.DtoConverter;
 import org.whu.backend.util.AccountUtil;
 import org.whu.backend.util.JpaUtil;
@@ -45,9 +44,6 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 public class UserService {
-
-    @Autowired
-    private UserRepository userRepository;
     @Autowired
     private OrderRepository orderRepository;
     @Autowired
@@ -82,8 +78,9 @@ public class UserService {
         if (travelPackage.getStatus() != TravelPackage.PackageStatus.PUBLISHED) {
             throw new BizException("该旅行团目前不可报名");
         }
+        // TODO: 可能会有并发带来的超售操作
         Integer capacity = travelPackage.getCapacity();
-        Integer participants = travelPackage.getParticipants() == null ? 0 : travelPackage.getParticipants();
+        int participants = travelPackage.getParticipants() == null ? 0 : travelPackage.getParticipants();
         if (capacity != null && participants >= capacity) {
             throw new BizException("旅行团报名人数已满");
         }
@@ -98,24 +95,17 @@ public class UserService {
         order.setStatus(Order.OrderStatus.PENDING_PAYMENT);
         order.setContactName(orderCreateRequestDto.getContactName());
         order.setContactPhone(orderCreateRequestDto.getContactPhone());
-        orderRepository.save(order);
+        Order saved = orderRepository.save(order);
 
-        // 4. 更新报名人数
-        travelPackage.setParticipants(participants + order.getTravelerCount());
-        travelPackageRepository.save(travelPackage);
+        // 4. 原子更新报名人数
+        travelPackageRepository.addParticipantCount(travelPackage.getId(), order.getTravelerCount());
 
-        OrderDetailDto dto = new OrderDetailDto();
-        dto.setTravelerCount(order.getTravelerCount());
-        dto.setTotalPrice(order.getTotalPrice());
-        dto.setStatus(order.getStatus());
-        dto.setUsername(user.getUsername());
-        dto.setTravelPackageTitle(travelPackage.getTitle());
-        dto.setOrderId(order.getId());
-        return dto;
+        return dtoConverter.convertOrderToDetailDto(saved);
     }
 
+    // 确认支付一个订单
     public boolean confirmPayment(String orderId) {
-        User user = securityUtil.getCurrentUser();
+        // User user = securityUtil.getCurrentUser();
 
         // 获取订单
         Order order = JpaUtil.getOrThrow(orderRepository, orderId, "订单不存在");
@@ -128,25 +118,47 @@ public class UserService {
         return true;
     }
 
+    // 取消一个订单
     public boolean cancelOrder(String orderId) {
-        User user = securityUtil.getCurrentUser();
+        // User user = securityUtil.getCurrentUser();
 
         // 获取订单
         Order order = JpaUtil.getOrThrow(orderRepository, orderId, "订单不存在");
 
         // 检查状态
-        if (order.getStatus() == Order.OrderStatus.CANCELED || order.getStatus() == Order.OrderStatus.COMPLETED) {
+        if (order.getStatus() == Order.OrderStatus.CANCELED
+                || order.getStatus() == Order.OrderStatus.COMPLETED
+                || order.getStatus() == Order.OrderStatus.ONGOING) {
             throw new BizException("订单状态错误");
         }
 
         // 检查是否需要退款
-        if (order.getStatus() == Order.OrderStatus.PAID) {
-            // TODO: 执行退款逻辑
-        }
+//        if (order.getStatus() == Order.OrderStatus.PAID) {
+//            // TODO: 执行退款逻辑
+//        }
 
         order.setStatus(Order.OrderStatus.CANCELED);
+        // 减少参团人数
+        travelPackageRepository.subParticipantCount(orderId, order.getTravelerCount());
         orderRepository.save(order);
         return true;
+    }
+
+    // 获取当前用户的所有订单列表（分页）
+    @Transactional(readOnly = true)
+    public PageResponseDto<OrderDetailDto> getMyOrders(String currentUserId, PageRequestDto pageRequestDto) {
+        log.info("用户ID '{}' 正在查询自己的全部订单列表...", currentUserId);
+
+        Pageable pageable = PageRequest.of(pageRequestDto.getPage() - 1, pageRequestDto.getSize(),
+                Sort.by(Sort.Direction.fromString(pageRequestDto.getSortDirection()), pageRequestDto.getSortBy()));
+
+        Page<Order> orderPage = orderRepository.findByUserId(currentUserId, pageable);
+
+        List<OrderDetailDto> dtos = orderPage.getContent().stream()
+                .map(dtoConverter::convertOrderToDetailDto)
+                .collect(Collectors.toList());
+
+        return dtoConverter.convertPageToDto(orderPage, dtos);
     }
 
     // [新增] 根据评价状态，获取用户的订单列表
@@ -167,8 +179,7 @@ public class UserService {
             orderPage = orderRepository.findByUserIdAndStatusAndTravelPackageIdIn(
                     currentUserId, Order.OrderStatus.COMPLETED, reviewedPackageIds, pageable
             );
-        }
-        else if ("ALL".equalsIgnoreCase(status)) { // 查询全部(ALL)
+        } else if ("ALL".equalsIgnoreCase(status)) { // 查询全部(ALL)
             orderPage = orderRepository.findByUserIdAndStatus(
                     currentUserId, Order.OrderStatus.COMPLETED, pageable
             );
@@ -434,5 +445,27 @@ public class UserService {
         }
 
         return InteractionStatusResponseDto.builder().statusMap(statusMap).build();
+    }
+
+    public PageResponseDto<OrderDetailDto> getMyOrders(@Valid FavoritePageReqDto pageRequestDto) {
+        User user = securityUtil.getCurrentUser();
+
+        // 构造分页与排序对象
+        Sort.Direction direction = Sort.Direction.fromString(pageRequestDto.getSortDirection());
+        Pageable pageable = PageRequest.of(
+                pageRequestDto.getPage() - 1,
+                pageRequestDto.getSize(),
+                Sort.by(direction, pageRequestDto.getSortBy())
+        );
+
+        // 查询订单数据
+        Page<Order> orderPage = orderRepository.findByUser(user, pageable);
+
+        // 构造返回 DTO 列表
+        List<OrderDetailDto> content = orderPage.getContent().stream()
+                .map(dtoConverter::convertOrderToDetailDto).toList();
+
+        // 返回分页响应结果
+        return dtoConverter.convertPageToDto(orderPage,content);
     }
 }

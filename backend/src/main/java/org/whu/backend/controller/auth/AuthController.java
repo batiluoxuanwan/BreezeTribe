@@ -63,4 +63,10 @@ public class AuthController {
     public Result<Medto> me() {
         return Result.success("返回成功",authService.me());
     }
+
+    // 换绑
+    @PutMapping("/rebind")
+    public Result<?> rebind(@RequestBody RebindRequest request) {
+        return authService.rebind(request);
+    }
 }

@@ -12,7 +12,7 @@ public class FavoriteRequestDto {
     @NotBlank
     private String itemId;
 
-    @Schema(description = "项目类型 (PACKAGE, SPOT, ROUTE)", example = "PACKAGE")
+    @Schema(description = "项目类型 (PACKAGE, SPOT, ROUTE,POST)", example = "PACKAGE")
     @NotNull
     private InteractionItemType itemType;
 }

@@ -21,6 +21,7 @@ import org.whu.backend.dto.like.LikePageRequestDto;
 import org.whu.backend.dto.like.LikeRequestDto;
 import org.whu.backend.dto.order.OrderCreateRequestDto;
 import org.whu.backend.dto.order.OrderDetailDto;
+import org.whu.backend.entity.Favorite;
 import org.whu.backend.dto.order.OrderForReviewDto;
 import org.whu.backend.dto.user.InteractionStatusRequestDto;
 import org.whu.backend.dto.user.InteractionStatusResponseDto;
@@ -63,7 +64,7 @@ public class UserActionController {
     }
 
     /**
-     * [新增] 获取用户的订单列表（按评价状态筛选）
+     *  获取用户的订单列表（按评价状态筛选）
      */
     @Operation(summary = "获取我的订单列表（按评价状态筛选）")
     @GetMapping("/orders/for-review")
@@ -75,6 +76,22 @@ public class UserActionController {
         log.info("用户ID '{}' 访问获取 '{}' 状态的订单列表接口", currentUserId, status);
 
         PageResponseDto<OrderForReviewDto> resultPage = userService.getOrdersByReviewStatus(currentUserId, status, pageRequestDto);
+
+        return Result.success(resultPage);
+    }
+
+    /**
+     *  获取用户的所有订单列表（分页）
+     */
+    @Operation(summary = "获取我的所有订单列表（分页）")
+    @GetMapping("/orders")
+    public Result<PageResponseDto<OrderDetailDto>> getMyOrders(
+            @Valid @ParameterObject PageRequestDto pageRequestDto
+    ) {
+        String currentUserId = AccountUtil.getCurrentAccountId();
+        log.info("用户ID '{}' 访问获取所有订单列表接口", currentUserId);
+
+        PageResponseDto<OrderDetailDto> resultPage = userService.getMyOrders(currentUserId, pageRequestDto);
 
         return Result.success(resultPage);
     }
@@ -103,6 +120,15 @@ public class UserActionController {
             throw new BizException("获取失败");
         return Result.success("获取收藏列表",dto);
     }
+
+//    @Operation(summary = "获取我的订单列表（分页）")
+//    @GetMapping("/orders")
+//    public Result<PageResponseDto<OrderDetailDto>> getMyOrders(@Valid @ParameterObject FavoritePageReqDto pageRequestDto) {
+//        PageResponseDto<OrderDetailDto> dto=userService.getMyOrders(pageRequestDto);
+//        if(dto==null)
+//            throw new BizException("获取失败");
+//        return Result.success("获取订单列表",dto);
+//    }
 
     @Operation(summary = "点赞一个项目（旅行团、景点等）")
     @PostMapping("/likes")

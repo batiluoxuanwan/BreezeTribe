@@ -43,4 +43,16 @@ public class UserPackageCommentController {
 
         return Result.success("发布成功", dto);
     }
+
+    // 删除自己发布的对旅行团的评价
+    @Operation(summary = "删除自己发布的对旅行团的评价")
+    @DeleteMapping("/package-comments/{commentId}")
+    public Result<?> deletePackageComment(@PathVariable String commentId) {
+        String currentUserId = AccountUtil.getCurrentAccountId();
+        log.info("用户ID '{}' 访问删除旅行团评价接口, Comment ID: {}", currentUserId, commentId);
+
+        userPackageCommentService.deleteComment(commentId, currentUserId);
+
+        return Result.success("评价删除成功");
+    }
 }

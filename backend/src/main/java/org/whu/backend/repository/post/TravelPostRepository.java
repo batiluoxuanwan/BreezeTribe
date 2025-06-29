@@ -37,6 +37,10 @@ public interface TravelPostRepository extends
     @Query("UPDATE TravelPost p SET p.commentCount = p.commentCount - 1 WHERE p.id = :postId AND p.commentCount > 0")
     void decrementCommentCount(String postId);
 
+    @Modifying
+    @Query("UPDATE TravelPost p SET p.commentCount = GREATEST(p.commentCount - :num, 0 )WHERE p.id = :postId AND p.commentCount > 0")
+    void decrementCommentCount(String postId, Long num);
+
     // 原子化地增加点赞数
     @Modifying
     @Query("UPDATE TravelPost p SET p.likeCount = p.likeCount + 1 WHERE p.id = :postId")
