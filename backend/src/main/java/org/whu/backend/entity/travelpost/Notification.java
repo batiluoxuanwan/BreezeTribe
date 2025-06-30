@@ -91,6 +91,7 @@ public class Notification {
         // 系统和订单类
         ORDER_CREATED,          // 订单创建成功
         ORDER_PAID,             // 订单支付成功
+        ORDER_CANCELED,         // 订单取消成功
         PACKAGE_APPROVED,       // 旅行团审核通过
         PACKAGE_REJECTED        // 旅行团审核被驳回
     }

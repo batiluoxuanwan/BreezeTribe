@@ -70,6 +70,7 @@ public class UserService {
     @Autowired
     private NotificationService notificationService;
 
+    // 创建一个订单
     @Transactional
     public OrderDetailDto createOrder(OrderCreateRequestDto orderCreateRequestDto) {
         // 1. 获取当前登录用户
@@ -106,6 +107,16 @@ public class UserService {
         // 4. 原子更新报名人数
         travelPackageRepository.addParticipantCount(travelPackage.getId(), order.getTravelerCount());
 
+        // 发送订单创建成功通知
+        String description = String.format("您的关于旅行团 %s 的订单已经创建成功，请及时支付", travelPackage.getTitle());
+        notificationService.createAndSendNotification(
+                user,
+                Notification.NotificationType.ORDER_CREATED,
+                description,
+                null,
+                null,
+                travelPackage.getId());
+
         return dtoConverter.convertOrderToDetailDto(saved);
     }
 
@@ -115,13 +126,24 @@ public class UserService {
         // User user = securityUtil.getCurrentUser();
 
         // 获取订单
-        Order order = JpaUtil.getOrThrow(orderRepository, orderId, "订单不存在");
+        Order order = JpaUtil.getOrThrow(orderRepository, orderId, "订单不存在");        TravelPackage travelPackage = JpaUtil.getOrThrow(travelPackageRepository,order.getTravelPackage().getId(),"旅行团不存在");
+        User user = securityUtil.getCurrentUser();
         if (order.getStatus() != Order.OrderStatus.PENDING_PAYMENT) {
             throw new BizException("订单状态错误");
         }
 
         order.setStatus(Order.OrderStatus.PAID);
         orderRepository.save(order);
+
+        // 发送支付成功通知
+        String description = String.format("您的关于旅行团 %s 的订单已经取消成功，如果已经支付，金额将会原路退款到您的账户", travelPackage.getTitle());
+        notificationService.createAndSendNotification(
+                user,
+                Notification.NotificationType.ORDER_CANCELED,
+                description,
+                null,
+                null,
+                travelPackage.getId());
         return true;
     }
 
@@ -132,7 +154,8 @@ public class UserService {
 
         // 获取订单
         Order order = JpaUtil.getOrThrow(orderRepository, orderId, "订单不存在");
-
+        TravelPackage travelPackage = JpaUtil.getOrThrow(travelPackageRepository,order.getTravelPackage().getId(),"旅行团不存在");
+        User user = securityUtil.getCurrentUser();
         // 检查状态
         if (order.getStatus() == Order.OrderStatus.CANCELED
                 || order.getStatus() == Order.OrderStatus.COMPLETED
@@ -149,6 +172,16 @@ public class UserService {
         // 减少参团人数
         travelPackageRepository.subParticipantCount(orderId, order.getTravelerCount());
         orderRepository.save(order);
+
+        // 发送取消成功通知
+        String description = String.format("您的关于旅行团 %s 的订单已经取消成功，如果已经支付，金额将会原路退款到您的账户", travelPackage.getTitle());
+        notificationService.createAndSendNotification(
+                user,
+                Notification.NotificationType.ORDER_CANCELED,
+                description,
+                null,
+                null,
+                travelPackage.getId());
         return true;
     }
 
