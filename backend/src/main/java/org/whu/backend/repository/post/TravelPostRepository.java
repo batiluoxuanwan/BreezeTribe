@@ -2,18 +2,16 @@ package org.whu.backend.repository.post;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
-import org.whu.backend.entity.TravelPackage;
 import org.whu.backend.entity.travelpost.TravelPost;
 
 @Repository
 public interface TravelPostRepository extends
-        JpaRepository<TravelPost, String>,
-        JpaSpecificationExecutor<TravelPackage> {
+        JpaRepository<TravelPost, String> {
     // 根据作者ID分页查询游记
     Page<TravelPost> findByAuthorId(String authorId, Pageable pageable);
 
@@ -55,4 +53,7 @@ public interface TravelPostRepository extends
     @Modifying
     @Query("UPDATE TravelPost p SET p.viewCount = p.viewCount + 1 WHERE p.id = :postId")
     void incrementViewCount(String postId);
+
+    // 复杂的搜索查询
+    Page<TravelPost> findAll(Specification<TravelPost> spec, Pageable pageable);
 }
