@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.whu.backend.common.Result;
 import org.whu.backend.dto.packagecomment.PackageCommentCreateDto;
@@ -17,6 +18,7 @@ import org.whu.backend.util.AccountUtil;
 @Tag(name = "用户-旅游团评论功能", description = "用户对旅游团进行评论和回复")
 @RestController
 @Slf4j
+@PreAuthorize("hasRole('USER')")
 @RequestMapping("/api/user/packages/comments")
 public class UserPackageCommentController {
     private final UserPackageCommentService userPackageCommentService;

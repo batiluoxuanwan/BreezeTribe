@@ -8,7 +8,6 @@ export const useAuthStore = defineStore('auth', () => {
   const role = ref(null) 
   const userId = ref(null);
 
-
   // 辅助函数：从 token 中解析 userId
   const parseUserIdFromToken = (authToken) => {
     try {
@@ -29,6 +28,7 @@ export const useAuthStore = defineStore('auth', () => {
     role.value = Role   
     userId.value = parseUserIdFromToken(authToken); 
     isLoggedIn.value = true
+    console.log('userID',userId.value)
 
     // 将 token 和 role 存储到 localStorage
     localStorage.setItem('token', authToken)
@@ -73,7 +73,6 @@ export const useAuthStore = defineStore('auth', () => {
     userId
   }
 }, {
-  // 配置 persist 插件以持久化 isLoggedIn, token, 和 role
   persist: {
     paths: ['isLoggedIn', 'token', 'role','userId']
   }

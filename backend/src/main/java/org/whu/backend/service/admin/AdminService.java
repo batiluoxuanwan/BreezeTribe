@@ -23,14 +23,15 @@ import org.whu.backend.dto.spot.SpotUpdateRequestDto;
 import org.whu.backend.dto.travelpack.PackageSummaryDto;
 import org.whu.backend.entity.Spot;
 import org.whu.backend.entity.TravelPackage;
-import org.whu.backend.entity.accounts.Account;
-import org.whu.backend.entity.accounts.Merchant;
-import org.whu.backend.entity.accounts.Role;
+import org.whu.backend.entity.accounts.*;
+import org.whu.backend.entity.travelpost.Notification;
 import org.whu.backend.repository.authRepo.MerchantRepository;
 import org.whu.backend.repository.authRepo.UserRepository;
 import org.whu.backend.repository.travelRepo.SpotRepository;
 import org.whu.backend.repository.travelRepo.TravelPackageRepository;
 import org.whu.backend.service.DtoConverter;
+import org.whu.backend.service.NotificationService;
+import org.whu.backend.util.AccountUtil;
 import org.whu.backend.util.JpaUtil;
 import org.whu.backend.repository.authRepo.AuthRepository;
 
@@ -58,6 +59,10 @@ public class AdminService {
     private AuthRepository accountRepository;
     @Autowired
     private DtoConverter dtoConverter;
+    @Autowired
+    private NotificationService notificationService;
+    @Autowired
+    private AccountUtil securityUtil;
 //    @Autowired
 //    private JpaUtil jpaUtil;
 
@@ -91,6 +96,8 @@ public class AdminService {
     public boolean approvePackage(String packageId) {
         // 1️根据 id 获取旅行团
         TravelPackage travelPackage = JpaUtil.getOrThrow(travelPackageRepository, packageId, "旅行团不存在");
+        Merchant merchant = travelPackage.getDealer();
+        Account admin = securityUtil.getCurrentAccount();
 
         // 2️检查状态是否为 PENDING_APPROVAL
         if (!PENDING_APPROVAL.equals(travelPackage.getStatus())) {
@@ -101,12 +108,24 @@ public class AdminService {
         travelPackage.setStatus(PUBLISHED);
         travelPackageRepository.save(travelPackage);
 
+        // 发送审核通过通知
+        String description = String.format("旅行团 %s 已成功通过审核", travelPackage.getTitle());
+        notificationService.createAndSendNotification(
+                merchant,
+                Notification.NotificationType.PACKAGE_APPROVED,
+                description,
+                null,
+                admin,
+                travelPackage.getId());
+
         return true;
     }
 
-    public boolean rejectPackage( String packageId, RejectionRequestDto rejectionDto) {
+    public boolean rejectPackage(String packageId, RejectionRequestDto rejectionDto) {
         // 1️获取旅行团
         TravelPackage travelPackage = JpaUtil.getOrThrow(travelPackageRepository, packageId, "旅行团不存在");
+        Merchant merchant = travelPackage.getDealer();
+        Account admin = securityUtil.getCurrentAccount();
 
         // 2️检查状态是否为 PENDING_APPROVAL
         if (!PENDING_APPROVAL.equals(travelPackage.getStatus())) {
@@ -117,6 +136,16 @@ public class AdminService {
         travelPackage.setStatus(REJECTED);
         travelPackage.setRejectionReason(rejectionDto.getReason());
         travelPackageRepository.save(travelPackage);
+
+        // 发送审核被拒绝通知
+        String description = String.format("旅行团 %s 未通过审核", travelPackage.getTitle());
+        notificationService.createAndSendNotification(
+                merchant,
+                Notification.NotificationType.PACKAGE_REJECTED,
+                description,
+                rejectionDto.getReason(),
+                admin,
+                travelPackage.getId());
         return true;
     }
 
@@ -129,15 +158,16 @@ public class AdminService {
         Page<Merchant> page = merchantRepository.findByApproval(PENDING, pageable);
 
         List<MerchantSummaryDto> content = page.getContent().stream()
-                .map( mc -> {
-                        MerchantSummaryDto dto=new MerchantSummaryDto();
-                       dto.setId(mc.getId());
-                       dto.setName(mc.getUsername());
-                        dto.setBusinessLicenseUrl(mc.getBusinessLicenseUrl());
-                        dto.setBusinessPermitUrl(mc.getBusinessPermitUrl());
-                        dto.setIdCardUrl1(mc.getIdCardUrl1());
-                        dto.setIdCardUrl2(mc.getIdCardUrl2());
-                        return dto;})
+                .map(mc -> {
+                    MerchantSummaryDto dto = new MerchantSummaryDto();
+                    dto.setId(mc.getId());
+                    dto.setName(mc.getUsername());
+                    dto.setBusinessLicenseUrl(mc.getBusinessLicenseUrl());
+                    dto.setBusinessPermitUrl(mc.getBusinessPermitUrl());
+                    dto.setIdCardUrl1(mc.getIdCardUrl1());
+                    dto.setIdCardUrl2(mc.getIdCardUrl2());
+                    return dto;
+                })
                 .toList();
 
         return PageResponseDto.<MerchantSummaryDto>builder()
@@ -346,13 +376,12 @@ public class AdminService {
                 .build();
     }
 
-    public boolean banAccount(String accountId,BanRequestDto banRequestDto)
-    {
+    public boolean banAccount(String accountId, BanRequestDto banRequestDto) {
         JpaUtil.notNull(accountId, "账户ID不能为空");
         JpaUtil.notNull(banRequestDto, "封禁请求不能为空");
         Account account = JpaUtil.getOrThrow(userRepository, accountId, "账户不存在");
         // 2️判断是否已被封禁
-        if (account.getBanDurationDays()!=0)
+        if (account.getBanDurationDays() != 0)
             throw new BizException("账户已被封禁");
         // 3️设置封禁状态和时间
         //account.setEnabled(false); // 禁用账户
@@ -363,16 +392,15 @@ public class AdminService {
         accountRepository.save(account);
         return true;
     }
-    public boolean unbanAccount(String accountId)
-    {
+
+    public boolean unbanAccount(String accountId) {
         Account account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new BizException("账户不存在"));
 
-        if(account.getBanDurationDays()==-1){}
-        else if (account.getBanDurationDays()==0) {
+        if (account.getBanDurationDays() == -1) {
+        } else if (account.getBanDurationDays() == 0) {
             throw new BizException("账户当前未被封禁");
-        }
-        else if (account.getBanDurationDays() > 0 && account.getBanStartTime() != null) {
+        } else if (account.getBanDurationDays() > 0 && account.getBanStartTime() != null) {
             LocalDateTime banEndTime = account.getBanStartTime().plusDays(account.getBanDurationDays());
             if (LocalDateTime.now().isAfter(banEndTime)) {
                 throw new BizException("账户封禁期已过，无需解封");

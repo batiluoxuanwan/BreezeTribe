@@ -6,4 +6,6 @@ import org.whu.backend.entity.travelpost.PostImage;
 
 @Repository
 public interface PostImageRepository extends JpaRepository<PostImage, Long> {
+
+    boolean existsByMediaFileId(String fileId);
 }

@@ -4,7 +4,7 @@ const routes =[
     {
         path:'/',
         name:'首页',
-        component:() =>import('../views/Public/Home.vue')
+        component:() =>import('../views/Public/home.vue')
     },
     {
         path:'/login',
@@ -31,6 +31,13 @@ const routes =[
         path:'/user/publish-travel-note',
         name:'用户发布游记',
         component:() =>import('../views/User/PublishTravelNote.vue')
+    },
+    {
+        path: '/edit-note/:id',
+        name: '用户编辑游记',
+        component:() =>import('../views/User/PublishTravelNote.vue'),
+        props: true, 
+        meta: { requiresAuth: true }
     },
     {
         path:'/merchant/me',

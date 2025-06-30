@@ -78,6 +78,13 @@
           >
             发表评论
           </el-button>
+          <div v-if="!isLoggedIn" class="login-prompt">
+            <el-alert title="请登录后发表评论" type="info" show-icon :closable="false" center>
+              <template #title>
+                <span class="alert-title">请 <el-link type="primary" @click="goToLogin">登录</el-link> 后发表评论</span>
+              </template>
+            </el-alert>
+          </div>
         </div>
 
         <el-divider></el-divider>
@@ -124,7 +131,7 @@
                     </div>
                   </div>
                   <div v-if="comment.totalReplies > comment.repliesPreview.length" class="view-more-replies" @click="toggleReplies(comment)">
-                    查看全部 {{ comment.totalReplies }} 条回复 <el-icon><ArrowRight /></el-icon>
+                    查看全部回复 <el-icon><ArrowRight /></el-icon>
                   </div>
                 </div>
 
@@ -235,13 +242,14 @@
 <script setup>
 import { ref, onMounted , computed, watch,reactive} from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ElMessage } from 'element-plus';
+import { ElMessage,ElMessageBox } from 'element-plus';
 import { ArrowLeft, Star, ChatDotRound ,Delete} from '@element-plus/icons-vue';
 import { publicAxios,authAxios } from '@/utils/request'; 
 import { useAuthStore } from '@/stores/auth';
 
 const authStore = useAuthStore();
-const currentUserId = computed(() => authStore.userId ? authStore.userId : null);
+const currentUserId = computed(() => authStore.userId);
+const isLoggedIn = computed(()=> authStore.isLoggedIn);//判断是否登录
 
 const route = useRoute(); // 获取当前路由信息
 const router = useRouter(); // 获取路由器实例
@@ -332,6 +340,9 @@ onMounted(() => {
     loading.value = false;
     ElMessage.error('缺少游记ID，无法加载详情。');
   }
+  console.log('userId:',currentUserId)
+  console.log('token.userId:',authStore.userId )
+  console.log('authStore:',authStore )
 });
 
 // 获取主评论列表
@@ -397,6 +408,10 @@ const fetchComments = async (reset = false) => {
  * 发布主评论的函数
  */
 const postComment = async () => {
+  if (!isLoggedIn.value) { 
+    ElMessage.warning('请先登录才能发表评论！');
+    return;
+  }
   if (!newCommentContent.value.trim()) {
     ElMessage.warning('评论内容不能为空！');
     return;
@@ -550,6 +565,10 @@ const setReplyTarget = (parentComment, targetReply) => {
  * @param {object} parentComment - 对应的父评论对象 (即点击“回复”按钮时所在的主评论)
  */
 const postReplyComment = async (parentComment) => {
+  if (!isLoggedIn.value) { 
+    ElMessage.warning('请先登录才能发表回复！');
+    return;
+  }
   if (!replyContent.value.trim()) {
     ElMessage.warning('回复内容不能为空！');
     return;
@@ -601,10 +620,6 @@ const postReplyComment = async (parentComment) => {
  * @param {string} type - 'comment' 或 'reply'
  */
 const deleteCommentOrReply = async (item, parentComment = null, type = 'comment') => {
-  if (!isLoggedIn.value) {
-    ElMessage.warning('请先登录才能删除评论！');
-    return;
-  }
   try {
     await ElMessageBox.confirm(`确定要删除这条${type === 'comment' ? '评论' : '回复'}吗？`, '提示', {
       confirmButtonText: '确定',
@@ -621,16 +636,40 @@ const deleteCommentOrReply = async (item, parentComment = null, type = 'comment'
     if (response.data && response.data.code === 200) {
       ElMessage.success(`${type === 'comment' ? '评论' : '回复'}删除成功！`);
 
-      await fetchComments(true);
+      // --- 关键优化部分开始 ---
 
-      if (isReply && parentComment && expandedCommentId[parentComment.id]) {
-        await fetchAllReplies(parentComment, true);
+      if (type === 'comment') {
+        // 如果删除的是主评论
+        const index = comments.value.findIndex(c => c.id === item.id);
+        if (index !== -1) {
+          comments.value.splice(index, 1); // 从 comments 数组中移除该评论
+        }
+        // 更新游记的评论总数
+        if (note.value) {
+          note.value.commentCount = Math.max(0, note.value.commentCount - 1);
+        }
+      } else if (type === 'reply' && parentComment) {
+        // 如果删除的是回复
+        // 从 parentComment.fullReplies 中移除回复
+        const replyIndexInFull = parentComment.fullReplies.findIndex(r => r.id === item.id);
+        if (replyIndexInFull !== -1) {
+          parentComment.fullReplies.splice(replyIndexInFull, 1);
+        }
+
+        //从 parentComment.repliesPreview 中移除回复 (如果存在)
+        const replyIndexInPreview = parentComment.repliesPreview.findIndex(r => r.id === item.id);
+        if (replyIndexInPreview !== -1) {
+          parentComment.repliesPreview.splice(replyIndexInPreview, 1);
+        }
+
+        // 更新父评论的回复总数
+        parentComment.totalReplies = Math.max(0, parentComment.totalReplies - 1);
+
+        // 更新游记的评论总数 (因为回复也算在游记的总评论数内)
+        if (note.value) {
+          note.value.commentCount = Math.max(0, note.value.commentCount - 1);
+        }
       }
-
-      if (note.value) {
-        await fetchNoteDetail(); // 重新加载游记详情以更新评论数
-      }
-
     } else {
       ElMessage.error(response.data.message || `${type === 'comment' ? '评论' : '回复'}删除失败！`);
     }
@@ -999,6 +1038,37 @@ watch(
   border-radius: 20px; /* 圆角按钮 */
   font-weight: 500;
   letter-spacing: 0.5px;
+  line-height: 1.5;
+}
+
+/* 登录提示样式 */
+.login-prompt {
+  margin-top: 15px;
+  text-align: center;
+  background-color: #ecfff8; 
+  border-radius: 8px;
+  padding: 10px 15px;
+  border: 1px solid #ecfff8;
+}
+
+.login-prompt .el-alert {
+  padding: 0; 
+  background-color: transparent; 
+  border: none;
+  line-height: inherit; 
+}
+
+.login-prompt .alert-title {
+  font-size: 0.95em;
+  color: #606266;
+}
+
+.login-prompt .el-link {
+  font-size: 1em;
+  font-weight: bold;
+  margin: 0 3px;
+  margin-bottom: 4px;
+  line-height: inherit;
 }
 
 /* 评论列表 */
@@ -1008,25 +1078,25 @@ watch(
 
 .comment-item {
   display: flex;
-  align-items: flex-start; /* 评论头像和内容顶部对齐 */
+  align-items: flex-start; 
   margin-bottom: 20px;
   padding-bottom: 15px;
-  border-bottom: 1px dashed #eee; /* 虚线分隔评论 */
+  border-bottom: 1px dashed #eee; 
 }
 
 .comment-item:last-child {
-  border-bottom: none; /* 最后一个评论无底部边框 */
+  border-bottom: none; 
   margin-bottom: 0;
   padding-bottom: 0;
 }
 
 .comment-avatar {
   margin-right: 15px;
-  flex-shrink: 0; /* 防止头像被压缩 */
+  flex-shrink: 0; 
 }
 
 .comment-content-wrapper {
-  flex-grow: 1; /* 评论内容占据剩余空间 */
+  flex-grow: 1; 
 }
 
 .comment-header {
@@ -1116,7 +1186,7 @@ watch(
   transition: color 0.2s ease;
 }
 .view-more-replies:hover {
-  color: #409EFF; /* 悬停变色 */
+  color: #52ac98; /* 悬停变色 */
   text-decoration: underline;
 }
 
@@ -1255,7 +1325,7 @@ watch(
   transition: color 0.2s ease;
 }
 .collapse-replies:hover {
-  color: #409EFF;
+  color: #60b9b2;
 }
 
 /* 就地回复输入框 */
@@ -1375,5 +1445,48 @@ watch(
     font-size: 0.85em;
   }
 }
+
+/* 主评论删除按钮样式 */
+.comment-header .delete-comment-btn {
+  margin-left: auto; /* 推到右侧 */
+  margin-right: 5px; /* 与日期保持一点距离 */
+  color: #f56c6c; /* Element UI danger color */
+  border: none;
+  background-color: transparent;
+  transition: all 0.2s ease-in-out;
+}
+
+.comment-header .delete-comment-btn:hover {
+  background-color: rgba(245, 108, 108, 0.1); 
+  transform: scale(1.1);
+}
+
+/* 回复预览中的删除按钮 */
+.reply-actions-inline .delete-reply-inline-btn {
+  color: #f56c6c; /* danger color */
+  font-size: 0.8em; /* 与其他内联回复按钮保持一致 */
+  margin-left: 5px; /* 与回复按钮间距 */
+}
+
+.reply-actions-inline .delete-reply-inline-btn:hover {
+  color: #ff4949;
+  text-decoration: underline;
+}
+
+/* 完整回复中的删除按钮样式 */
+.full-reply-content-wrapper .reply-header .delete-reply-btn {
+  margin-left: auto; /* 推到右侧 */
+  margin-right: 5px; /* 与日期保持距离 */
+  color: #f56c6c;
+  border: none;
+  background-color: transparent;
+  transition: all 0.2s ease-in-out;
+}
+
+.full-reply-content-wrapper .reply-header .delete-reply-btn:hover {
+  background-color: rgba(245, 108, 108, 0.1);
+  transform: scale(1.1);
+}
+
 
 </style>

@@ -4,8 +4,8 @@
       <template #header>
         <div class="card-header">
           <el-button :icon="ArrowLeft" circle @click="goBack" class="back-button"></el-button>
-          <span>发布游记</span>
-          <el-button type="primary" :disabled="!canPublish" @click="publishNote" class="publish-button">发布</el-button>
+          <span>{{pageTitle}}</span>
+          <el-button type="primary" :disabled="!canPublish" @click="publishNote" class="publish-button">{{headerButtonText}}</el-button>
         </div>
       </template>
 
@@ -23,8 +23,7 @@
 
         <div class="media-upload-area">
           <div v-for="(file, index) in mediaFiles" :key="index" class="media-preview-item">
-            <img v-if="file.type.startsWith('image')" :src="file.url" class="media-thumbnail" />
-            <video v-else-if="file.type.startsWith('video')" :src="file.url" controls class="media-thumbnail"></video>
+            <img :src="file.url" class="media-thumbnail" />
             <el-icon class="delete-media-icon" @click="removeMedia(index)"><CircleCloseFilled /></el-icon>
           </div>
 
@@ -97,8 +96,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, computed, onMounted, nextTick, watch} from 'vue';
+import { useRouter,useRoute } from 'vue-router';
 import {
   ElCard,
   ElButton,
@@ -114,16 +113,30 @@ import { ArrowLeft, Plus, Location, InfoFilled, CircleCloseFilled } from '@eleme
 import { publicAxios,authAxios } from '@/utils/request';
 
 const router = useRouter();
+const route = useRoute();
 
 const noteContent = ref('');
 const noteTitle = ref('');
-const mediaFiles = ref([]);
 const maxMediaFiles = 9;
+
+const existingMediaFiles = ref([]); // 存储从后端加载的已有图片 {id}
+const newlyUploadedMediaFiles = ref([]); // 存储用户本次会话新上传的图片 {id, url, type, rawFile}
 
 const selectedLocation = ref(''); // 用于显示已选择的位置文本
 const locationDialogVisible = ref(false);
 const searchLocation = ref(''); // 用于 autocomplete 输入框
 const selectedSpotData = ref(null); // 用于存储 autocomplete 选中的完整地点数据
+
+const editingNoteId = ref(null);
+// 计算属性：判断当前是编辑模式还是发布模式
+const isEditMode = computed(() => !!editingNoteId.value);
+// 计算属性：根据模式更改按钮文本
+const headerButtonText = computed(() => isEditMode.value ? '更新' : '发布');
+const pageTitle = computed(() => isEditMode.value ? '编辑游记' : '发布游记');
+// mediaFiles 是所有图片的计算属性，用于展示
+const mediaFiles = computed(() => {
+  return [...existingMediaFiles.value, ...newlyUploadedMediaFiles.value];
+});
 
 const canPublish = computed(() => {
   return noteContent.value.trim() !== '' || mediaFiles.value.length > 0;
@@ -152,8 +165,54 @@ watch(noteContent, () => {
 
 onMounted(() => {
   adjustTextareaHeight();
+
+  // 检查路由参数是否有 ID
+  if (route.params.id) {
+    editingNoteId.value = route.params.id;
+    fetchNoteForEditing(editingNoteId.value); // 如果有 ID，就去获取游记详情并预填充
+  }
 });
 
+// 获取游记详情用于预编辑
+const fetchNoteForEditing = async (id) => {
+  ElMessage.info('正在加载游记详情...');
+  try {
+    const response = await authAxios.get(`/user/posts/${id}`); // 获取游记详情
+
+    if (response.data && response.data.code === 200 && response.data.data) {
+      const note = response.data.data;
+      console.log('notes:',note);
+      noteContent.value = note.content;
+      noteTitle.value = note.title === '无标题游记' ? '' : note.title; // 如果是默认标题则清空
+      selectedLocation.value = note.spot? note.spot.name:null; // 预填充地点名称
+      selectedSpotData.value = note.spot? { uid: note.spotId, name: note.spotName } : null; // 预填充地点数据
+
+      existingMediaFiles.value = []; 
+      if (note.imageIdAndUrls) {
+        for (const imageId in note.imageIdAndUrls) {
+          if (Object.prototype.hasOwnProperty.call(note.imageIdAndUrls, imageId)) {
+            const imageUrl = note.imageIdAndUrls[imageId];
+            existingMediaFiles.value.push({
+              id: imageId,
+              url: imageUrl
+            });
+          }
+        }
+      }
+      newlyUploadedMediaFiles.value = [];
+
+      ElMessage.success('游记详情加载成功，可开始编辑！');
+      adjustTextareaHeight(); // 确保内容填充后高度正确
+    } else {
+      ElMessage.error(response.data.message || '获取游记详情失败，请检查ID或稍后再试。');
+      router.replace({ name: '用户发布游记' }); // 重定向到发布页面
+    }
+  } catch (error) {
+    console.error('获取游记详情失败:', error);
+    ElMessage.error('获取游记详情失败，请检查网络或稍后再试。');
+    router.replace({ name: '用户发布游记' }); // 重定向到发布页面
+  }
+};
 
 const goBack = () => {
   ElMessageBox.confirm('您确定要放弃当前编辑吗？未保存的内容将会丢失。', '提示', {
@@ -216,7 +275,7 @@ const uploadMediaPlaceholder = async (options) => {
 
     if (res.data.code ===200&& res.data.data && res.data.data.fileId) {
       const newFileId = res.data.data.fileId; 
-      mediaFiles.value.push({
+      newlyUploadedMediaFiles.value.push({
         id: newFileId, 
         url: URL.createObjectURL(file), 
         type: file.type,
@@ -237,38 +296,73 @@ const uploadMediaPlaceholder = async (options) => {
 
 
 const removeMedia = async (index) => {
-  const fileToRemove = mediaFiles.value[index];
+  const fileToRemove = mediaFiles.value[index]; // 获取要删除的文件对象
 
-  if (!fileToRemove || !fileToRemove.id) {
-      if (fileToRemove && fileToRemove.url.startsWith('blob:')) {
-          URL.revokeObjectURL(fileToRemove.url);
-      }
-      mediaFiles.value.splice(index, 1);
-      ElMessage.info('本地文件已移除');
-      return;
+  if (!fileToRemove) {
+    ElMessage.error('无法找到要删除的文件。');
+    return;
   }
 
-  ElMessageBox.confirm('确定要从服务器删除此文件吗？', '确认删除', {
+  console.log('fileToRemove',fileToRemove)
+  // 检查文件是否存在于 existingMediaFiles 中
+  const existingFileIndex = existingMediaFiles.value.findIndex(f => f.id === fileToRemove.id);
+  // 检查文件是否存在于 newlyUploadedMediaFiles 中
+  const newlyUploadedFileIndex = newlyUploadedMediaFiles.value.findIndex(f => f.id === fileToRemove.id);
+
+  // 询问用户是否确认删除 (统一弹窗)
+  let confirmMessage = '确定要删除此文件吗？';
+  if (isEditMode.value && existingFileIndex !== -1) {
+    confirmMessage = '确定要从游记中移除此图片吗？修改将在更新游记后保存。';
+  } else if (newlyUploadedFileIndex !== -1) {
+    confirmMessage = '确定要删除此上传文件吗？';
+  } else {
+    // 这是一个没有ID的临时文件，或者其他异常情况
+    confirmMessage = '确定要移除此本地文件吗？';
+  }
+
+
+  ElMessageBox.confirm(confirmMessage, '确认删除', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning',
   }).then(async () => {
-    try {
-      ElMessage.info('正在删除文件...');
-      const res = await authAxios.delete(`/user/media/${fileToRemove.id}`);
-
-      if (res.data.code === 200) {
-        if (fileToRemove.url.startsWith('blob:')) {
+    // 处理文件删除逻辑
+    if (existingFileIndex !== -1) { // 如果是已存在的文件
+      if (isEditMode.value) {
+        // 编辑模式下，仅从前端 existingMediaFiles 数组中移除
+        existingMediaFiles.value.splice(existingFileIndex, 1);
+        ElMessage.success('图片已从游记中移除，将在更新后生效！');
+        console.log('existingMediaFiles.value:',existingMediaFiles.value)
+      }
+    } else if (newlyUploadedFileIndex !== -1) { // 如果是新上传的文件
+      if (fileToRemove.id) { // 如果有文件ID，说明已上传到服务器
+        ElMessage.info('正在删除上传文件...');
+        try {
+          const res = await authAxios.delete(`/user/media/${fileToRemove.id}`);
+          if (res.data.code === 200) {
+            if (fileToRemove.url && fileToRemove.url.startsWith('blob:')) {
+              URL.revokeObjectURL(fileToRemove.url); // 释放本地 blob URL
+            }
+            newlyUploadedMediaFiles.value.splice(newlyUploadedFileIndex, 1);
+            ElMessage.success('新上传的媒体文件已成功删除！');
+          } else {
+            ElMessage.error(`文件删除失败: ${res.data.message || '服务器返回错误'}`);
+          }
+        } catch (err) {
+          console.error('删除新上传媒体文件失败:', err);
+          ElMessage.error(`删除新上传媒体文件失败: ${err.response?.data?.message || '网络错误或服务器异常'}`);
+        }
+      } else { // 没有文件ID，说明是临时的本地文件 (例如上传前被移除)
+        if (fileToRemove.url && fileToRemove.url.startsWith('blob:')) {
           URL.revokeObjectURL(fileToRemove.url); 
         }
-        mediaFiles.value.splice(index, 1); 
-        ElMessage.success('媒体文件已成功删除！');
-      } else {
-        ElMessage.error(`文件删除失败: ${res.data.message || '服务器返回错误'}`);
+        newlyUploadedMediaFiles.value.splice(newlyUploadedFileIndex, 1);
+        ElMessage.info('本地未上传文件已移除。');
       }
-    } catch (err) {
-      console.error('删除媒体文件失败:', err);
-      ElMessage.error(`删除媒体文件失败: ${err.response?.data?.message || '网络错误或服务器异常'}`);
+
+    } else {
+      console.warn("尝试删除一个未识别的文件:", fileToRemove);
+      ElMessage.warning('未能识别并移除文件。');
     }
   }).catch(() => {
     ElMessage.info('取消删除');
@@ -333,40 +427,61 @@ const publishNote = async () => {
 
   ElMessage.info('正在发布游记...');
 
-  const imageIds = mediaFiles.value.map(item => item.id).filter(id => id); 
+  // 合并现有图片ID和新上传图片ID，作为最终提交的图片列表
+  const allImageIds = [
+    ...existingMediaFiles.value.map(item => item.id).filter(id => id), // 现有图片 ID
+    ...newlyUploadedMediaFiles.value.map(item => item.id).filter(id => id) // 新上传图片 ID
+  ];
 
   if (noteContent.value.trim() === '' && imageIds.length === 0) {
       ElMessage.warning('请输入游记内容或上传图片！');
       return;
   }
 
-  try {
-    const requestBody = {
-      title: noteTitle.value.trim() === '' ? '无标题游记' : noteTitle.value,
-      content: noteContent.value,
-      spotId: selectedSpotData.value ? selectedSpotData.value.uid : null,
-      imageIds: imageIds, 
-    };
-    
-    console.log('正在提交游记信息...',selectedSpotData.value);
-    const postRes = await authAxios.post('/user/posts', requestBody); 
+  const requestBody = {
+    title: noteTitle.value.trim() === '' ? '无标题游记' : noteTitle.value,
+    content: noteContent.value,
+    spotId: selectedSpotData.value ? selectedSpotData.value.uid : null,
+    imageIds: allImageIds, 
+  };
 
-    if (postRes.data.code === 200) {
-      ElMessage.success('游记发布成功！');
-      console.log('发表成功',postRes.data.data)
+  try {
+    let res; // 定义一个变量来存储 API 响应
+
+    if (isEditMode.value) {
+      ElMessage.info('正在更新游记...');
+      console.log('正在提交更新游记信息...', requestBody);
+      res = await authAxios.put(`/user/posts/${editingNoteId.value}`, requestBody);
+    } else {
+      ElMessage.info('正在发布游记...');
+      console.log('正在提交新游记信息...', requestBody);
+      res = await authAxios.post('/user/posts', requestBody);
+    }
+
+    if (res.data.code === 200) {
+      ElMessage.success(`${isEditMode.value ? '游记更新' : '游记发布'}成功！`);
+      console.log(`${isEditMode.value ? '更新' : '发布'}成功`, res.data.data);
       noteContent.value = '';
       noteTitle.value = '';
-      mediaFiles.value.forEach(item => {
-        if (item.url.startsWith('blob:')) {
-          URL.revokeObjectURL(item.url); 
+      newlyUploadedMediaFiles.value.forEach(item => { // 释放新上传图片的本地 URL
+        if (item.url && item.url.startsWith('blob:')) {
+          URL.revokeObjectURL(item.url);
         }
       });
-      mediaFiles.value = []; 
+      newlyUploadedMediaFiles.value = []; // 清空新上传图片数组
       selectedLocation.value = '';
       selectedSpotData.value = null;
       searchLocation.value = '';
+      editingNoteId.value = null; // 重置编辑ID，回到发布状态
       adjustTextareaHeight();
-      router.push('/user/me'); 
+      // 根据模式跳转到不同的页面
+      if (isEditMode.value) {
+        // 更新成功后，跳转到该游记的详情页（假设详情页路由名为 TravelNoteDetail）
+        router.push({ name: 'EditNote', params: { id: res.data.data.id } });
+      } else {
+        // 发布成功后，跳转到用户个人主页
+        router.push('/user/me');
+      }
     } else {
       ElMessage.error(`发布失败: ${postRes.data.message || '未知错误'}`);
     }

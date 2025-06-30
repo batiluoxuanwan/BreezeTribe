@@ -7,6 +7,7 @@ import org.whu.backend.dto.PageResponseDto;
 import org.whu.backend.dto.accounts.AuthorDto;
 import org.whu.backend.dto.accounts.UserProfileDto;
 import org.whu.backend.dto.mediafile.MediaFileDto;
+import org.whu.backend.dto.notification.NotificationDto;
 import org.whu.backend.dto.order.OrderDetailDto;
 import org.whu.backend.dto.order.OrderForReviewDto;
 import org.whu.backend.dto.order.OrderSummaryForDealerDto;
@@ -24,11 +25,13 @@ import org.whu.backend.dto.travelpack.PackageSummaryDto;
 import org.whu.backend.entity.*;
 import org.whu.backend.entity.accounts.User;
 import org.whu.backend.entity.travelpost.Comment;
+import org.whu.backend.entity.travelpost.Notification;
 import org.whu.backend.entity.travelpost.TravelPost;
 import org.whu.backend.util.AliyunOssUtil;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -41,6 +44,27 @@ public class DtoConverter {
 
     public static final long EXPIRE_TIME = 60 * 60 * 4 * 1000;
     public static final String IMAGE_PROCESS = "image/resize,l_400/quality,q_50";
+
+
+
+    public NotificationDto convertNotificationToDto(Notification notification) {
+        String url = AliyunOssUtil.generatePresignedGetUrl(
+                notification.getTriggerUser().getAvatarUrl(), EXPIRE_TIME, IMAGE_PROCESS);
+
+        return NotificationDto.builder().
+                id(notification.getId())
+                .isRead(notification.isRead())
+                .type(notification.getType().toString())
+                .description(notification.getDescription())
+                .content(notification.getContent())
+                .triggerUserId(notification.getTriggerUser().getId())
+                .triggerUsername(notification.getTriggerUser().getUsername())
+                .triggerUserAvatarUrl(url)
+                .relatedItemId(notification.getRelatedItemId())
+                .createdTime(notification.getCreatedTime())
+                .build();
+    }
+
 
     // 将文件元信息实体MediaFile转换为MediaFileDto
     public MediaFileDto convertMediaFileToDto(MediaFile entity) {
@@ -68,6 +92,32 @@ public class DtoConverter {
     public <T, U> PageResponseDto<U> convertPageToDto(Page<T> page, List<U> content) {
         return PageResponseDto.<U>builder()
                 .content(content)
+                .pageNumber(page.getNumber() + 1)
+                .pageSize(page.getSize())
+                .totalElements(page.getTotalElements())
+                .totalPages(page.getTotalPages())
+                .first(page.isFirst())
+                .last(page.isLast())
+                .numberOfElements(page.getNumberOfElements())
+                .build();
+    }
+
+    /**
+     * [新增] 通用分页转换方法的重载版本，接收一个转换函数
+     *
+     * @param page      JPA返回的Page<T>对象
+     * @param converter 一个能将实体T转换为DTO U的函数
+     * @return 自定义的PageResponseDto<U>
+     */
+    public <T, U> PageResponseDto<U> convertPageToDto(Page<T> page, Function<T, U> converter) {
+        // 1. 使用传入的转换函数，将实体列表转换为DTO列表
+        List<U> dtoList = page.getContent().stream()
+                .map(converter)
+                .collect(Collectors.toList());
+
+        // 2. 使用Builder模式构建并返回我们自定义的分页响应对象
+        return PageResponseDto.<U>builder()
+                .content(dtoList)
                 .pageNumber(page.getNumber() + 1)
                 .pageSize(page.getSize())
                 .totalElements(page.getTotalElements())
@@ -300,7 +350,6 @@ public class DtoConverter {
                 .createdTime(post.getCreatedTime())
                 .build();
     }
-
 
 
     // 将景点Spot实体转换为景点SpotDetailDto
