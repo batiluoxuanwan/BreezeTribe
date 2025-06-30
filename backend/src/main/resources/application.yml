@@ -44,6 +44,8 @@ spring:
       port: 6379
       password: cloudora100points
       database: 0
+      repositories:
+        enabled: false
 
 # 服务器配置
 server:
