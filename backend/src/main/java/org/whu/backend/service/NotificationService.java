@@ -36,12 +36,19 @@ public class NotificationService {
      *
      * @param recipient     接收者
      * @param type          通知的类型
+     * @param description   通知的描述
      * @param content       通知的具体内容
      * @param triggerUser   通知的触发者，例如点赞的人
      * @param relatedItemId 相关的实体id，例如被点赞的游记
      */
     @Transactional
-    public void createAndSendNotification(Account recipient, Notification.NotificationType type, String description, String content, Account triggerUser, String relatedItemId) {
+    public void createAndSendNotification(
+            Account recipient,
+            Notification.NotificationType type,
+            String description,
+            String content,
+            Account triggerUser,
+            String relatedItemId) {
         if (recipient == null) {
             log.warn("通知创建失败：接收者为空。");
             return;

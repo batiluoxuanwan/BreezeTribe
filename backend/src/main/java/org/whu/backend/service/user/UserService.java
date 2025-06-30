@@ -28,11 +28,14 @@ import org.whu.backend.dto.user.ItemIdentifierDto;
 import org.whu.backend.dto.user.ItemStatusDto;
 import org.whu.backend.entity.*;
 import org.whu.backend.entity.accounts.User;
+import org.whu.backend.entity.travelpost.Notification;
+import org.whu.backend.entity.travelpost.TravelPost;
 import org.whu.backend.repository.FavoriteRepository;
 import org.whu.backend.repository.LikeRepository;
 import org.whu.backend.repository.post.TravelPostRepository;
 import org.whu.backend.repository.travelRepo.*;
 import org.whu.backend.service.DtoConverter;
+import org.whu.backend.service.NotificationService;
 import org.whu.backend.util.AccountUtil;
 import org.whu.backend.util.JpaUtil;
 
@@ -64,6 +67,8 @@ public class UserService {
     private DtoConverter dtoConverter;
     @Autowired
     private PackageCommentRepository packageCommentRepository;
+    @Autowired
+    private NotificationService notificationService;
 
     @Transactional
     public OrderDetailDto createOrder(OrderCreateRequestDto orderCreateRequestDto) {
@@ -216,6 +221,7 @@ public class UserService {
             throw new BizException("已经收藏过该对象");
         }
 
+        TravelPost post = null;
         // 根据类型增加对应的统计数据
         switch (favoriteRequestDto.getItemType()) {
             case PACKAGE:
@@ -230,7 +236,7 @@ public class UserService {
                 JpaUtil.getOrThrow(routeRepository, favoriteRequestDto.getItemId(), "路线不存在");
                 break;
             case POST:
-                JpaUtil.getOrThrow(travelPostRepository, favoriteRequestDto.getItemId(), "游记不存在");
+                post = JpaUtil.getOrThrow(travelPostRepository, favoriteRequestDto.getItemId(), "游记不存在");
                 travelPostRepository.incrementFavoriteCount(favoriteRequestDto.getItemId());
                 break;
             default:
@@ -243,6 +249,32 @@ public class UserService {
         favorite.setItemType(favoriteRequestDto.getItemType());
 
         favoriteRepository.save(favorite);
+
+        // 根据对应类型发送对应的通知
+        switch (favoriteRequestDto.getItemType()) {
+            case PACKAGE:
+                break;
+            case SPOT:
+                break;
+            case ROUTE:
+                break;
+            case POST:
+                // 发送游记被收藏的通知
+                log.info("给用户 {} 发送被游记被收藏的通知", user.getUsername());
+                String description = String.format("%s 收藏了你的游记 %s", user.getUsername(), post.getTitle());
+                notificationService.createAndSendNotification(
+                        post.getAuthor(),
+                        Notification.NotificationType.NEW_POST_FAVORITE,
+                        description,
+                        null,
+                        user,
+                        post.getId()
+                );
+                break;
+            default:
+                throw new BizException("非法参数：未知的收藏类型");
+        }
+
 
         return true;
     }
@@ -334,9 +366,11 @@ public class UserService {
             throw new BizException("不能重复点赞");
         }
 
+        TravelPost post = null;
+
         switch (likeRequestDto.getItemType()) {
             case POST:
-                JpaUtil.getOrThrow(travelPostRepository, likeRequestDto.getItemId(), "游记不存在");
+                post = JpaUtil.getOrThrow(travelPostRepository, likeRequestDto.getItemId(), "游记不存在");
                 travelPostRepository.incrementLikeCount(likeRequestDto.getItemId());
                 break;
             default:
@@ -349,6 +383,18 @@ public class UserService {
         like.setItemType(likeRequestDto.getItemType());
 
         likeRepository.save(like);
+
+        // 发送游记被点赞的通知
+        String description = String.format("%s 赞了你的游记 %s", user.getUsername(), post.getTitle());
+
+        notificationService.createAndSendNotification(
+                post.getAuthor(),
+                Notification.NotificationType.NEW_POST_LIKE,
+                description,
+                null,
+                user,
+                post.getId()
+        );
 
         return true;
     }
@@ -472,6 +518,6 @@ public class UserService {
                 .map(dtoConverter::convertOrderToDetailDto).toList();
 
         // 返回分页响应结果
-        return dtoConverter.convertPageToDto(orderPage,content);
+        return dtoConverter.convertPageToDto(orderPage, content);
     }
 }
