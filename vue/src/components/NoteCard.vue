@@ -5,10 +5,10 @@
       <div v-if="note.category" class="category-badge">{{ note.category }}</div>
       <div class="stats-overlay">
         <span class="view-count">
-          <i class="el-icon-view"></i> {{ formatNumber(note.views || 0) }}
+          <i class="el-icon-view"><el-icon><View /></el-icon></i> {{ formatNumber(note.viewCount || 0) }}
         </span>
         <span class="like-count">
-          <i class="el-icon-heart"></i> {{ formatNumber(note.likes || 0) }}
+          <i class="el-icon-heart"><el-icon><Pointer /></el-icon></i> {{ formatNumber(note.likeCount || 0) }}
         </span>
       </div>
     </div>
@@ -18,7 +18,7 @@
       <div class="author-info">
         <img class="avatar" :src="note.author.avatarUrl" :alt="note.author" />
         <span class="author-name">{{ note.author.username }}</span>
-        <span class="publish-date">{{ formatDate(note.publishDate) }}</span>
+        <span class="publish-date">{{ formatDate(note.createdTime) }}</span>
       </div>
       <el-button type="primary" size="small" class="read-more-button" @click.stop="goToDetail">
         阅读详情 <i class="el-icon-arrow-right el-icon--right"></i>

@@ -158,7 +158,7 @@ const goBackToMyNotes = () => {
 const editNote = () => {
   if (note.value && note.value.id) {
     // 跳转到编辑游记页面，并带上游记ID
-    router.push({ name: 'editTravelNote', params: { id: note.value.id } }); 
+    router.push({ name: '用户编辑游记', params: { id: note.value.id } }); 
   } else {
     ElMessage.warning('无法编辑，游记信息不完整。');
   }

@@ -97,8 +97,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, computed, onMounted, nextTick, watch} from 'vue';
+import { useRouter,useRoute } from 'vue-router';
 import {
   ElCard,
   ElButton,
@@ -114,16 +114,30 @@ import { ArrowLeft, Plus, Location, InfoFilled, CircleCloseFilled } from '@eleme
 import { publicAxios,authAxios } from '@/utils/request';
 
 const router = useRouter();
+const route = useRoute();
 
 const noteContent = ref('');
 const noteTitle = ref('');
-const mediaFiles = ref([]);
 const maxMediaFiles = 9;
+
+const existingMediaFiles = ref([]); // 存储从后端加载的已有图片 {id}
+const newlyUploadedMediaFiles = ref([]); // 存储用户本次会话新上传的图片 {id, url, type, rawFile}
 
 const selectedLocation = ref(''); // 用于显示已选择的位置文本
 const locationDialogVisible = ref(false);
 const searchLocation = ref(''); // 用于 autocomplete 输入框
 const selectedSpotData = ref(null); // 用于存储 autocomplete 选中的完整地点数据
+
+const editingNoteId = ref(null);
+// 计算属性：判断当前是编辑模式还是发布模式
+const isEditMode = computed(() => !!editingNoteId.value);
+// 计算属性：根据模式更改按钮文本
+const headerButtonText = computed(() => isEditMode.value ? '更新' : '发布');
+const pageTitle = computed(() => isEditMode.value ? '编辑游记' : '发布游记');
+// mediaFiles 是所有图片的计算属性，用于展示
+const mediaFiles = computed(() => {
+  return [...existingMediaFiles.value, ...newlyUploadedMediaFiles.value];
+});
 
 const canPublish = computed(() => {
   return noteContent.value.trim() !== '' || mediaFiles.value.length > 0;
@@ -152,8 +166,46 @@ watch(noteContent, () => {
 
 onMounted(() => {
   adjustTextareaHeight();
+
+  // 检查路由参数是否有 ID
+  if (route.params.id) {
+    editingNoteId.value = route.params.id;
+    fetchNoteForEditing(editingNoteId.value); // 如果有 ID，就去获取游记详情并预填充
+  }
 });
 
+// 获取游记详情用于预编辑
+const fetchNoteForEditing = async (id) => {
+  ElMessage.info('正在加载游记详情...');
+  try {
+    const response = await authAxios.get(`/user/posts/${id}`); // 获取游记详情
+
+    if (response.data && response.data.code === 200 && response.data.data) {
+      const note = response.data.data;
+      console.log('notes:',note);
+      noteContent.value = note.content;
+      noteTitle.value = note.title === '无标题游记' ? '' : note.title; // 如果是默认标题则清空
+      selectedLocation.value = note.spot? note.spot.name:null; // 预填充地点名称
+      selectedSpotData.value = note.spot? { uid: note.spotId, name: note.spotName } : null; // 预填充地点数据
+
+      existingMediaFiles.value = note.imageUrls.map(img => ({
+        id: img.fileId,
+        url: img.fileUrl,
+        type: img.fileType,
+        rawFile: null // 已存在的图片没有原始文件
+      }));
+      ElMessage.success('游记详情加载成功，可开始编辑！');
+      adjustTextareaHeight(); // 确保内容填充后高度正确
+    } else {
+      ElMessage.error(response.data.message || '获取游记详情失败，请检查ID或稍后再试。');
+      router.replace({ name: '用户发布游记' }); // 重定向到发布页面
+    }
+  } catch (error) {
+    console.error('获取游记详情失败:', error);
+    ElMessage.error('获取游记详情失败，请检查网络或稍后再试。');
+    router.replace({ name: '用户发布游记' }); // 重定向到发布页面
+  }
+};
 
 const goBack = () => {
   ElMessageBox.confirm('您确定要放弃当前编辑吗？未保存的内容将会丢失。', '提示', {
