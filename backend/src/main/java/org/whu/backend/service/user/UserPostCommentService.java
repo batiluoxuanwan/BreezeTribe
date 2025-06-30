@@ -122,7 +122,7 @@ public class UserPostCommentService {
         allIdsToDelete.add(comment.getId());
         // TODO: 如果允许评论点赞，要移除点赞记录
         // likeRepository.deleteAllByItemIdInAndItemType(allIdsToDelete, InteractionItemType.POST_COMMENT);
-        log.info(" -> 已清除 {} 条关联的点赞记录。", allIdsToDelete.size());
+        // log.info(" -> 已清除 {} 条关联的点赞记录。", allIdsToDelete.size());
 
         commentRepository.softDeleteAllByIds(allIdsToDelete);
 
@@ -142,7 +142,7 @@ public class UserPostCommentService {
         if (hasReplies) {
             // 如果它下面还有人回复，执行“屏蔽”操作
             log.info(" -> 该评论存在子回复，执行屏蔽操作。");
-            comment.setContent("[该评论已被作者删除]");
+            // comment.setContent("[该评论已被作者删除]");
             comment.setDeletedByAuthor(true);
             // TODO: 如果允许评论点赞，要移除点赞记录 2
             // likeRepository.deleteAllByItemIdAndItemType(comment.getId(), InteractionItemType.POST_COMMENT);
@@ -206,7 +206,7 @@ public class UserPostCommentService {
                             .map(dtoConverter::convertCommentToDto)
                             .collect(Collectors.toList());
 
-                    long totalReplies = commentRepository.countByParentId(comment.getId());
+                    long totalReplies = commentRepository.countAllDescendants(comment.getId());
 
                     return dtoConverter.convertCommentToDtoWithReplies(comment, repliesPreview, totalReplies);
                 })

@@ -22,7 +22,7 @@ public class ScheduledService {
      * (秒 分 时 日 月 周)
      * 批量更新订单状态
      */
-    @Scheduled(cron = "0 0 1 * * ?", zone = "Asia/Shanghai")
+    @Scheduled(cron = "0 0 1 * * ?", zone = "Asia/Shanghai") // UTC +8 时区
     @Transactional
     public void updateOrderStatusJob() {
         log.info("【定时任务】开始执行订单状态更新任务...");

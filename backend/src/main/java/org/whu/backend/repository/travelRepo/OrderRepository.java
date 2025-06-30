@@ -8,7 +8,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.whu.backend.entity.Order;
 import org.whu.backend.entity.accounts.User;
 import org.whu.backend.entity.TravelPackage;
-import org.whu.backend.entity.accounts.User;
 
 import java.time.LocalDateTime;
 import java.util.Set;
@@ -44,10 +43,11 @@ public interface OrderRepository extends JpaRepository<Order, String> {
      * 批量将已支付且已过出发日期的订单，状态更新为“进行中”
      * @param currentTime 当前时间
      * @return 更新的记录数
+     * 原生SQL语句不会自动更新updated_time，需要手动更新！
      */
     @Modifying
     @Query(value = "UPDATE orders o, travel_packages tp " +
-            "SET o.status = 'ONGOING' " +
+            "SET o.status = 'ONGOING' ,o.updated_time = NOW()" +
             "WHERE o.package_id = tp.id " +
             "AND o.status = 'PAID' " +
             "AND tp.departure_date <= :currentTime",
@@ -61,7 +61,7 @@ public interface OrderRepository extends JpaRepository<Order, String> {
      */
     @Modifying
     @Query(value = "UPDATE orders o JOIN travel_packages tp ON o.package_id = tp.id " +
-            "SET o.status = 'COMPLETED' " +
+            "SET o.status = 'COMPLETED' ,o.updated_time = NOW()" +
             "WHERE o.status = 'ONGOING' AND DATE_ADD(tp.departure_date, INTERVAL tp.duration_in_days DAY) <= :currentTime",
             nativeQuery = true)
     int updateOngoingToCompleted(LocalDateTime currentTime);

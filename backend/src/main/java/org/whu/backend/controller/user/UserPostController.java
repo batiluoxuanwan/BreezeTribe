@@ -11,10 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import org.whu.backend.common.Result;
 import org.whu.backend.dto.PageRequestDto;
 import org.whu.backend.dto.PageResponseDto;
-import org.whu.backend.dto.post.PostCreateRequestDto;
-import org.whu.backend.dto.post.PostDetailDto;
-import org.whu.backend.dto.post.PostSummaryDto;
-import org.whu.backend.dto.post.PostUpdateRequestDto;
+import org.whu.backend.dto.post.*;
 import org.whu.backend.entity.travelpost.TravelPost;
 import org.whu.backend.service.DtoConverter;
 import org.whu.backend.service.user.UserPostService;
@@ -60,11 +57,12 @@ public class UserPostController {
     // 获取我发布的某一篇游记的详细信息
     @Operation(summary = "获取我发布的某一篇游记的详细信息")
     @GetMapping("/{id}")
-    public Result<PostDetailDto> getMyPostDetails(@PathVariable String id) {
+    public Result<PostDetailToOwnerDto> getMyPostDetails(@PathVariable String id) {
         String currentUserId = AccountUtil.getCurrentAccountId();
         log.info("用户ID '{}' 访问获取自己的游记详情接口, Post ID: {}", currentUserId, id);
 
-        PostDetailDto postDetails = userPostService.getMyPostDetails(id, currentUserId);
+        PostDetailToOwnerDto postDetails = userPostService.getMyPostDetails(id, currentUserId);
+
         return Result.success(postDetails);
     }
 

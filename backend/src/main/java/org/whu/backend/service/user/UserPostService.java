@@ -12,10 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.whu.backend.common.exception.BizException;
 import org.whu.backend.dto.PageRequestDto;
 import org.whu.backend.dto.PageResponseDto;
-import org.whu.backend.dto.post.PostCreateRequestDto;
-import org.whu.backend.dto.post.PostDetailDto;
-import org.whu.backend.dto.post.PostSummaryDto;
-import org.whu.backend.dto.post.PostUpdateRequestDto;
+import org.whu.backend.dto.post.*;
 import org.whu.backend.entity.InteractionItemType;
 import org.whu.backend.entity.MediaFile;
 import org.whu.backend.entity.Spot;
@@ -120,12 +117,12 @@ public class UserPostService {
 
     // 获取一篇游记的详细信息（权限校验）
     @Transactional(readOnly = true)
-    public PostDetailDto getMyPostDetails(String postId, String currentUserId) {
+    public PostDetailToOwnerDto getMyPostDetails(String postId, String currentUserId) {
         log.info("用户ID '{}' 正在获取游记ID '{}' 的详情...", currentUserId, postId);
 
         TravelPost post = findPostByIdAndVerifyOwnership(postId, currentUserId);
 
-        return dtoConverter.convertPostToDetailDto(post);
+        return dtoConverter.convertPostToDetailToOwnerDto(post);
     }
 
 

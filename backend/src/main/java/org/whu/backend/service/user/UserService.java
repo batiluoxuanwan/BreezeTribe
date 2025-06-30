@@ -447,6 +447,7 @@ public class UserService {
         return InteractionStatusResponseDto.builder().statusMap(statusMap).build();
     }
 
+    // 准备废弃
     public PageResponseDto<OrderDetailDto> getMyOrders(@Valid FavoritePageReqDto pageRequestDto) {
         User user = securityUtil.getCurrentUser();
 

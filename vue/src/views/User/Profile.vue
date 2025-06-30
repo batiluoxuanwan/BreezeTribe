@@ -15,7 +15,6 @@
         <div><strong>{{ user.joinedCount }}</strong><p>已报名</p></div>
         <div><strong>{{ user.noteCount }}</strong><p>游记</p></div>
       </div>
-      <el-button @click="editProfileDialog = true" type="primary" plain class="edit-profile-btn">编辑资料</el-button>
 
       <div class="sidebar-menu">
         <div
@@ -176,7 +175,7 @@
         </el-tab-pane>
         <el-tab-pane label="系统设置" name="systemSettings">
           <div style="margin-bottom: 32px;">
-            <AccountOverview />
+            <AccountOverview @userUpdated="handleUserUpdated"/>
           </div>
         </el-tab-pane>
       </el-tabs>
@@ -185,7 +184,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref,computed,watch } from 'vue'
+import { onMounted, ref,computed,reactive } from 'vue'
 import { Star, Tickets, EditPen, Comment, Bell, ArrowLeft, Plus } from '@element-plus/icons-vue' 
 import { ElTabs, ElTabPane, ElCard, ElForm, ElFormItem, ElInput, ElSelect, ElOption, ElButton, ElPagination, ElEmpty, ElMessage } from 'element-plus';
 import AccountOverview from '@/components/AccountOverview.vue' 
@@ -195,15 +194,16 @@ import { useRoute,useRouter } from 'vue-router';
 import { authAxios } from '@/utils/request';
 
 const router = useRouter();
-const route = useRoute();
-
-const user = ref({
-  username: '旅行者小明',
-  avatarUrl: 'https://fuss10.elemecdn.com/e/5d/4a731a90594a4af544c0c25941171jpeg.jpeg',
-  collectedCount: 4,
-  joinedCount: 2,
-  noteCount: 3,
-})
+const user = reactive({
+  id: '',
+  email: '',
+  phone: '',
+  role: '',
+  username: '',
+  avatarUrl: '',
+  createdAt: '',
+  updatedAt: '',
+});
 
 const collectedTours = ref([
   { id: 1, title: '桂林山水团', image: 'https://picsum.photos/id/10/120/90', location: '广西' },
@@ -231,15 +231,39 @@ const notifications = ref([
 
 const activeTab = ref('collected')
 
-const editProfileDialog = ref(false)
-const editForm = ref({ username: user.value.username, password: '' })
 const unreadNotifications = ref(1);
 
-function saveProfile() {
-  user.value.username = editForm.value.username
-  ElMessage.success('资料保存成功！')
-  editProfileDialog.value = false
-}
+const fetchUserProfile = async () => {
+  try {
+    const res = await authAxios.get('/auth/me'); 
+
+    if (res.data.code === 200) {
+      Object.assign(user, res.data.data);
+      ElMessage.success('用户信息获取成功！');
+      console.log('User Profile Data:', user); // 调试用
+    } else {
+      // 处理非200状态码，显示后端返回的错误信息
+      ElMessage.error(res.data.message || '获取用户信息失败');
+      console.error('Failed to fetch user profile:', res.data.message);
+    }
+  } catch (error) {
+    // 处理网络请求错误或服务器无响应
+    if (error.response) {
+      // 服务器返回了状态码，但不在 2xx 范围内
+      console.error('Error response data:', error.response.data);
+      console.error('Error response status:', error.response.status);
+      ElMessage.error(`获取用户信息失败：${error.response.data.message || '服务器错误'}`);
+    } else if (error.request) {
+      // 请求已发出但没有收到响应
+      console.error('No response received:', error.request);
+      ElMessage.error('获取用户信息失败：网络错误或服务器无响应');
+    } else {
+      // 其他错误
+      console.error('Error setting up the request:', error.message);
+      ElMessage.error(`获取用户信息失败：${error.message}`);
+    }
+  }
+};
 
 // 跳转首页
 const goToHome = () => {
@@ -321,8 +345,14 @@ const fetchNotes = async (reset = false) => {
   }
 };
 
+const handleUserUpdated = () => {
+  console.log('Parent: User update notification received from child. Re-fetching user profile...');
+  fetchUserProfile();
+};
+
 onMounted(() => {
   fetchNotes(true);
+  fetchUserProfile();
 })
 
 // 跳转详情页并传递游记id
