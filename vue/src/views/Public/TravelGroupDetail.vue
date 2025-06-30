@@ -232,79 +232,124 @@ const fetchTravelGroupDetail = async (id) => {
   }
 };
 
+// 获取收藏状态
 const checkFavoriteStatus = async (itemId) => {
-  if (!authStore.isLoggedIn) {
     isFavorite.value = false;
-    return;
-  }
-  try {
-    const response = await authAxios.get(`/user/favorites/status`, {
-      params: { itemId: itemId, itemType: 'PACKAGE' }
-    });
-    if (response.data.code === 200) {
-      isFavorite.value = response.data.data; 
-    } else {
-      console.warn('Failed to get favorite status:', response.data.message);
-      isFavorite.value = false;
+
+    if (!authStore.isLoggedIn) {
+        console.log('用户未登录，跳过获取收藏状态。');
+        return;
     }
-  } catch (error) {
-    console.error('Error checking favorite status:', error);
-    isFavorite.value = false;
-  }
+
+    if (!itemId) {
+        console.warn('缺少项目ID，无法获取收藏状态。');
+        return;
+    }
+    const itemType = 'PACKAGE';
+    const statusMapKey = `${itemType}_${itemId}`;
+    try {
+        const response = await authAxios.post('/user/interactions/status', {
+            items: [
+                {
+                    id: itemId,
+                    type: itemType
+                }
+            ]
+        });
+
+        if (response.data.code === 200 && response.data.data.statusMap) {
+            const status = response.data.data.statusMap[statusMapKey];
+            if (status) {
+                isFavorite.value = status.favorited;
+            }
+            console.log('互动状态响应:', response.data.data);
+        } else {
+            console.warn('获取收藏状态失败:', response.data.message);
+        }
+    } catch (error) {
+        console.error('获取收藏状态请求失败:', error);
+        if (error.response && error.response.status === 401) {
+            ElMessage.warning('您未登录，无法获取收藏状态。');
+        } else {
+            ElMessage.error('获取收藏状态网络错误！');
+        }
+    }
 };
 
-
-// --- Toggle Favorite Status ---
-const toggleFavorite = async () => {
+// --- 收藏功能 ---
+const toggleFavorite = async () => { 
   if (!authStore.isLoggedIn) {
-    ElMessageBox.confirm('您尚未登录，请先登录才能收藏。', '提示', {
-      confirmButtonText: '去登录',
-      cancelButtonText: '取消',
-      type: 'info',
-    })
-    .then(() => {
-      router.push('/login');
-    })
-    .catch(() => {
-      ElMessage.info('已取消收藏。');
-    });
+    ElMessage.error('请先登录才能收藏！');
+    router.push('/login');
     return;
   }
 
-  favoriteLoading.value = true;
+  if (!travelGroupDetail.value || !travelGroupDetail.value.id) {
+    ElMessage.error('旅行团信息不完整，无法执行收藏操作！');
+    console.error('错误：收藏操作缺少旅游团ID或旅游团对象', travelGroupDetail.value);
+    return;
+  }
+
+  if (favoriteLoading.value) { 
+    return;
+  }
+  favoriteLoading.value = true; 
+
   const itemId = travelGroupDetail.value.id;
-  const itemType = 'PACKAGE'; 
+  const itemType = 'PACKAGE';
 
   try {
-    const method = isFavorite.value ? 'delete' : 'post';
-    const url = `/user/favorites`;
-    const data = { itemId, itemType };
-
     let response;
-    if (method === 'post') {
-      response = await authAxios.post(url, data);
-    } else { 
-      response = await authAxios.delete(url, data); 
+    if (isFavorite.value) { 
+      response = await authAxios.delete('/user/favorites', {
+        data: { 
+          itemId: itemId,
+          itemType: itemType
+        }
+      });
+    } else {
+      response = await authAxios.post('/user/favorites', {
+        itemId: itemId,
+        itemType: itemType
+      });
     }
 
     if (response.data.code === 200) {
-      isFavorite.value = !isFavorite.value;
+      if (isFavorite.value) {
+        travelGroupDetail.value.favoriteCount = Math.max(0, travelGroupDetail.value.favoriteCount - 1); // 收藏数减1，但不小于0
+      } else {
+        travelGroupDetail.value.favoriteCount++; 
+      }
+      isFavorite.value = !isFavorite.value; 
       ElMessage.success(isFavorite.value ? '收藏成功！' : '取消收藏成功！');
     } else {
-      ElMessage.error(response.data.message || '操作失败，请重试。');
+      ElMessage.error(response.data.message || '收藏操作失败，请稍后再试。');
+      await checkFavoriteStatus(itemId);
     }
   } catch (error) {
-    console.error('收藏/取消收藏失败:', error);
+    console.error('收藏/取消请求失败:', error);
     if (error.response && error.response.data && error.response.data.message) {
-      ElMessage.error(error.response.data.message);
+      const backendMessage = error.response.data.message;
+      if (backendMessage.includes('重复收藏') || backendMessage.includes('已收藏')) {
+          ElMessage.warning('您已经收藏过了，请勿重复操作！');
+      } else if (backendMessage.includes('未收藏')) {
+          ElMessage.warning('您尚未收藏，无法取消！');
+      } else {
+          ElMessage.error(backendMessage);
+      }
+    } else if (error.response && error.response.status === 401) {
+        ElMessage.error('请先登录才能收藏！');
+        router.push('/login'); 
+    } else if (error.response && error.response.status === 403) {
+        ElMessage.error('您没有权限进行此操作！'); 
     } else {
-      ElMessage.error('网络请求失败，请检查您的网络或稍后再试！');
+      ElMessage.error('网络错误或收藏失败，请稍后再试！');
     }
+    await checkFavoriteStatus(itemId);
   } finally {
-    favoriteLoading.value = false;
+    favoriteLoading.value = false; 
   }
 };
-
 
 // --- 辅助函数：根据状态获取文本 ---
 const getTourStatusText = (status) => {
@@ -529,13 +574,13 @@ watch(
 }
 
 .favorite-button.el-button--primary {
-  background-color: #409eff; /* Default blue for non-favorited */
-  border-color: #409eff;
+  background-color: #c4c4c4; /* Default blue for non-favorited */
+  border-color: #ffffff;
 }
 
 .favorite-button.el-button--danger {
-  background-color: #f56c6c; /* Red for favorited */
-  border-color: #f56c6c;
+  background-color: #6da0b1; /* Red for favorited */
+  border-color: #6da0b1;
 }
 
 .favorite-button:hover {
