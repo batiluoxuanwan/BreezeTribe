@@ -47,9 +47,6 @@
 
         <div class="note-stats">
           <span class="stat-item"><el-icon><View /></el-icon> {{ note.viewCount || 0 }}</span>
-          <span class="stat-item"@click="toggleFavorite(note)">
-          <el-icon :class="{ 'favorited': note.isFavorited }"><Star /></el-icon> {{ note.favoriteCount || 0 }}
-          </span>
           <span class="stat-item" @click="toggleLike(note)">
           <el-icon :class="{ 'liked': note.isLiked }"><Pointer /></el-icon> {{ note.likeCount || 0 }}
           </span>
@@ -376,81 +373,6 @@ const toggleLike = async (note) => {
     await fetchInteractionStatus(itemId);
   } finally {
     note.liking = false; 
-  }
-};
-
-// --- 收藏功能 ---
-const toggleFavorite = async (note) => {
-  if (!authStore.isLoggedIn) {
-    ElMessage.error('请先登录才能收藏！');
-    router.push('/login');
-    return;
-  }
-
-  if (!note || !note.id) {
-    ElMessage.error('游记信息不完整，无法执行收藏操作！');
-    console.error('错误：收藏操作缺少游记ID或游记对象', note);
-    return;
-  }
-
-  if (note.favoriting) { 
-    return; 
-  }
-  note.favoriting = true; 
-
-  const itemId = note.id;
-  const itemType = 'POST'; 
-
-  try {
-    let response;
-    if (note.isFavorited) {
-      response = await authAxios.delete('/user/favorites', {
-        data: { 
-          itemId: itemId,
-          itemType: itemType
-        }
-      });
-    } else {
-      response = await authAxios.post('/user/favorites', {
-        itemId: itemId,
-        itemType: itemType
-      });
-    }
-
-    if (response.data.code === 200) {
-      if (note.isFavorited) {
-        note.favoriteCount = Math.max(0, note.favoriteCount - 1); 
-      } else {
-        note.favoriteCount++; 
-      }
-      note.isFavorited = !note.isFavorited; 
-      ElMessage.success(note.isFavorited ? '收藏成功！' : '取消收藏成功！');
-    } else {
-      ElMessage.error(response.data.message || '收藏操作失败，请稍后再试。');
-      await fetchInteractionStatus(itemId); 
-    }
-  } catch (error) {
-    console.error('收藏/取消请求失败:', error);
-    if (error.response && error.response.data && error.response.data.message) {
-      const backendMessage = error.response.data.message;
-      if (backendMessage.includes('重复收藏') || backendMessage.includes('已收藏')) {
-          ElMessage.warning('您已经收藏过了，请勿重复操作！');
-      } else if (backendMessage.includes('未收藏')) {
-          ElMessage.warning('您尚未收藏，无法取消！');
-      } else {
-          ElMessage.error(backendMessage);
-      }
-    } else if (error.response && error.response.status === 401) {
-       ElMessage.error('请先登录才能收藏！'); 
-       router.push('/login'); // 未登录时跳转到登录页
-    } else if (error.response && error.response.status === 403) {
-       ElMessage.error('您没有权限进行此操作！'); // 权限不足
-    } else {
-      ElMessage.error('网络错误或收藏失败，请稍后再试！');
-    }
-    await fetchInteractionStatus(itemId);
-  } finally {
-    note.favoriting = false; 
   }
 };
 

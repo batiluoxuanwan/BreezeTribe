@@ -65,21 +65,35 @@
 
     <main class="main-content">
       <el-tabs v-model="activeTab" class="hidden-tabs-header">
-        <el-tab-pane label="我的收藏" name="collected">
+          <el-tab-pane label="我的收藏" name="collected">
           <div v-if="collectedTours.length > 0" class="card-grid">
             <el-card
               v-for="tour in collectedTours"
-              :key="tour.id"
+              :key="tour.itemid"
               class="tour-card hover-card"
+              @click="goToTourDetail(tour)"
             >
-              <img :src="tour.image" class="card-img" />
+              <img :src="getTourImage(tour.itemType)" class="card-img" alt="收藏图片" />
               <div class="card-info">
-                <h3>{{ tour.title }}</h3>
-                <p>{{ tour.location }}</p>
+                <h3>{{ getTourTitle(tour) }}</h3>
+                <p>{{ getTourLocation(tour) }}</p>
               </div>
             </el-card>
           </div>
           <el-empty v-else description="暂无收藏"></el-empty>
+
+          <div v-if="pagination.totalElements > 0" class="pagination-container">
+            <el-pagination
+              @size-change="handleSizeChange"
+              @current-change="handleCurrentChange"
+              :current-page="pagination.pageNumber + 1"
+              :page-sizes="[10, 20, 50, 100]"
+              :page-size="pagination.pageSize"
+              layout="total, sizes, prev, pager, next, jumper"
+              :total="pagination.totalElements"
+            >
+            </el-pagination>
+          </div>
         </el-tab-pane>
 
         <el-tab-pane label="我的报名" name="joined">
@@ -205,12 +219,22 @@ const user = reactive({
   updatedAt: '',
 });
 
-const collectedTours = ref([
-  { id: 1, title: '桂林山水团', image: 'https://picsum.photos/id/10/120/90', location: '广西' },
-  { id: 2, title: '巽寮湾之旅', image: 'https://picsum.photos/id/20/120/90', location: '广东' },
-  { id: 3, title: '新疆伊犁风光', image: 'https://picsum.photos/id/30/120/90', location: '新疆' },
-  { id: 4, title: '青海湖秘境', image: 'https://picsum.photos/id/40/120/90', location: '青海' },
-])
+const collectedTours = ref([]);
+
+const pagination = reactive({
+  pageNumber: 0,
+  pageSize: 10,
+  totalElements: 0,
+  totalPages: 0,
+});
+
+const searchParams = reactive({
+  keyword: '',
+  page: 1,
+  size: 10,
+  sortBy: 'createdTime',
+  sortDirection: 'DESC',
+});
 
 const joinedTours = ref([]); // 存储我的报名旅行团列表
 const joinedTotal = ref(0); // 我的报名总数
@@ -265,6 +289,74 @@ const fetchUserProfile = async () => {
       ElMessage.error(`获取用户信息失败：${error.message}`);
     }
   }
+};
+
+//获取用户收藏列表
+const fetchCollectedTours = async () => {
+  try {
+    const response = await authAxios.get('/user/favorites', {
+      params: {
+        page: searchParams.page,
+        size: searchParams.size,
+        sortBy: searchParams.sortBy,
+        sortDirection: searchParams.sortDirection
+      },
+    });
+
+    if (response.data.code === 200 && response.data.data) {
+      collectedTours.value = response.data.data.content; 
+      pagination.pageNumber = response.data.data.pageNumber;
+      pagination.pageSize = response.data.data.pageSize;
+      pagination.totalElements = response.data.data.totalElements;
+      pagination.totalPages = response.data.data.totalPages;
+    } else {
+      ElMessage.error(response.data.message || '获取收藏列表失败。');
+    }
+  } catch (error) {
+    console.error('获取收藏列表时发生错误:', error);
+    ElMessage.error('获取收藏列表时发生网络或服务器错误。');
+  }
+};
+
+//处理每页显示数量变化的事件
+const handleSizeChange = (newSize) => {
+  searchParams.size = newSize;
+  searchParams.page = 1; 
+  fetchCollectedTours();
+};
+
+//处理当前页码变化的事件
+const handleCurrentChange = (newPage) => {
+  searchParams.page = newPage;
+  fetchCollectedTours();
+};
+
+//根据收藏项类型获取图片URL
+const getTourImage = (itemType) => {
+  switch (itemType) {
+    case 'PACKAGE':
+      return 'https://via.placeholder.com/150/FF5733/FFFFFF?text=旅游套餐';
+    case 'SCENIC_SPOT':
+      return 'https://via.placeholder.com/150/33A8FF/FFFFFF?text=景点';
+    default:
+      return 'https://via.placeholder.com/150/CCCCCC/FFFFFF?text=默认';
+  }
+};
+
+//根据收藏项获取标题
+const getTourTitle = (tour) => {
+  return `收藏ID: ${tour.itemid} (${tour.itemType})`;
+};
+
+//根据收藏项获取地点/简要描述
+const getTourLocation = (tour) => {
+  return `收藏时间: ${new Date(tour.createdTime).toLocaleDateString()}`;
+};
+
+//点击收藏卡片时的处理函数，例如跳转到详情页
+const goToTourDetail = (tour) => {
+  ElMessage.info(`点击了收藏项: ${tour.itemid}，类型: ${tour.itemType}`);
+  console.log('Clicked tour:', tour);
 };
 
 // --- 获取我的报名（订单） ---
@@ -418,6 +510,7 @@ onMounted(() => {
   fetchNotes(true);
   fetchUserProfile();
   fetchJoinedTours();
+  fetchCollectedTours();
 })
 
 // 跳转详情页并传递游记id
