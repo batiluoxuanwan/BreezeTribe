@@ -14,7 +14,7 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       if (authToken) {
         const decoded = jwtDecode(authToken);
-        return decoded.identifier;
+        return decoded.sub;
       }
     } catch (e) {
       console.error("Error decoding token:", e);
@@ -32,7 +32,8 @@ export const useAuthStore = defineStore('auth', () => {
 
     // 将 token 和 role 存储到 localStorage
     localStorage.setItem('token', authToken)
-    localStorage.setItem('role', Role ) 
+    localStorage.setItem('role', Role )
+    localStorage.setItem('userId', userId )
   }
 
   // 登出
@@ -69,10 +70,11 @@ export const useAuthStore = defineStore('auth', () => {
     login,
     logout,
     checkAuth,
+    userId
   }
 }, {
   // 配置 persist 插件以持久化 isLoggedIn, token, 和 role
   persist: {
-    paths: ['isLoggedIn', 'token', 'role'] 
+    paths: ['isLoggedIn', 'token', 'role','userId']
   }
 })

@@ -65,6 +65,13 @@ const routes =[
         component:() =>import('../views/User/EditNote.vue'),
         props: true, 
     },
+    {
+        path: '/chat/:friendId',
+        name: 'ChatView',
+        component: () => import('../views/User/ChatView.vue'),
+        props: true // 开启 props 传参
+    },
+
 ];
 
 const router = createRouter({
