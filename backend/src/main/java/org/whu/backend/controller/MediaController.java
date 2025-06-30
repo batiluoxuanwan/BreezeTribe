@@ -34,7 +34,7 @@ public class MediaController {
     MediaService userMediaService;
 
     public static final long EXPIRE_TIME = 60 * 60 * 4;
-    public static final String IMAGE_PROCESS = "image/resize,l_1600/quality,q_50";
+    public static final String IMAGE_PROCESS = "image/resize,l_400/quality,q_50";
 
     @Operation(
             summary = "上传文件 (通过DTO定义表单)",
