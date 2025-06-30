@@ -65,6 +65,7 @@ public class UserService {
     @Autowired
     private PackageCommentRepository packageCommentRepository;
 
+    @Transactional
     public OrderDetailDto createOrder(OrderCreateRequestDto orderCreateRequestDto) {
         // 1. 获取当前登录用户
         User user = securityUtil.getCurrentUser();
@@ -104,6 +105,7 @@ public class UserService {
     }
 
     // 确认支付一个订单
+    @Transactional
     public boolean confirmPayment(String orderId) {
         // User user = securityUtil.getCurrentUser();
 
@@ -119,6 +121,7 @@ public class UserService {
     }
 
     // 取消一个订单
+    @Transactional
     public boolean cancelOrder(String orderId) {
         // User user = securityUtil.getCurrentUser();
 
@@ -268,6 +271,7 @@ public class UserService {
         return true;
     }
 
+    @Transactional
     public PageResponseDto<FavouriteDetailDto> getMyFavorites(@Valid @ParameterObject FavoritePageReqDto pageRequestDto) {
         User user = securityUtil.getCurrentUser();
         // 检查参数合法性
@@ -369,6 +373,7 @@ public class UserService {
     }
 
     // 用户查询自己的所有点赞
+    @Transactional
     public PageResponseDto<LikeDetailDto> getMyLikes(@Valid @ParameterObject LikePageRequestDto pageRequestDto) {
         User user = securityUtil.getCurrentUser();
         // 检查参数合法性
