@@ -12,6 +12,7 @@ import org.whu.backend.dto.order.OrderForReviewDto;
 import org.whu.backend.dto.order.OrderSummaryForDealerDto;
 import org.whu.backend.dto.packagecomment.PackageCommentDto;
 import org.whu.backend.dto.post.PostDetailDto;
+import org.whu.backend.dto.post.PostDetailToOwnerDto;
 import org.whu.backend.dto.post.PostSummaryDto;
 import org.whu.backend.dto.postcomment.PostCommentDto;
 import org.whu.backend.dto.postcomment.PostCommentWithRepliesDto;
@@ -27,6 +28,7 @@ import org.whu.backend.entity.travelpost.TravelPost;
 import org.whu.backend.util.AliyunOssUtil;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -258,6 +260,47 @@ public class DtoConverter {
                 .createdTime(post.getCreatedTime())
                 .build();
     }
+
+    // 将TravelPost实体转换为面向拥有者的的DTO
+    public PostDetailToOwnerDto convertPostToDetailToOwnerDto(TravelPost post) {
+        // 转换作者信息
+        AuthorDto authorDto = ConvertUserToAuthorDto(post.getAuthor());
+
+        // 转换景点信息 (如果存在)
+        SpotDetailDto spotDto = null;
+        if (post.getSpot() != null) {
+            spotDto = ConvertSpotToDetailDto(post.getSpot());
+        }
+
+        // 转换图片URL列表
+        Map<String, String> imageIdAndUrls = post.getImages().stream()
+                .collect(Collectors.toMap(
+                        // 第一个参数：告诉它用什么做Map的Key
+                        postImage -> postImage.getMediaFile().getId(),
+                        // 第二个参数：告诉它用什么做Map的Value
+                        postImage -> AliyunOssUtil.generatePresignedGetUrl(
+                                postImage.getMediaFile().getObjectKey(),
+                                EXPIRE_TIME,
+                                IMAGE_PROCESS
+                        )
+                ));
+
+        // 构建最终的DTO
+        return PostDetailToOwnerDto.builder()
+                .id(post.getId())
+                .title(post.getTitle())
+                .content(post.getContent())
+                .author(authorDto)
+                .spot(spotDto)
+                .imageIdAndUrls(imageIdAndUrls)
+                .likeCount(post.getLikeCount())
+                .favoriteCount(post.getFavoriteCount())
+                .commentCount(post.getCommentCount())
+                .viewCount(post.getViewCount())
+                .createdTime(post.getCreatedTime())
+                .build();
+    }
+
 
 
     // 将景点Spot实体转换为景点SpotDetailDto
