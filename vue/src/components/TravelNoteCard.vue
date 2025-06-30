@@ -46,6 +46,54 @@ const props = defineProps({
 const defaultNoteCover = '/assets/images/default_note_cover.jpg';
 const defaultAvatar = '/assets/images/default_avatar.png';
 
+// 获取互动状态
+const fetchInteractionStatus = async (itemId) => {
+    if (note.value) { 
+        note.value.isLiked = false;
+        note.value.isFavorited = false;
+    }
+
+    if (!authStore.isLoggedIn) { 
+        console.log('用户未登录，跳过获取互动状态。');
+        return;
+    }
+
+    if (!itemId) {
+        console.warn('缺少项目ID，无法获取互动状态。');
+        return;
+    }
+    const itemType = 'POST'; 
+    const statusMapKey = `${itemType}_${itemId}`; 
+    try {
+        const response = await authAxios.post('/user/interactions/status', {
+            items: [
+                {
+                    id: itemId,
+                    type: 'POST' 
+                }
+            ]
+        });
+
+        if (response.data.code === 200 && response.data.data.statusMap) {
+            const status = response.data.data.statusMap[statusMapKey];
+            if (status) {
+                note.value.isLiked = status.liked;
+                note.value.isFavorited = status.favorited; 
+            }
+            console.log('status ',response.data.data)
+        } else {
+            console.warn('获取互动状态失败:', response.data.message);
+        }
+    } catch (error) {
+        console.error('获取互动状态请求失败:', error);
+        if (error.response && error.response.status === 401) {
+            ElMessage.warning('您未登录，无法获取点赞和收藏状态。');
+        } else {
+           ElMessage.error('获取点赞/收藏状态网络错误！');
+        }
+    }
+};
+
 // 跳转详情页并传递游记id
 const goToDetail = () => {
   console.log('查看游记详情:', props.note.id);

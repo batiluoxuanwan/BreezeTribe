@@ -256,7 +256,7 @@ const sendPhoneCode = () => {
             params: { phone: registerForm.phone}
           }
         );
-        if (response.data.code === 0) { 
+        if (response.data.code === 200) { 
           ElMessage.success(`手机验证码已发送至 ${registerForm.phone}`);
           phoneCodeCountdown.value = 60;
           phoneTimer = setInterval(() => {
@@ -310,7 +310,6 @@ const sendEmailCode = () => {
   });
 };
 
-
 const handleRegister = () => {
   formRef.value.validate(async (valid) => {
     if (valid) {
@@ -327,11 +326,11 @@ const handleRegister = () => {
         registrationData.email = registerForm.email;
       }
 
-      // 仅当角色为经销商时才添加公司名称和营业执照号
-      if (registerForm.role === 'ROLE_MERCHANT') {
-        registrationData.company = registerForm.company;
-        registrationData.license = registerForm.license;
-      }
+      // // 仅当角色为经销商时才添加公司名称和营业执照号
+      // if (registerForm.role === 'ROLE_MERCHANT') {
+      //   registrationData.company = registerForm.company;
+      //   registrationData.license = registerForm.license;
+      // }
 
       try {
         const response = await publicAxios.post('/auth/register', registrationData);
@@ -343,9 +342,15 @@ const handleRegister = () => {
           ElMessage.error(response.data.message || '注册失败，请稍后再试。');
         }
       } catch (error) {
-        ElMessage.error('用户已存在，请直接登录');
-        console.error('注册失败:', error);
-      }
+          console.error('注册失败:', error); 
+          if (error.response && error.response.data && error.response.data.message) {
+            ElMessage.error(error.response.data.message);
+          } else if (error.message === 'Network Error') {
+            ElMessage.error('网络连接失败，请检查您的网络或服务器状态。');
+          } else {
+            ElMessage.error('注册失败，请稍后再试或联系管理员。');
+          }
+}
     } else {
       ElMessage.error('请检查表单填写是否完整和正确！');
     }
