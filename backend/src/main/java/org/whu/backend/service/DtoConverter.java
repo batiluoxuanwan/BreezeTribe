@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 import org.whu.backend.dto.PageResponseDto;
 import org.whu.backend.dto.accounts.AuthorDto;
+import org.whu.backend.dto.accounts.UserProfileDto;
 import org.whu.backend.dto.mediafile.MediaFileDto;
 import org.whu.backend.dto.order.OrderDetailDto;
 import org.whu.backend.dto.order.OrderForReviewDto;
@@ -181,6 +182,15 @@ public class DtoConverter {
                 .id(author.getId())
                 .username(author.getUsername())
                 .avatarUrl(AliyunOssUtil.generatePresignedGetUrl(author.getAvatarUrl(), EXPIRE_TIME, IMAGE_PROCESS))
+                .build();
+    }
+
+    // 把用户信息转换为主页dto
+    public UserProfileDto ConvertUserToUserProfileDto(User user) {
+        return UserProfileDto.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .avatarUrl(AliyunOssUtil.generatePresignedGetUrl(user.getAvatarUrl(), EXPIRE_TIME, IMAGE_PROCESS))
                 .build();
     }
 
