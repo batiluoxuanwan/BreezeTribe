@@ -28,11 +28,14 @@ import org.whu.backend.dto.user.ItemIdentifierDto;
 import org.whu.backend.dto.user.ItemStatusDto;
 import org.whu.backend.entity.*;
 import org.whu.backend.entity.accounts.User;
+import org.whu.backend.entity.travelpost.Notification;
+import org.whu.backend.entity.travelpost.TravelPost;
 import org.whu.backend.repository.FavoriteRepository;
 import org.whu.backend.repository.LikeRepository;
 import org.whu.backend.repository.post.TravelPostRepository;
 import org.whu.backend.repository.travelRepo.*;
 import org.whu.backend.service.DtoConverter;
+import org.whu.backend.service.NotificationService;
 import org.whu.backend.util.AccountUtil;
 import org.whu.backend.util.JpaUtil;
 
@@ -64,7 +67,11 @@ public class UserService {
     private DtoConverter dtoConverter;
     @Autowired
     private PackageCommentRepository packageCommentRepository;
+    @Autowired
+    private NotificationService notificationService;
 
+    // 创建一个订单
+    @Transactional
     public OrderDetailDto createOrder(OrderCreateRequestDto orderCreateRequestDto) {
         // 1. 获取当前登录用户
         User user = securityUtil.getCurrentUser();
@@ -100,31 +107,55 @@ public class UserService {
         // 4. 原子更新报名人数
         travelPackageRepository.addParticipantCount(travelPackage.getId(), order.getTravelerCount());
 
+        // 发送订单创建成功通知
+        String description = String.format("您的关于旅行团 %s 的订单已经创建成功，请及时支付", travelPackage.getTitle());
+        notificationService.createAndSendNotification(
+                user,
+                Notification.NotificationType.ORDER_CREATED,
+                description,
+                null,
+                null,
+                travelPackage.getId());
+
         return dtoConverter.convertOrderToDetailDto(saved);
     }
 
     // 确认支付一个订单
+    @Transactional
     public boolean confirmPayment(String orderId) {
         // User user = securityUtil.getCurrentUser();
 
         // 获取订单
-        Order order = JpaUtil.getOrThrow(orderRepository, orderId, "订单不存在");
+        Order order = JpaUtil.getOrThrow(orderRepository, orderId, "订单不存在");        TravelPackage travelPackage = JpaUtil.getOrThrow(travelPackageRepository,order.getTravelPackage().getId(),"旅行团不存在");
+        User user = securityUtil.getCurrentUser();
         if (order.getStatus() != Order.OrderStatus.PENDING_PAYMENT) {
             throw new BizException("订单状态错误");
         }
 
         order.setStatus(Order.OrderStatus.PAID);
         orderRepository.save(order);
+
+        // 发送支付成功通知
+        String description = String.format("您的关于旅行团 %s 的订单已经取消成功，如果已经支付，金额将会原路退款到您的账户", travelPackage.getTitle());
+        notificationService.createAndSendNotification(
+                user,
+                Notification.NotificationType.ORDER_CANCELED,
+                description,
+                null,
+                null,
+                travelPackage.getId());
         return true;
     }
 
     // 取消一个订单
+    @Transactional
     public boolean cancelOrder(String orderId) {
         // User user = securityUtil.getCurrentUser();
 
         // 获取订单
         Order order = JpaUtil.getOrThrow(orderRepository, orderId, "订单不存在");
-
+        TravelPackage travelPackage = JpaUtil.getOrThrow(travelPackageRepository,order.getTravelPackage().getId(),"旅行团不存在");
+        User user = securityUtil.getCurrentUser();
         // 检查状态
         if (order.getStatus() == Order.OrderStatus.CANCELED
                 || order.getStatus() == Order.OrderStatus.COMPLETED
@@ -141,6 +172,16 @@ public class UserService {
         // 减少参团人数
         travelPackageRepository.subParticipantCount(orderId, order.getTravelerCount());
         orderRepository.save(order);
+
+        // 发送取消成功通知
+        String description = String.format("您的关于旅行团 %s 的订单已经取消成功，如果已经支付，金额将会原路退款到您的账户", travelPackage.getTitle());
+        notificationService.createAndSendNotification(
+                user,
+                Notification.NotificationType.ORDER_CANCELED,
+                description,
+                null,
+                null,
+                travelPackage.getId());
         return true;
     }
 
@@ -213,6 +254,7 @@ public class UserService {
             throw new BizException("已经收藏过该对象");
         }
 
+        TravelPost post = null;
         // 根据类型增加对应的统计数据
         switch (favoriteRequestDto.getItemType()) {
             case PACKAGE:
@@ -227,7 +269,7 @@ public class UserService {
                 JpaUtil.getOrThrow(routeRepository, favoriteRequestDto.getItemId(), "路线不存在");
                 break;
             case POST:
-                JpaUtil.getOrThrow(travelPostRepository, favoriteRequestDto.getItemId(), "游记不存在");
+                post = JpaUtil.getOrThrow(travelPostRepository, favoriteRequestDto.getItemId(), "游记不存在");
                 travelPostRepository.incrementFavoriteCount(favoriteRequestDto.getItemId());
                 break;
             default:
@@ -240,6 +282,32 @@ public class UserService {
         favorite.setItemType(favoriteRequestDto.getItemType());
 
         favoriteRepository.save(favorite);
+
+        // 根据对应类型发送对应的通知
+        switch (favoriteRequestDto.getItemType()) {
+            case PACKAGE:
+                break;
+            case SPOT:
+                break;
+            case ROUTE:
+                break;
+            case POST:
+                // 发送游记被收藏的通知
+                log.info("给用户 {} 发送被游记被收藏的通知", user.getUsername());
+                String description = String.format("%s 收藏了你的游记 %s", user.getUsername(), post.getTitle());
+                notificationService.createAndSendNotification(
+                        post.getAuthor(),
+                        Notification.NotificationType.NEW_POST_FAVORITE,
+                        description,
+                        null,
+                        user,
+                        post.getId()
+                );
+                break;
+            default:
+                throw new BizException("非法参数：未知的收藏类型");
+        }
+
 
         return true;
     }
@@ -268,6 +336,7 @@ public class UserService {
         return true;
     }
 
+    @Transactional
     public PageResponseDto<FavouriteDetailDto> getMyFavorites(@Valid @ParameterObject FavoritePageReqDto pageRequestDto) {
         User user = securityUtil.getCurrentUser();
         // 检查参数合法性
@@ -330,9 +399,11 @@ public class UserService {
             throw new BizException("不能重复点赞");
         }
 
+        TravelPost post = null;
+
         switch (likeRequestDto.getItemType()) {
             case POST:
-                JpaUtil.getOrThrow(travelPostRepository, likeRequestDto.getItemId(), "游记不存在");
+                post = JpaUtil.getOrThrow(travelPostRepository, likeRequestDto.getItemId(), "游记不存在");
                 travelPostRepository.incrementLikeCount(likeRequestDto.getItemId());
                 break;
             default:
@@ -345,6 +416,18 @@ public class UserService {
         like.setItemType(likeRequestDto.getItemType());
 
         likeRepository.save(like);
+
+        // 发送游记被点赞的通知
+        String description = String.format("%s 赞了你的游记 %s", user.getUsername(), post.getTitle());
+
+        notificationService.createAndSendNotification(
+                post.getAuthor(),
+                Notification.NotificationType.NEW_POST_LIKE,
+                description,
+                null,
+                user,
+                post.getId()
+        );
 
         return true;
     }
@@ -369,6 +452,7 @@ public class UserService {
     }
 
     // 用户查询自己的所有点赞
+    @Transactional
     public PageResponseDto<LikeDetailDto> getMyLikes(@Valid @ParameterObject LikePageRequestDto pageRequestDto) {
         User user = securityUtil.getCurrentUser();
         // 检查参数合法性
@@ -467,6 +551,6 @@ public class UserService {
                 .map(dtoConverter::convertOrderToDetailDto).toList();
 
         // 返回分页响应结果
-        return dtoConverter.convertPageToDto(orderPage,content);
+        return dtoConverter.convertPageToDto(orderPage, content);
     }
 }
