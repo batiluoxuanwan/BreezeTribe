@@ -19,6 +19,7 @@ import org.whu.backend.entity.accounts.Account;
 import org.whu.backend.repository.MediaFileRepository;
 import org.whu.backend.repository.PackageImageRepository;
 import org.whu.backend.repository.authRepo.AuthRepository;
+import org.whu.backend.repository.post.PostImageRepository;
 import org.whu.backend.util.AliyunOssUtil;
 
 import java.io.IOException;
@@ -37,6 +38,8 @@ public class MediaService {
     private PackageImageRepository packageImageRepository;
     @Autowired
     private DtoConverter dtoConverter;
+    @Autowired
+    private PostImageRepository postImageRepository;
 
     @Transactional
     public MediaFile uploadAndSaveFile(MultipartFile file, String uploaderId) throws IOException {
@@ -99,10 +102,16 @@ public class MediaService {
         }
 
         // 3. 关键！检查该文件是否还在被其他地方使用
-        boolean isInUse = packageImageRepository.existsByMediaFileId(fileId);
-        if (isInUse) {
+        boolean isInUseInPackages = packageImageRepository.existsByMediaFileId(fileId);
+        if (isInUseInPackages) {
             log.warn("删除失败：文件ID '{}' 正在被一个或多个旅行团使用。", fileId);
             throw new BizException("无法删除：该文件正在被至少一个旅行团使用。请先从旅行团图集中移除。");
+        }
+
+        boolean isInUseInPosts = postImageRepository.existsByMediaFileId(fileId);
+        if (isInUseInPosts){
+            log.warn("删除失败：文件ID '{}' 正在被一个或多个旅行团使用。", fileId);
+            throw new BizException("无法删除：该文件正在被至少一个游记使用。请先从游记图集中移除。");
         }
 
         // TODO: 未来还可以增加对游记等其他地方的引用检查

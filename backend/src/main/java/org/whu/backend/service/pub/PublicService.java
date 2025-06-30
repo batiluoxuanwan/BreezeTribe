@@ -12,18 +12,23 @@ import org.springframework.transaction.annotation.Transactional;
 import org.whu.backend.common.exception.BizException;
 import org.whu.backend.dto.PageRequestDto;
 import org.whu.backend.dto.PageResponseDto;
+import org.whu.backend.dto.accounts.UserProfileDto;
 import org.whu.backend.dto.post.PostDetailDto;
+import org.whu.backend.dto.post.PostSearchRequestDto;
 import org.whu.backend.dto.post.PostSummaryDto;
 import org.whu.backend.dto.travelpack.PackageDetailDto;
 import org.whu.backend.dto.travelpack.PackageSearchRequestDto;
 import org.whu.backend.dto.travelpack.PackageSummaryDto;
 import org.whu.backend.entity.TravelPackage;
+import org.whu.backend.entity.accounts.User;
 import org.whu.backend.entity.travelpost.TravelPost;
+import org.whu.backend.repository.authRepo.UserRepository;
 import org.whu.backend.repository.post.TravelPostRepository;
 import org.whu.backend.repository.travelRepo.TravelPackageRepository;
 import org.whu.backend.service.DtoConverter;
 import org.whu.backend.service.ViewCountService;
-import org.whu.backend.service.specification.TravelPackageSpecification;
+import org.whu.backend.service.specification.SearchSpecification;
+import org.whu.backend.util.AliyunOssUtil;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -40,6 +45,8 @@ public class PublicService {
     private TravelPostRepository travelPostRepository;
     @Autowired
     private ViewCountService viewCountService;
+    @Autowired
+    private UserRepository userRepository;
 
     // 获取已发布的旅行团列表（分页）
     public PageResponseDto<PackageSummaryDto> getPublishedPackages(PageRequestDto pageRequestDto) {
@@ -58,7 +65,7 @@ public class PublicService {
                 .map(dtoConverter::convertPackageToSummaryDto)
                 .collect(Collectors.toList());
 
-        return dtoConverter.convertPageToDto(packagePage,summaryDtos);
+        return dtoConverter.convertPageToDto(packagePage, summaryDtos);
     }
 
     // 获取单个旅行团的详情
@@ -100,7 +107,7 @@ public class PublicService {
                 .map(dtoConverter::convertPostToSummaryDto)
                 .collect(Collectors.toList());
 
-        return dtoConverter.convertPageToDto(postPage,dtos);
+        return dtoConverter.convertPageToDto(postPage, dtos);
     }
 
     // 实现复杂的、多条件的搜索逻辑
@@ -108,7 +115,7 @@ public class PublicService {
         log.info("开始复杂条件搜索旅行团, 搜索条件: {}", searchDto);
 
         // 1. 使用 Specification 构建动态查询条件
-        Specification<TravelPackage> spec = TravelPackageSpecification.from(searchDto);
+        Specification<TravelPackage> spec = SearchSpecification.from(searchDto);
 
         // 2. 创建分页和排序对象
         Sort sort = Sort.by(Sort.Direction.fromString(searchDto.getSortDirection()), searchDto.getSortBy());
@@ -122,13 +129,33 @@ public class PublicService {
         // 4. 转换并返回结果 (这部分逻辑不变)
         List<PackageSummaryDto> summaryDtos = packagePage.getContent().stream()
                 .map(dtoConverter::convertPackageToSummaryDto)
-                .collect(Collectors.toList());
+                .toList();
 
-        return dtoConverter.convertPageToDto(packagePage,summaryDtos);
+        return dtoConverter.convertPageToDto(packagePage, summaryDtos);
+    }
+
+    /**
+     * 实现复杂的、多条件的游记搜索逻辑
+     */
+    public PageResponseDto<PostSummaryDto> searchPosts(PostSearchRequestDto searchDto) {
+        log.info("开始复杂条件搜索游记, 搜索条件: {}", searchDto);
+
+        Specification<TravelPost> spec = SearchSpecification.from(searchDto);
+
+        Pageable pageable = PageRequest.of(searchDto.getPage() - 1, searchDto.getSize(),
+                Sort.by(Sort.Direction.fromString(searchDto.getSortDirection()), searchDto.getSortBy()));
+
+        Page<TravelPost> postPage = travelPostRepository.findAll(spec, pageable);
+
+        List<PostSummaryDto> postSummaryDtos = postPage.getContent().stream().
+                map(dtoConverter::convertPostToSummaryDto)
+                .toList();
+
+        return dtoConverter.convertPageToDto(postPage, postSummaryDtos);
     }
 
     // 获取单篇已发布的游记详情
-    public PostDetailDto getPostDetails(String postId,String ipAddress) {
+    public PostDetailDto getPostDetails(String postId, String ipAddress) {
         log.info("正在获取公共游记详情, ID: {}", postId);
 
         TravelPost post = travelPostRepository.findById(postId)
@@ -144,5 +171,37 @@ public class PublicService {
         // TODO: 可以在这里增加一个状态判断，比如只返回状态为“已发布”的游记，还有只查询公共权限的游记
 
         return dtoConverter.convertPostToDetailDto(post);
+    }
+
+    /**
+     * 获取指定用户的公开主页信息
+     */
+    public UserProfileDto getUserProfile(String userId) {
+        log.info("正在查询用户ID '{}' 的公开主页信息...", userId);
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BizException("找不到ID为 " + userId + " 的用户"));
+
+        return dtoConverter.ConvertUserToUserProfileDto(user);
+    }
+
+    /**
+     * 获取指定用户发布的游记列表（分页）
+     */
+    public PageResponseDto<PostSummaryDto> getUserPosts(String userId, PageRequestDto pageRequestDto) {
+        log.info("正在查询用户ID '{}' 发布的游记列表, 分页参数: {}", userId, pageRequestDto);
+
+        // 验证用户是否存在
+        if (!userRepository.existsById(userId)) {
+            throw new BizException("找不到ID为 " + userId + " 的用户");
+        }
+
+        Sort sort = Sort.by(Sort.Direction.fromString(pageRequestDto.getSortDirection()), pageRequestDto.getSortBy());
+        Pageable pageable = PageRequest.of(pageRequestDto.getPage() - 1, pageRequestDto.getSize(), sort);
+
+        Page<TravelPost> postPage = travelPostRepository.findByAuthorId(userId, pageable);
+
+        return dtoConverter.convertPageToDto(postPage,
+                postPage.getContent().stream().map(dtoConverter::convertPostToSummaryDto).toList());
     }
 }

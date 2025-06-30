@@ -11,9 +11,11 @@ import org.springframework.web.bind.annotation.*;
 import org.whu.backend.common.Result;
 import org.whu.backend.dto.PageRequestDto;
 import org.whu.backend.dto.PageResponseDto;
+import org.whu.backend.dto.accounts.UserProfileDto;
 import org.whu.backend.dto.baidumap.BaiduSuggestionResponseDto;
 import org.whu.backend.dto.packagecomment.PackageCommentDto;
 import org.whu.backend.dto.post.PostDetailDto;
+import org.whu.backend.dto.post.PostSearchRequestDto;
 import org.whu.backend.dto.post.PostSummaryDto;
 import org.whu.backend.dto.postcomment.PostCommentDto;
 import org.whu.backend.dto.postcomment.PostCommentWithRepliesDto;
@@ -66,7 +68,7 @@ public class PublicController {
     public Result<PackageDetailDto> getPackageDetails(@PathVariable String id, HttpServletRequest request) {
         // 调用工具类获取真实IP地址
         String ipAddress = IpUtil.getRealIp(request);
-        PackageDetailDto packageDetails = publicService.getPackageDetails(id,ipAddress);
+        PackageDetailDto packageDetails = publicService.getPackageDetails(id, ipAddress);
         return Result.success(packageDetails);
     }
 
@@ -81,6 +83,15 @@ public class PublicController {
         return Result.success(suggestions);
     }
 
+    // 游记的复杂搜索接口
+    @Operation(summary = "搜索游记（复杂条件）", description = "根据关键词、标签等多种条件组合搜索游记")
+    @GetMapping("/posts/search")
+    public Result<PageResponseDto<PostSummaryDto>> searchPosts(@Valid @ParameterObject PostSearchRequestDto searchDto) {
+        log.info("访问游记搜索接口, 搜索条件: {}", searchDto);
+        PageResponseDto<PostSummaryDto> resultPage = publicService.searchPosts(searchDto);
+        return Result.success(resultPage);
+    }
+
     @Operation(summary = "获取已发布的游记列表（分页）")
     @GetMapping("posts")
     public Result<PageResponseDto<PostSummaryDto>> getPublishedPosts(@Valid @ParameterObject PageRequestDto pageRequestDto) {
@@ -91,11 +102,11 @@ public class PublicController {
 
     @Operation(summary = "获取单篇已发布的游记详情")
     @GetMapping("/posts/{postId}")
-    public Result<PostDetailDto> getPostDetails(@PathVariable String postId,HttpServletRequest request) {
+    public Result<PostDetailDto> getPostDetails(@PathVariable String postId, HttpServletRequest request) {
         // 调用工具类获取真实IP地址
         String ipAddress = IpUtil.getRealIp(request);
         log.info("访问获取公共游记详情接口, ID: {}", postId);
-        PostDetailDto postDetails = publicService.getPostDetails(postId,ipAddress);
+        PostDetailDto postDetails = publicService.getPostDetails(postId, ipAddress);
         return Result.success(postDetails);
     }
 
@@ -141,6 +152,25 @@ public class PublicController {
     ) {
         log.info("正在获取旅行团评价 '{}' 的直接回复列表...", commentId);
         PageResponseDto<PackageCommentDto> resultPage = userPackageCommentService.getPackageCommentDetails(commentId, pageRequestDto);
+        return Result.success(resultPage);
+    }
+
+    @Operation(summary = "获取用户的公开主页信息")
+    @GetMapping("/users/{userId}/profile")
+    public Result<UserProfileDto> getUserProfile(@PathVariable String userId) {
+        log.info("访问获取用户 '{}' 的主页信息接口", userId);
+        UserProfileDto userProfile = publicService.getUserProfile(userId);
+        return Result.success(userProfile);
+    }
+
+    @Operation(summary = "获取指定用户发布的游记列表（分页）")
+    @GetMapping("/users/{userId}/posts")
+    public Result<PageResponseDto<PostSummaryDto>> getUserPosts(
+            @PathVariable String userId,
+            @Valid @ParameterObject PageRequestDto pageRequestDto
+    ) {
+        log.info("访问获取用户 '{}' 的游记列表接口", userId);
+        PageResponseDto<PostSummaryDto> resultPage = publicService.getUserPosts(userId, pageRequestDto);
         return Result.success(resultPage);
     }
 

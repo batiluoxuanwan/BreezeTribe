@@ -10,11 +10,7 @@
         class="avatar"
       />
       <h2 class="username">{{ user.username }}</h2>
-      <div class="stats">
-        <div><strong>{{ user.collectedCount }}</strong><p>收藏团</p></div>
-        <div><strong>{{ user.joinedCount }}</strong><p>已报名</p></div>
-        <div><strong>{{ user.noteCount }}</strong><p>游记</p></div>
-      </div>
+      <br>
 
       <div class="sidebar-menu">
         <div
@@ -557,13 +553,12 @@ watch(
   padding: 32px 24px;
   text-align: center;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
-  min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
-  position: sticky;
   top: 40px;
   align-self: flex-start;
+  height: 100%;
 }
 
 .back-to-home-btn{
@@ -663,7 +658,7 @@ watch(
 .menu-item.active {
   background: linear-gradient(45deg, rgb(77,182,172), rgb(178,223,219));
   color: #ffffff;
-  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
+  box-shadow: 0 4px 12px rgba(64, 255, 245, 0.3);
 }
 
 .menu-item.active .el-icon {
@@ -736,8 +731,8 @@ watch(
 
 .hover-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 10px 20px rgba(64, 158, 255, 0.15);
-  border-color: #409eff;
+  box-shadow: 0 10px 20px rgba(64, 255, 223, 0.15);
+  border-color: #54c4b5;
 }
 
 .card-img,

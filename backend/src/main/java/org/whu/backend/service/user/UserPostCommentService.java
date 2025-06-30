@@ -16,11 +16,13 @@ import org.whu.backend.dto.postcomment.PostCommentDto;
 import org.whu.backend.dto.postcomment.PostCommentWithRepliesDto;
 import org.whu.backend.entity.accounts.User;
 import org.whu.backend.entity.travelpost.Comment;
+import org.whu.backend.entity.travelpost.Notification;
 import org.whu.backend.entity.travelpost.TravelPost;
 import org.whu.backend.repository.authRepo.UserRepository;
 import org.whu.backend.repository.post.PostCommentRepository;
 import org.whu.backend.repository.post.TravelPostRepository;
 import org.whu.backend.service.DtoConverter;
+import org.whu.backend.service.NotificationService;
 
 import java.util.HashSet;
 import java.util.List;
@@ -39,10 +41,14 @@ public class UserPostCommentService {
     private UserRepository userRepository;
     @Autowired
     private DtoConverter dtoConverter;
+    @Autowired
+    private NotificationService notificationService;
+
+    public static final int MAX_NOTIFICATION_CONTENT_LENGTH = 50;
 
 
     /**
-     * 发布一条新评论或回复，对游记
+     * [已修改] 创建评论，并实现精准的通知推送逻辑
      */
     @Transactional
     public Comment createComment(String postId, PostCommentCreateRequestDto dto, String currentUserId) {
@@ -50,7 +56,6 @@ public class UserPostCommentService {
 
         User author = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new BizException("找不到用户 " + currentUserId));
-
         TravelPost post = postRepository.findById(postId)
                 .orElseThrow(() -> new BizException("找不到游记 " + postId));
 
@@ -64,29 +69,50 @@ public class UserPostCommentService {
             Comment parentComment = commentRepository.findById(dto.getParentId())
                     .orElseThrow(() -> new BizException("找不到要回复的评论 " + dto.getParentId()));
 
-            // [安全漏洞修复] 关键！验证父评论是否属于当前帖子
             if (!parentComment.getTravelPost().getId().equals(postId)) {
-                log.warn("用户 '{}' 尝试跨帖子回复！帖子ID: '{}', 父评论所属帖子ID: '{}'",
-                        currentUserId, postId, parentComment.getTravelPost().getId());
                 throw new BizException("无效操作：不能跨越不同的游记进行回复。");
             }
             newComment.setParent(parentComment);
+
+            // --- 发送“楼中楼回复”通知 ---
+            String description = String.format("%s 回复了你的评论", author.getUsername());
+            String content = truncateContent(dto.getContent());
+
+            notificationService.createAndSendNotification(
+                    parentComment.getAuthor(),           // 接收者：父评论的作者
+                    Notification.NotificationType.NEW_COMMENT_REPLY,  // 类型：新的回复
+                    description,
+                    content,
+                    author,                              // 触发者：当前用户
+                    post.getId()                         // 关联项目：这篇游记的ID
+            );
+
+        } else {
+            // --- 发送“一级评论”通知 ---
+            String description = String.format("%s 评论了你的游记 %s", author.getUsername(), post.getTitle());
+            String content = truncateContent(dto.getContent());
+
+            notificationService.createAndSendNotification(
+                    post.getAuthor(),                    // 接收者：游记的作者
+                    Notification.NotificationType.NEW_POST_COMMENT,   // 类型：新的评论
+                    description,
+                    content,
+                    author,                              // 触发者：当前用户
+                    post.getId()                         // 关联项目：这篇游记的ID
+            );
         }
 
         Comment savedComment = commentRepository.save(newComment);
-
         postRepository.incrementCommentCount(post.getId());
-        postRepository.save(post);
-
         log.info("评论ID '{}' 已成功发布。", savedComment.getId());
         return savedComment;
     }
 
     /**
-     *  删除自己的一条游记评论，如果是一级评论，则直接删除
-     *  如果是二级评论且没有人回复，则直接删除
-     *  如果是二级评论且被人回复过，则转换为被屏蔽，不减少评论统计量
-     *  如果是链条末尾，往上递归解决被屏蔽的评论问题（删除）
+     * 删除自己的一条游记评论，如果是一级评论，则直接删除
+     * 如果是二级评论且没有人回复，则直接删除
+     * 如果是二级评论且被人回复过，则转换为被屏蔽，不减少评论统计量
+     * 如果是链条末尾，往上递归解决被屏蔽的评论问题（删除）
      */
     @Transactional
     public void deleteComment(String commentId, String currentUserId) {
@@ -111,6 +137,7 @@ public class UserPostCommentService {
         }
         log.info("评论ID '{}' 的删除操作已完成。", commentId);
     }
+
     /**
      * 私有方法：处理删除一级评论的逻辑
      */
@@ -122,7 +149,7 @@ public class UserPostCommentService {
         allIdsToDelete.add(comment.getId());
         // TODO: 如果允许评论点赞，要移除点赞记录
         // likeRepository.deleteAllByItemIdInAndItemType(allIdsToDelete, InteractionItemType.POST_COMMENT);
-        log.info(" -> 已清除 {} 条关联的点赞记录。", allIdsToDelete.size());
+        // log.info(" -> 已清除 {} 条关联的点赞记录。", allIdsToDelete.size());
 
         commentRepository.softDeleteAllByIds(allIdsToDelete);
 
@@ -131,6 +158,7 @@ public class UserPostCommentService {
 
         log.info("一级评论ID '{}' 及其 {} 个子孙评论已全部删除。", comment.getId(), descendantIds.size());
     }
+
     /**
      * 私有方法：处理删除楼中楼回复的逻辑
      */
@@ -142,7 +170,7 @@ public class UserPostCommentService {
         if (hasReplies) {
             // 如果它下面还有人回复，执行“屏蔽”操作
             log.info(" -> 该评论存在子回复，执行屏蔽操作。");
-            comment.setContent("[该评论已被作者删除]");
+            // comment.setContent("[该评论已被作者删除]");
             comment.setDeletedByAuthor(true);
             // TODO: 如果允许评论点赞，要移除点赞记录 2
             // likeRepository.deleteAllByItemIdAndItemType(comment.getId(), InteractionItemType.POST_COMMENT);
@@ -162,6 +190,7 @@ public class UserPostCommentService {
             }
         }
     }
+
     /**
      * 私有方法：递归向上清理“无后代”的被屏蔽评论
      */
@@ -185,7 +214,6 @@ public class UserPostCommentService {
     }
 
 
-
     /**
      * 获取游记的评论列表（带少量预览回复），对游记
      */
@@ -206,14 +234,14 @@ public class UserPostCommentService {
                             .map(dtoConverter::convertCommentToDto)
                             .collect(Collectors.toList());
 
-                    long totalReplies = commentRepository.countByParentId(comment.getId());
+                    long totalReplies = commentRepository.countAllDescendants(comment.getId());
 
                     return dtoConverter.convertCommentToDtoWithReplies(comment, repliesPreview, totalReplies);
                 })
                 .collect(Collectors.toList());
 //        log.info("查询成功，获取到 {} ");
 
-        return dtoConverter.convertPageToDto(topLevelCommentPage,dtos);
+        return dtoConverter.convertPageToDto(topLevelCommentPage, dtos);
     }
 
     /**
@@ -233,6 +261,14 @@ public class UserPostCommentService {
                 .map(dtoConverter::convertCommentToDto)
                 .collect(Collectors.toList());
 
-        return dtoConverter.convertPageToDto(replyPage,replyDtos);
+        return dtoConverter.convertPageToDto(replyPage, replyDtos);
+    }
+
+    // 一个私有辅助方法，用于截断过长的内容
+    private String truncateContent(String content) {
+        if (content.length() <= MAX_NOTIFICATION_CONTENT_LENGTH) {
+            return content;
+        }
+        return content.substring(0, MAX_NOTIFICATION_CONTENT_LENGTH) + "...";
     }
 }

@@ -5,12 +5,15 @@ import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 import org.whu.backend.dto.PageResponseDto;
 import org.whu.backend.dto.accounts.AuthorDto;
+import org.whu.backend.dto.accounts.UserProfileDto;
 import org.whu.backend.dto.mediafile.MediaFileDto;
+import org.whu.backend.dto.notification.NotificationDto;
 import org.whu.backend.dto.order.OrderDetailDto;
 import org.whu.backend.dto.order.OrderForReviewDto;
 import org.whu.backend.dto.order.OrderSummaryForDealerDto;
 import org.whu.backend.dto.packagecomment.PackageCommentDto;
 import org.whu.backend.dto.post.PostDetailDto;
+import org.whu.backend.dto.post.PostDetailToOwnerDto;
 import org.whu.backend.dto.post.PostSummaryDto;
 import org.whu.backend.dto.postcomment.PostCommentDto;
 import org.whu.backend.dto.postcomment.PostCommentWithRepliesDto;
@@ -22,10 +25,13 @@ import org.whu.backend.dto.travelpack.PackageSummaryDto;
 import org.whu.backend.entity.*;
 import org.whu.backend.entity.accounts.User;
 import org.whu.backend.entity.travelpost.Comment;
+import org.whu.backend.entity.travelpost.Notification;
 import org.whu.backend.entity.travelpost.TravelPost;
 import org.whu.backend.util.AliyunOssUtil;
 
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -38,6 +44,27 @@ public class DtoConverter {
 
     public static final long EXPIRE_TIME = 60 * 60 * 4 * 1000;
     public static final String IMAGE_PROCESS = "image/resize,l_400/quality,q_50";
+
+
+
+    public NotificationDto convertNotificationToDto(Notification notification) {
+        String url = AliyunOssUtil.generatePresignedGetUrl(
+                notification.getTriggerUser().getAvatarUrl(), EXPIRE_TIME, IMAGE_PROCESS);
+
+        return NotificationDto.builder().
+                id(notification.getId())
+                .isRead(notification.isRead())
+                .type(notification.getType().toString())
+                .description(notification.getDescription())
+                .content(notification.getContent())
+                .triggerUserId(notification.getTriggerUser().getId())
+                .triggerUsername(notification.getTriggerUser().getUsername())
+                .triggerUserAvatarUrl(url)
+                .relatedItemId(notification.getRelatedItemId())
+                .createdTime(notification.getCreatedTime())
+                .build();
+    }
+
 
     // 将文件元信息实体MediaFile转换为MediaFileDto
     public MediaFileDto convertMediaFileToDto(MediaFile entity) {
@@ -65,6 +92,32 @@ public class DtoConverter {
     public <T, U> PageResponseDto<U> convertPageToDto(Page<T> page, List<U> content) {
         return PageResponseDto.<U>builder()
                 .content(content)
+                .pageNumber(page.getNumber() + 1)
+                .pageSize(page.getSize())
+                .totalElements(page.getTotalElements())
+                .totalPages(page.getTotalPages())
+                .first(page.isFirst())
+                .last(page.isLast())
+                .numberOfElements(page.getNumberOfElements())
+                .build();
+    }
+
+    /**
+     * [新增] 通用分页转换方法的重载版本，接收一个转换函数
+     *
+     * @param page      JPA返回的Page<T>对象
+     * @param converter 一个能将实体T转换为DTO U的函数
+     * @return 自定义的PageResponseDto<U>
+     */
+    public <T, U> PageResponseDto<U> convertPageToDto(Page<T> page, Function<T, U> converter) {
+        // 1. 使用传入的转换函数，将实体列表转换为DTO列表
+        List<U> dtoList = page.getContent().stream()
+                .map(converter)
+                .collect(Collectors.toList());
+
+        // 2. 使用Builder模式构建并返回我们自定义的分页响应对象
+        return PageResponseDto.<U>builder()
+                .content(dtoList)
                 .pageNumber(page.getNumber() + 1)
                 .pageSize(page.getSize())
                 .totalElements(page.getTotalElements())
@@ -184,6 +237,15 @@ public class DtoConverter {
                 .build();
     }
 
+    // 把用户信息转换为主页dto
+    public UserProfileDto ConvertUserToUserProfileDto(User user) {
+        return UserProfileDto.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .avatarUrl(AliyunOssUtil.generatePresignedGetUrl(user.getAvatarUrl(), EXPIRE_TIME, IMAGE_PROCESS))
+                .build();
+    }
+
     // 将TravelPost实体转换为摘要DTO
     public PostSummaryDto convertPostToSummaryDto(TravelPost post) {
         // 获取封面图URL
@@ -241,6 +303,46 @@ public class DtoConverter {
                 .author(authorDto)
                 .spot(spotDto)
                 .imageUrls(imageUrls)
+                .likeCount(post.getLikeCount())
+                .favoriteCount(post.getFavoriteCount())
+                .commentCount(post.getCommentCount())
+                .viewCount(post.getViewCount())
+                .createdTime(post.getCreatedTime())
+                .build();
+    }
+
+    // 将TravelPost实体转换为面向拥有者的的DTO
+    public PostDetailToOwnerDto convertPostToDetailToOwnerDto(TravelPost post) {
+        // 转换作者信息
+        AuthorDto authorDto = ConvertUserToAuthorDto(post.getAuthor());
+
+        // 转换景点信息 (如果存在)
+        SpotDetailDto spotDto = null;
+        if (post.getSpot() != null) {
+            spotDto = ConvertSpotToDetailDto(post.getSpot());
+        }
+
+        // 转换图片URL列表
+        Map<String, String> imageIdAndUrls = post.getImages().stream()
+                .collect(Collectors.toMap(
+                        // 第一个参数：告诉它用什么做Map的Key
+                        postImage -> postImage.getMediaFile().getId(),
+                        // 第二个参数：告诉它用什么做Map的Value
+                        postImage -> AliyunOssUtil.generatePresignedGetUrl(
+                                postImage.getMediaFile().getObjectKey(),
+                                EXPIRE_TIME,
+                                IMAGE_PROCESS
+                        )
+                ));
+
+        // 构建最终的DTO
+        return PostDetailToOwnerDto.builder()
+                .id(post.getId())
+                .title(post.getTitle())
+                .content(post.getContent())
+                .author(authorDto)
+                .spot(spotDto)
+                .imageIdAndUrls(imageIdAndUrls)
                 .likeCount(post.getLikeCount())
                 .favoriteCount(post.getFavoriteCount())
                 .commentCount(post.getCommentCount())

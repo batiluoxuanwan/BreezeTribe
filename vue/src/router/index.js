@@ -33,6 +33,13 @@ const routes =[
         component:() =>import('../views/User/PublishTravelNote.vue')
     },
     {
+        path: '/edit-note/:id',
+        name: '用户编辑游记',
+        component:() =>import('../views/User/PublishTravelNote.vue'),
+        props: true, 
+        meta: { requiresAuth: true }
+    },
+    {
         path:'/merchant/me',
         name:'团长个人主页',
         component:() =>import('../views/Merchant/Profile.vue')
