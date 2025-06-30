@@ -42,7 +42,7 @@
     <el-divider />
 
     <!-- 手机号 -->
-    <div class="account-item" @click="openStatusDialog('phone')">
+    <div class="account-item" @click="handleBindModifyClick('phone')">
     <el-icon><Iphone /></el-icon>
     <span>手机号</span>
     <span class="item-value">
@@ -55,7 +55,7 @@
     <el-divider />
 
     <!-- 邮箱行 -->
-    <div class="account-item" @click="openStatusDialog('email')">
+    <div class="account-item" @click="handleBindModifyClick('email')">
     <el-icon><Message /></el-icon>
     <span>邮箱</span>
     <span class="item-value">{{ user.email || '去绑定' }}</span>
@@ -79,32 +79,12 @@
     </transition>
 
     <!-- 弹窗 -->
-    <el-dialog
-      v-model="statusDialogVisible"
-      :title="statusDialogTitle"
-      width="30%"
-      align-center
-    >
-      <div style="text-align: center; margin-bottom: 20px;">
-        <p>{{ bindStatusText }}</p>
-      </div>
-
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="statusDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="handleStatusDialogAction">
-            {{ currentBindType === 'phone' ? (user.phone ? '修改' : '绑定') : (user.email ? '修改' : '绑定') }}
-          </el-button>
-        </span>
-      </template>
-    </el-dialog>
-
-    <el-dialog
+        <el-dialog
       v-model="bindNewDialogVisible"
-      :title="newBindDialogTitle"
-      width="40%"
+      :title="newBindDialogTitle" width="40%"
       align-center
-      @closed="handleFormDialogClose" >
+      @closed="handleFormDialogClose"
+    >
       <el-form :model="form" :rules="formRules" ref="formRef" label-width="120px">
         <el-form-item v-if="currentBindType === 'phone'" label="手机号码" prop="phone">
           <el-input v-model="form.phone" placeholder="请输入手机号码" />
@@ -122,7 +102,7 @@
             />
             <el-button
               type="primary"
-              @click="currentBindType === 'phone' ? sendPhoneCode() : sendEmailCode()"
+              @click="currentBindType === 'phone' ? sendBindPhoneCode() : sendBindEmailCode()"
               :disabled="(currentBindType === 'phone' && phoneCodeCountdown > 0) || (currentBindType === 'email' && emailCodeCountdown > 0)"
             >
               {{ currentBindType === 'phone' ? (phoneCodeCountdown > 0 ? `${phoneCodeCountdown}s 后重发` : '发送验证码') : (emailCodeCountdown > 0 ? `${emailCodeCountdown}s 后重发` : '发送验证码') }}
@@ -146,7 +126,8 @@
       :title="modifyDialogTitle"
       width="40%"
       align-center
-      @closed="handleFormDialogClose" >
+      @closed="handleFormDialogClose"
+    >
       <el-form :model="form" :rules="formRules" ref="formRef" label-width="120px">
         <el-form-item v-if="currentBindType === 'phone'" label="新手机号" prop="phone">
           <el-input v-model="form.phone" placeholder="请输入新手机号码" />
@@ -164,7 +145,7 @@
             />
             <el-button
               type="primary"
-              @click="currentBindType === 'phone' ? sendPhoneCode() : sendEmailCode()"
+              @click="currentBindType === 'phone' ? sendModifyPhoneCode() : sendModifyEmailCode()"
               :disabled="(currentBindType === 'phone' && phoneCodeCountdown > 0) || (currentBindType === 'email' && emailCodeCountdown > 0)"
             >
               {{ currentBindType === 'phone' ? (phoneCodeCountdown > 0 ? `${phoneCodeCountdown}s 后重发` : '发送验证码') : (emailCodeCountdown > 0 ? `${emailCodeCountdown}s 后重发` : '发送验证码') }}
@@ -210,22 +191,22 @@ const uploadRef = ref(null)
 const editMode = ref(false)
 const newUsername = ref('')
 
-const statusDialogVisible = ref(false);// 控制初始弹窗的显示与隐藏
-const currentBindType = ref('');// 存储当前要绑定/修改的类型 ('phone' 或 'email')
-const bindNewDialogVisible = ref(false);    // 控制“绑定新手机/邮箱”弹窗
-const modifyDialogVisible = ref(false);    // 控制“修改手机/邮箱”弹窗
-// --- 表单相关状态和引用 (现在 form 用于新的绑定/修改弹窗) ---
-const formRef = ref(null); // 用于引用 <el-form>
-const form = reactive({ // 表单数据
+const bindNewDialogVisible = ref(false);
+const modifyDialogVisible = ref(false);
+
+const currentBindType = ref('');
+
+const phoneCodeCountdown = ref(0);
+let phoneCodeTimer = null;
+const emailCodeCountdown = ref(0);
+let emailCodeTimer = null;
+
+const formRef = ref(null);
+const form = reactive({
   phone: '',
   email: '',
   code: '',
 });
-// 邮箱和手机的倒计时和计时器
-const emailCodeCountdown = ref(0);
-let emailTimer = null;
-const phoneCodeCountdown = ref(0);
-let phoneTimer = null;
 
 const changePasswordVisible = ref(false);
 
@@ -310,273 +291,314 @@ watch(editMode, (val) => {
 })
 
 // --- 计算属性 ---
-// 初始状态弹窗的标题
-const statusDialogTitle = computed(() => { 
-  if (currentBindType.value === 'phone') {
-    return user.phone ? '修改手机号码' : '绑定手机号码';
-  } else if (currentBindType.value === 'email') {
-    return user.email ? '修改邮箱' : '绑定邮箱';
-  }
-  return '';
-});
-// 初始状态弹窗的提示文本
-const bindStatusText = computed(() => { 
-  if (currentBindType.value === 'phone') {
-    return user.phone ? `你的手机号码：${user.phone.replace(/^(\d{3})\d{4}(\d{4})$/, '$1****$2')}` : '还没有绑定手机号哦';
-  } else if (currentBindType.value === 'email') {
-    return user.email ? `你的邮箱：${user.email}` : '还没有绑定邮箱哦';
-  }
-  return '';
-});
-// 新绑定弹窗的标题
 const newBindDialogTitle = computed(() => {
   return currentBindType.value === 'phone' ? '绑定手机号码' : '绑定邮箱';
 });
-// 修改弹窗的标题
+
 const modifyDialogTitle = computed(() => {
   return currentBindType.value === 'phone' ? '修改手机号码' : '修改邮箱';
 });
 
-// 统一的表单验证规则，根据 currentBindType 动态生成
 const formRules = computed(() => {
-  const baseRules = { 
-    code: [{ required: true, message: '请输入验证码', trigger: 'blur' }],};
-
+  const rules = {
+    code: [{ required: true, message: '请输入验证码', trigger: 'blur' }],
+  };
   if (currentBindType.value === 'phone') {
-    return {
-      phone: [
-        { required: true, message: '请输入手机号码', trigger: 'blur' },
-        { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码', trigger: 'blur' }
-      ],
-      baseRules
-    };
+    rules.phone = [
+      { required: true, message: '请输入手机号码', trigger: 'blur' },
+      { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码', trigger: 'blur' }
+    ];
   } else if (currentBindType.value === 'email') {
-    return {
-      email: [
-        { required: true, message: '请输入邮箱地址', trigger: 'blur' },
-        { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' }
-      ],
-      baseRules
-    };
+    rules.email = [
+      { required: true, message: '请输入邮箱地址', trigger: 'blur' },
+      { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' }
+    ];
   }
-  return {};
+  return rules;
 });
 
-// 打开初始的状态显示弹窗
-const openStatusDialog = (type) => {
-  currentBindType.value = type; // 设置当前要处理的类型
-  statusDialogVisible.value = true; // 显示初始弹窗
-  // 每次打开时，清空表单（避免数据残留影响后续弹窗）
-  if (formRef.value) {
-    formRef.value.resetFields();
-  }
-};
-
-// 初始弹窗中“修改”或“绑定”按钮的点击事件
-const handleStatusDialogAction = () => {
-  statusDialogVisible.value = false; // 关闭初始弹窗
+const handleBindModifyClick = (type) => {
+  currentBindType.value = type;
+  form.phone = '';
+  form.email = '';
+  form.code = '';
+  formRef.value?.resetFields();
 
   if (currentBindType.value === 'phone') {
-    if (user.phone) { // 已绑定手机号，进入修改流程
-      form.phone = user.phone; // 预填充当前手机号
-      modifyDialogVisible.value = true; // 打开修改弹窗
-    } else { // 未绑定手机号，进入绑定流程
-      form.phone = ''; // 清空手机号字段
-      bindNewDialogVisible.value = true; // 打开绑定新弹窗
+    if (user.phone) {
+      modifyDialogVisible.value = true;
+    } else {
+      bindNewDialogVisible.value = true;
     }
   } else if (currentBindType.value === 'email') {
-    if (user.email) { // 已绑定邮箱，进入修改流程
-      form.email = user.email; // 预填充当前邮箱
-      modifyDialogVisible.value = true; // 打开修改弹窗
-    } else { // 未绑定邮箱，进入绑定流程
-      form.email = ''; // 清空邮箱字段
-      bindNewDialogVisible.value = true; // 打开绑定新弹窗
+    if (user.email) {
+      modifyDialogVisible.value = true;
+    } else {
+      bindNewDialogVisible.value = true;
     }
-  }
-  // 确保新打开的表单弹窗清除了验证错误
-  if (formRef.value) {
-    formRef.value.clearValidate();
   }
 };
 
-// 所有绑定/修改弹窗关闭时通用的清理函数
 const handleFormDialogClose = () => {
-  if (formRef.value) {
-    formRef.value.resetFields(); // 清空表单数据和验证状态
+  formRef.value?.resetFields();
+  if (phoneCodeTimer) { clearInterval(phoneCodeTimer); phoneCodeCountdown.value = 0; phoneCodeTimer = null; }
+  if (emailCodeTimer) { clearInterval(emailCodeTimer); emailCodeCountdown.value = 0; emailCodeTimer = null; }
+};
+
+const startCodeCountdown = (type) => {
+  let countdownRef;
+  let setTimerRef;
+
+  if (type === 'phone') {
+    countdownRef = phoneCodeCountdown;
+    setTimerRef = (val) => { phoneCodeTimer = val; };
+  } else if (type === 'email') {
+    countdownRef = emailCodeCountdown;
+    setTimerRef = (val) => { emailCodeTimer = val; };
+  } else {
+    console.error('Invalid countdown type:', type);
+    return;
   }
-  // 清除所有定时器
-  if (emailTimer) {
-    clearInterval(emailTimer);
-    emailTimer = null;
-    emailCodeCountdown.value = 0;
-  }
-  if (phoneTimer) {
-    clearInterval(phoneTimer);
-    phoneTimer = null;
-    phoneCodeCountdown.value = 0;
+
+  if (phoneCodeTimer && type === 'phone') { clearInterval(phoneCodeTimer); setTimerRef(null); }
+  if (emailCodeTimer && type === 'email') { clearInterval(emailCodeTimer); setTimerRef(null); }
+
+  countdownRef.value = 60;
+  const newTimer = setInterval(() => {
+    if (countdownRef.value > 0) {
+      countdownRef.value--;
+    } else {
+      clearInterval(newTimer);
+      setTimerRef(null);
+    }
+  }, 1000);
+  setTimerRef(newTimer);
+};
+
+// 辅助函数：当发送验证码请求失败时，停止倒计时并重置
+const stopCountdownOnError = (type) => {
+    if (type === 'phone' && phoneCodeTimer) {
+        clearInterval(phoneCodeTimer);
+        phoneCodeCountdown.value = 0;
+        phoneCodeTimer = null;
+    } else if (type === 'email' && emailCodeTimer) {
+        clearInterval(emailCodeTimer);
+        emailCodeCountdown.value = 0;
+        emailCodeTimer = null;
+    }
+};
+
+// 通用的发送验证码错误处理函数，统一提示错误信息
+const handleSendCodeError = (error, typeName) => {
+  if (error.response) {
+    const errorMessage = error.response.data.message || error.response.statusText || '服务器错误。';
+    ElMessage.error(`${typeName}验证码发送失败: ${errorMessage}`);
+    if (error.response.status === 400 && (errorMessage.includes('频繁') || errorMessage.includes('too frequent'))) {
+       ElMessage.warning('发送频率过高，请稍后再试。');
+    } else if (error.response.status === 401) {
+        ElMessage.error('您的登录已过期或未授权。');
+    }
+  } else if (error.request) {
+    ElMessage.error(`${typeName}验证码发送失败：网络无响应，请检查您的网络连接。`);
+  } else {
+    ElMessage.error(`${typeName}验证码发送失败：发生未知错误。`);
   }
 };
 
-// // 电话发送验证码函数
-// const sendPhoneCode = async () => {
-//   formRef.value.validateField('phone', async (isValid) => {
-//     if (!isValid) {
-//       ElMessage.error('请先输入有效的手机号码');
-//       return;
-//     }
-//     try {
-//       const response = await publicAxios.post('/captcha/sendSms', null, {
-//         params: { phone: form.phone }
-//       });
 
-//       if (response.data.code === 200) {
-//         ElMessage.success(`手机验证码已发送至 ${form.phone}`);
-//         if (phoneTimer) {
-//           clearInterval(phoneTimer);
-//         }
-//         phoneCodeCountdown.value = 60;
-//         phoneTimer = setInterval(() => {
-//           if (phoneCodeCountdown.value > 0) {
-//             phoneCodeCountdown.value--;
-//           } else {
-//             clearInterval(phoneTimer);
-//             phoneTimer = null;
-//           }
-//         }, 1000);
-//       } else {
-//         ElMessage.error(response.data.message || '发送手机验证码失败');
-//       }
-//     } catch (error) {
-//       console.error('发送手机验证码失败:', error);
-//       ElMessage.error('发送手机验证码请求失败，请稍后再试');
-//     }
-//   });
-// };
-
-// 邮箱发送验证码函数 
-const sendEmailCode = async () => {
-  formRef.value.validateField('email', async (isValid) => {
-    if (!isValid) {
-      ElMessage.error('请先输入有效的邮箱地址');
-      return;
+// 1. 绑定手机号发送验证码 
+const sendBindPhoneCode = async () => {
+  form.code = '';
+  const phoneValidated = await formRef.value.validateField('phone', () => {});
+  if (!phoneValidated) { ElMessage.warning('请先输入正确的手机号码！'); return; }
+  startCodeCountdown('phone');
+  try {
+    const res = await authAxios.post('/captcha/bindSms', null, { params: { phone: form.phone } });
+    if (res.data.code === 0) { 
+      ElMessage.success(res.data.message || '手机验证码已发送，请注意查收！');
+    } else {
+      ElMessage.error(res.data.message || '手机验证码发送失败，请重试。');
+      stopCountdownOnError('phone');
     }
-    try {
-      const response = await publicAxios.post('/captcha/sendEmail', null, {
-        params: { email: form.email }
-      });
-
-      if (response.data.code === 200) {
-        ElMessage.success(`邮箱验证码已发送至 ${form.email}`);
-        if (emailTimer) {
-          clearInterval(emailTimer);
-        }
-        emailCodeCountdown.value = 60;
-        emailTimer = setInterval(() => {
-          if (emailCodeCountdown.value > 0) {
-            emailCodeCountdown.value--;
-          } else {
-            clearInterval(emailTimer);
-            emailTimer = null;
-          }
-        }, 1000);
-      } else {
-        ElMessage.error(response.data.message || '发送邮箱验证码失败');
-      }
-    } catch (error) {
-      console.error('发送邮箱验证码失败:', error);
-      ElMessage.error('发送邮箱验证码请求失败，请稍后再试');
-    }
-  });
+  } catch (error) {
+    console.error('发送绑定手机验证码请求失败:', error);
+    stopCountdownOnError('phone');
+    handleSendCodeError(error, '手机');
+  }
 };
 
-// 处理绑定操作的提交
+// 2. 绑定邮箱发送验证码 
+const sendBindEmailCode = async () => {
+  form.code = '';
+  const emailValidated = await formRef.value.validateField('email', () => {});
+  if (!emailValidated) { ElMessage.warning('请先输入正确的邮箱地址！'); return; }
+  startCodeCountdown('email');
+  try {
+    const res = await authAxios.post('/captcha/bindEmail', null, { params: { email: form.email } });
+    if (res.data.code === 0) { 
+      ElMessage.success(res.data.message || '邮箱验证码已发送，请注意查收！');
+    } else {
+      ElMessage.error(res.data.message || '邮箱验证码发送失败，请重试。');
+      stopCountdownOnError('email');
+    }
+  } catch (error) {
+    console.error('发送绑定邮箱验证码请求失败:', error);
+    stopCountdownOnError('email');
+    handleSendCodeError(error, '邮箱');
+  }
+};
+
+// 3. 修改手机号发送验证码
+const sendModifyPhoneCode = async () => {
+  form.code = '';
+  const phoneValidated = await formRef.value.validateField('phone', () => {});
+  if (!phoneValidated) { ElMessage.warning('请先输入正确的新手机号码！'); return; }
+  startCodeCountdown('phone');
+  try {
+    const res = await authAxios.post('/captcha/resetBySms', null, { params: { phone: form.phone } });
+    if (res.data.code === 0) { 
+      ElMessage.success(res.data.message || '新手机验证码已发送，请注意查收！');
+    } else {
+      ElMessage.error(res.data.message || '新手机验证码发送失败，请重试。');
+      stopCountdownOnError('phone');
+    }
+  } catch (error) {
+    console.error('发送修改手机验证码请求失败:', error);
+    stopCountdownOnError('phone');
+    handleSendCodeError(error, '新手机');
+  }
+};
+
+// 4. 修改邮箱发送验证码
+const sendModifyEmailCode = async () => {
+  form.code = '';
+  const emailValidated = await formRef.value.validateField('email', () => {});
+  if (!emailValidated) { ElMessage.warning('请先输入正确的新邮箱地址！'); return; }
+  startCodeCountdown('email');
+  try {
+    const res = await authAxios.post('/captcha/resetByEmail', null, { params: { email: form.email } });
+    if (res.data.code === 0) { 
+      ElMessage.success(res.data.message || '新邮箱验证码已发送，请注意查收！');
+    } else {
+      ElMessage.error(res.data.message || '新邮箱验证码发送失败，请重试。');
+      stopCountdownOnError('email');
+    }
+  } catch (error) {
+    console.error('发送修改邮箱验证码请求失败:', error);
+    stopCountdownOnError('email');
+    handleSendCodeError(error, '新邮箱');
+  }
+};
+
+
+// 处理绑定操作的提交 
 const handleBindSubmit = async () => {
-  formRef.value.validate(async (valid) => {
+  if (!formRef.value) return;
+
+  await formRef.value.validate(async (valid) => {
     if (!valid) {
       ElMessage.error('请检查表单填写');
       return;
     }
 
     try {
-      let apiEndpoint = '';
       let requestPayload = {
         code: form.code,
+        role: "ROLE_USER", 
       };
 
       if (currentBindType.value === 'phone') {
-        apiEndpoint = '/auth/bindPhone'; // 假设绑定手机号接口
-        requestPayload.phone = form.phone;
+        requestPayload.newPhone = form.phone;
+        requestPayload.newEmail = null; // 确保另一个字段为 null
       } else if (currentBindType.value === 'email') {
-        apiEndpoint = '/auth/bindEmail'; // 假设绑定邮箱接口
-        requestPayload.email = form.email;
+        requestPayload.newEmail = form.email;
+        requestPayload.newPhone = null; // 确保另一个字段为 null
       }
 
-      const res = await publicAxios.post(apiEndpoint, requestPayload); // 假设是 POST 请求
+      const res = await authAxios.put('/auth/rebind', requestPayload); 
 
-      if (res.data.code === 200) {
+      if (res.data.code === 0) { 
         ElMessage.success(`绑定${currentBindType.value === 'phone' ? '手机' : '邮箱'}成功！`);
-        // 刷新用户信息，或直接更新 user.phone/user.email
-        await fetchUserBindInfo(); // 假设你有一个方法可以重新获取用户信息并更新user对象
-        bindNewDialogVisible.value = false; // 关闭绑定弹窗
+        bindNewDialogVisible.value = false;
+        emit('userUpdated');
+        await fetchUserInfo(); 
       } else {
         ElMessage.error(res.data.message || `绑定${currentBindType.value === 'phone' ? '手机' : '邮箱'}失败`);
       }
     } catch (error) {
       console.error(`绑定${currentBindType.value === 'phone' ? '手机' : '邮箱'}请求失败:`, error);
-      ElMessage.error(`绑定${currentBindType.value === 'phone' ? '手机' : '邮箱'}请求失败，请稍后再试`);
+      if (error.response && error.response.status === 400) {
+        const errorMessageFromBackend = error.response.data.message || '提交的信息有误。';
+        if (errorMessageFromBackend.includes('已注册')) {
+          ElMessage.error(`${currentBindType.value === 'phone' ? '该手机号' : '该邮箱'}已被注册，请更换。`);
+        } else {
+          ElMessage.error(`提交信息有误: ${errorMessageFromBackend}`);
+        }
+      } else {
+        ElMessage.error(`操作失败，请稍后再试。`);
+      }
     }
   });
 };
 
-// 处理修改操作的提交
+// 处理修改操作的提交 
 const handleModifySubmit = async () => {
-  formRef.value.validate(async (valid) => {
+  if (!formRef.value) return;
+
+  await formRef.value.validate(async (valid) => {
     if (!valid) {
       ElMessage.error('请检查表单填写');
       return;
     }
 
     try {
-      let apiEndpoint = '';
       let requestPayload = {
         code: form.code,
+        role: "ROLE_USER", 
       };
 
       if (currentBindType.value === 'phone') {
-        apiEndpoint = '/auth/updatePhone'; // 假设修改手机号接口
-        requestPayload.oldPhone = user.phone; // 通常需要旧的作为验证
         requestPayload.newPhone = form.phone;
+        requestPayload.newEmail = null; // 确保另一个字段为 null
       } else if (currentBindType.value === 'email') {
-        apiEndpoint = '/captcha/resetEmail'; // 假设修改邮箱接口
-        requestPayload.oldEmail = user.email; // 通常需要旧的作为验证
         requestPayload.newEmail = form.email;
+        requestPayload.newPhone = null; // 确保另一个字段为 null
       }
 
-      const res = await publicAxios.post(apiEndpoint, requestPayload); 
+      const res = await authAxios.put('/auth/rebind', requestPayload); 
 
-      if (res.data.code === 200) {
+      if (res.data.code === 0) {
         ElMessage.success(`修改${currentBindType.value === 'phone' ? '手机' : '邮箱'}成功！`);
-        await fetchUserBindInfo(); // 刷新用户信息
-        modifyDialogVisible.value = false; // 关闭修改弹窗
+        modifyDialogVisible.value = false;
+        emit('userUpdated');
+        await fetchUserInfo(); 
       } else {
         ElMessage.error(res.data.message || `修改${currentBindType.value === 'phone' ? '手机' : '邮箱'}失败`);
       }
     } catch (error) {
       console.error(`修改${currentBindType.value === 'phone' ? '手机' : '邮箱'}请求失败:`, error);
-      ElMessage.error(`修改${currentBindType.value === 'phone' ? '手机' : '邮箱'}请求失败，请稍后再试`);
+      if (error.response && error.response.status === 400) {
+        const errorMessageFromBackend = error.response.data.message || '提交的信息有误。';
+        if (errorMessageFromBackend.includes('已注册')) {
+          ElMessage.error(`${currentBindType.value === 'phone' ? '该手机号' : '该邮箱'}已被注册，请更换。`);
+        } else {
+          ElMessage.error(`提交信息有误: ${errorMessageFromBackend}`);
+        }
+      } else {
+        ElMessage.error(`操作失败，请稍后再试。`);
+      }
     }
   });
 };
 
-// 组件卸载时清除所有定时器
 onUnmounted(() => {
-  if (emailTimer) {
-    clearInterval(emailTimer);
-    emailTimer = null;
+  if (emailCodeTimer) {
+    clearInterval(emailCodeTimer);
+    emailCodeTimer = null;
   }
-  if (phoneTimer) {
-    clearInterval(phoneTimer);
-    phoneTimer = null;
+  if (phoneCodeTimer) {
+    clearInterval(phoneCodeTimer);
+    phoneCodeTimer = null;
   }
 });
 
