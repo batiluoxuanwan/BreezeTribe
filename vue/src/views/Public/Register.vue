@@ -252,8 +252,11 @@ const sendPhoneCode = () => {
   formRef.value.validateField('phone', async (isValid) => {
     if (isValid) {
       try {
-        const response = await publicAxios.post('/api/send-phone-code', { phone: registerForm.phone });
-        if (response.data.code === 200) {
+        const response = await publicAxios.post('/captcha/sendSms', null, {
+            params: { phone: registerForm.phone}
+          }
+        );
+        if (response.data.code === 0) { 
           ElMessage.success(`手机验证码已发送至 ${registerForm.phone}`);
           phoneCodeCountdown.value = 60;
           phoneTimer = setInterval(() => {
@@ -268,7 +271,7 @@ const sendPhoneCode = () => {
           ElMessage.error(response.data.message || '发送手机验证码失败');
         }
       } catch (error) {
-        ElMessage.error('发送手机验证码请求失败，请稍后再试。');
+        ElMessage.error(error.response?.data?.message || '发送手机验证码请求失败，请稍后再试。');
         console.error('发送手机验证码失败:', error);
       }
     } else {
