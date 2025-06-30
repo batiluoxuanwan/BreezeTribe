@@ -33,14 +33,6 @@
           <span>我的旅行团</span>
         </div>
         <div
-          :class="{ 'menu-item': true, 'active': activeTab === 'orderManagement' }"
-          @click="activeTab = 'orderManagement'"
-        >
-          <el-icon><Tickets /></el-icon>
-          <span>订单管理</span>
-          <el-badge v-if="merchantOverview.newOrders > 0" :value="merchantOverview.newOrders" class="notification-badge" />
-        </div>
-        <div
           :class="{ 'menu-item': true, 'active': activeTab === 'reviewManagement' }"
           @click="activeTab = 'reviewManagement'"
         >
@@ -150,7 +142,6 @@
         </el-tab-pane>
 
         <el-tab-pane label="我的旅行团" name="tourManagement">
-          <el-input v-model="tourSearchQuery" placeholder="搜索旅行团名称" clearable @input="debouncedSearchTours" class="search-input"></el-input>
           <el-table :data="myTours" v-loading="tourLoading" style="width: 100%" class="admin-table">
             <el-table-column prop="id" label="ID" width="80"></el-table-column>
             <el-table-column prop="title" label="团名"></el-table-column>
@@ -166,8 +157,13 @@
               <template #default="{ row }">
                 <el-button link type="primary" size="small" @click="viewTourDetails(row)">详情</el-button>
                 <el-button link type="warning" size="small" @click="editTour(row)">编辑</el-button>
-                <el-button link :type="row.status === 'PUBLISHED' ? 'danger' : 'success'" size="small" @click="toggleTourStatus(row)">
-                  {{ row.status === 'PUBLISHED' ? '下架' : '上架' }}
+                <el-button 
+                  link 
+                  type="info" 
+                  size="small" 
+                  @click="viewOrders(row)" 
+                  :disabled="row.status === 'REJECTED' || row.status === 'PENDING_APPROVAL'">
+                  查看订单
                 </el-button>
               </template>
             </el-table-column>
@@ -179,38 +175,6 @@
             :page-size="myToursPageSize"
             v-model:current-page="myToursCurrentPage"
             @current-change="fetchMyTours"
-            class="pagination-bottom"
-          />
-        </el-tab-pane>
-
-        <el-tab-pane label="订单管理" name="orderManagement">
-          <el-input v-model="orderSearchQuery" placeholder="搜索订单号或旅行团名" clearable @input="debouncedSearchOrders" class="search-input"></el-input>
-          <el-table :data="orders" v-loading="orderLoading" style="width: 100%" class="admin-table">
-            <el-table-column prop="orderId" label="订单号" width="180"></el-table-column>
-            <el-table-column prop="tourTitle" label="旅行团名"></el-table-column>
-            <el-table-column prop="customerName" label="客户"></el-table-column>
-            <el-table-column prop="totalPrice" label="金额" width="100"></el-table-column>
-            <el-table-column prop="orderDate" label="下单日期" width="120"></el-table-column>
-            <el-table-column prop="status" label="状态" width="100">
-              <template #default="{ row }">
-                <el-tag :type="getOrderStatusType(row.status)">{{ getOrderStatusText(row.status) }}</el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="150">
-              <template #default="{ row }">
-                <el-button link type="primary" size="small" @click="viewOrderDetails(row)">详情</el-button>
-                <el-button v-if="row.status === 'PENDING_PAYMENT'" link type="warning" size="small" @click="markOrderPaid(row)">标记付款</el-button>
-                <el-button v-if="row.status === 'PAID'" link type="success" size="small" @click="markOrderCompleted(row)">标记完成</el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-          <el-pagination
-            background
-            layout="prev, pager, next"
-            :total="ordersTotal"
-            :page-size="ordersPageSize"
-            v-model:current-page="ordersCurrentPage"
-            @current-change="fetchOrders"
             class="pagination-bottom"
           />
         </el-tab-pane>
@@ -620,7 +584,7 @@ const viewOrderDetails = (orderRow) => {
   orderDetailsDialog.value = true;
 };
 
-// 标记订单为已付款 (示例)
+// 标记订单为已付款
 const markOrderPaid = async (orderRow) => {
   ElMessageBox.confirm(`确定要将订单 ${orderRow.orderId} 标记为“已付款”吗？`, '提示', { type: 'info' })
     .then(async () => {
@@ -644,7 +608,7 @@ const markOrderPaid = async (orderRow) => {
     });
 };
 
-// 标记订单为已完成 (示例)
+// 标记订单为已完成
 const markOrderCompleted = async (orderRow) => {
   ElMessageBox.confirm(`确定要将订单 ${orderRow.orderId} 标记为“已完成”吗？`, '提示', { type: 'success' })
     .then(async () => {
@@ -741,6 +705,13 @@ const viewMessageDetails = async (messageRow) => {
   }
 };
 
+// 查看指定旅行团的订单列表
+const viewOrders = (tourRow) => {
+  selectedTour.value = { ...tourRow }; // 存储当前选中的旅行团信息，方便弹窗标题显示
+  ordersForSelectedPackage.pageNumber = 1; // 重置分页到第一页
+  travelPackageOrdersDialog.value = true; // 打开弹窗
+  fetchTravelPackageOrders(); // 调用新的函数来获取订单数据
+};
 
 // 保存团长资料
 const saveMerchantProfile = async () => {
@@ -1140,11 +1111,6 @@ onMounted(() => {
   font-size: 1.1rem;
   font-weight: 600;
   color: #333;
-}
-
-.search-input {
-  width: 300px;
-  margin-bottom: 20px;
 }
 
 .admin-table {

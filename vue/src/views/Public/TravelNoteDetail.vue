@@ -1186,7 +1186,7 @@ watch(
   transition: color 0.2s ease;
 }
 .view-more-replies:hover {
-  color: #409EFF; /* 悬停变色 */
+  color: #52ac98; /* 悬停变色 */
   text-decoration: underline;
 }
 
@@ -1325,7 +1325,7 @@ watch(
   transition: color 0.2s ease;
 }
 .collapse-replies:hover {
-  color: #409EFF;
+  color: #60b9b2;
 }
 
 /* 就地回复输入框 */
