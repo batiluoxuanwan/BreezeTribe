@@ -153,6 +153,12 @@
             <version>0.10.2</version>
         </dependency>
 
+        <!--        AI 流式请求依赖-->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webflux</artifactId>
+        </dependency>
+
     </dependencies>
 
 
