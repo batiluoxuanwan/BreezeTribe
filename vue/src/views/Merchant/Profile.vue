@@ -273,74 +273,12 @@
         </el-tab-pane>
 
         <el-tab-pane label="账户设置" name="accountSettings">
-          <el-card class="setting-card">
-            <h4>公司资料</h4>
-            <el-form :model="merchantProfile" label-width="120px">
-              <el-form-item label="公司名称">
-                <el-input v-model="merchantProfile.companyName"></el-input>
-              </el-form-item>
-              <el-form-item label="联系邮箱">
-                <el-input v-model="merchantProfile.contactEmail"></el-input>
-              </el-form-item>
-              <el-form-item label="联系电话">
-                <el-input v-model="merchantProfile.contactPhone"></el-input>
-              </el-form-item>
-              <el-form-item label="公司地址">
-                <el-input v-model="merchantProfile.companyAddress"></el-input>
-              </el-form-item>
-              <el-form-item>
-                <el-button type="primary" @click="saveMerchantProfile">保存资料</el-button>
-              </el-form-item>
-            </el-form>
-          </el-card>
-
-          <el-card class="setting-card">
-            <h4>登录密码</h4>
-            <el-form :model="passwordForm" label-width="120px">
-              <el-form-item label="旧密码">
-                <el-input type="password" v-model="passwordForm.oldPassword"></el-input>
-              </el-form-item>
-              <el-form-item label="新密码">
-                <el-input type="password" v-model="passwordForm.newPassword"></el-input>
-              </el-form-item>
-              <el-form-item label="确认新密码">
-                <el-input type="password" v-model="passwordForm.confirmNewPassword"></el-input>
-              </el-form-item>
-              <el-form-item>
-                <el-button type="primary" @click="changePassword">修改密码</el-button>
-              </el-form-item>
-            </el-form>
-          </el-card>
+          <div style="margin-bottom: 32px;">
+            <AccountOverview />
+          </div>            
         </el-tab-pane>
       </el-tabs>
     </main>
-
-    <el-dialog v-model="editProfileDialog" title="编辑团长资料" width="500px">
-      <el-form :model="merchantProfile" label-width="100px">
-        <el-form-item label="公司名称">
-          <el-input v-model="merchantProfile.companyName"></el-input>
-        </el-form-item>
-        <el-form-item label="联系人">
-          <el-input v-model="merchantProfile.username"></el-input>
-        </el-form-item>
-        <el-form-item label="联系邮箱">
-          <el-input v-model="merchantProfile.contactEmail"></el-input>
-        </el-form-item>
-        <el-form-item label="联系电话">
-          <el-input v-model="merchantProfile.contactPhone"></el-input>
-        </el-form-item>
-        <el-form-item label="公司地址">
-          <el-input v-model="merchantProfile.companyAddress"></el-input>
-        </el-form-item>
-        <el-form-item label="公司头像">
-          <el-input v-model="merchantProfile.avatarUrl" placeholder="请输入图片URL或上传"></el-input>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="editProfileDialog = false">取消</el-button>
-        <el-button type="primary" @click="saveMerchantProfile">保存</el-button>
-      </template>
-    </el-dialog>
 
     <el-dialog v-model="tourDetailsDialog" :title="`旅行团详情: ${selectedTour.title}`" width="800px">
       <el-descriptions border :column="2" class="detail-descriptions">
@@ -423,6 +361,7 @@ import { Monitor, Compass, Plus, Tickets, Comment, Message, Setting, DocumentCop
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { authAxios } from '@/utils/request';
 import { useRouter } from 'vue-router';
+import AccountOverview from '@/components/AccountOverview.vue' 
 
 const router = useRouter();
 

@@ -1,15 +1,33 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { jwtDecode } from 'jwt-decode';
 
 export const useAuthStore = defineStore('auth', () => {
   const isLoggedIn = ref(false)
   const token = ref('')
-  const role = ref(null) // 新增：用于存储用户角色
+  const role = ref(null) 
+  const userId = ref(null);
+
+
+  // 辅助函数：从 token 中解析 userId
+  const parseUserIdFromToken = (authToken) => {
+    try {
+      if (authToken) {
+        const decoded = jwtDecode(authToken);
+        return decoded.identifier;
+      }
+    } catch (e) {
+      console.error("Error decoding token:", e);
+      return null;
+    }
+    return null;
+  };
 
   // 登录，接受一个包含 token 和 role 的对象
   function login(authToken,Role) {
     token.value = authToken
     role.value = Role   
+    userId.value = parseUserIdFromToken(authToken); 
     isLoggedIn.value = true
 
     // 将 token 和 role 存储到 localStorage

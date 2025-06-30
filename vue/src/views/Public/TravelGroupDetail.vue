@@ -156,7 +156,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, reactive } from 'vue';
+import { ref, onMounted, reactive ,watch} from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, ElCard, ElRow, ElCol, ElImage, ElDivider, ElTag, ElRate, ElEmpty, ElButton, ElCarousel, ElCarouselItem, ElTimeline, ElTimelineItem, ElIcon, ElMessageBox, ElDialog, ElForm, ElFormItem, ElInput, ElInputNumber } from 'element-plus';
 import { ArrowLeftBold, Picture, Star, StarFilled, Tickets } from '@element-plus/icons-vue'; // Import Star and StarFilled icons
@@ -201,7 +201,7 @@ const enrollRules = reactive({
 
 // --- 返回上一页 ---
 const goBack = () => {
-  router.back();
+  router.push({ name: '旅行广场', query: { tab: 'groups' } });
 };
 
 // --- 获取特定旅行团的详细数据 ---
@@ -424,6 +424,19 @@ onMounted(() => {
     loading.value = false;
   }
 });
+
+// 监听路由参数 id 的变化
+watch(
+  () => route.params.id, // 监听 route.params.id
+  (newId, oldId) => {
+    // 只有当 ID 确实发生变化且新 ID 不为空时才重新获取数据
+    if (newId && newId !== oldId) {
+      console.log(`路由 ID 发生变化：从 ${oldId} 变为 ${newId}，重新加载旅行团详情。`);
+      fetchTravelGroupDetail(newId);
+    }
+  },
+  { immediate: false } // 不需要立即执行，因为 onMounted 已经处理了首次加载
+);
 </script>
 
 <style scoped>
@@ -448,13 +461,22 @@ onMounted(() => {
   font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif;
 }
 
+/* 固定在左上角的返回按钮 */
 .back-button {
-  position: absolute;
-  top: 20px; /* Adjusted for better spacing */
-  left: 20px; /* Adjusted for better spacing */
-  z-index: 10;
-  border-radius: 20px; /* More rounded */
-  padding: 8px 15px; /* Slightly more padding */
+  position: fixed; /* 固定定位 */
+  top: 20px;
+  left: 20px;
+  z-index: 1000; /* 确保在最顶层 */
+  background-color: rgba(0, 0, 0, 0.5); /* 半透明背景 */
+  border: none;
+  color: #fff;
+  padding: 10px 15px;
+  border-radius: 20px; /* 更圆润 */
+  font-size: 0.9em;
+  transition: background-color 0.3s ease;
+}
+.back-button:hover {
+  background-color: rgba(0, 0, 0, 0.7);
 }
 
 /* 加载状态样式 */
