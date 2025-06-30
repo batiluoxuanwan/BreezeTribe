@@ -66,7 +66,7 @@ public class UserActionController {
     /**
      *  获取用户的订单列表（按评价状态筛选）
      */
-    @Operation(summary = "获取我的订单列表（按评价状态筛选）")
+    @Operation(summary = "获取我的订单列表（按评价状态筛选）(返回的都是已完成的订单，分为已完成未评价和已完成已评价)")
     @GetMapping("/orders/for-review")
     public Result<PageResponseDto<OrderForReviewDto>> getMyOrdersForReview(
             @Parameter(description = "筛选状态: PENDING (待评价), REVIEWED (已评价)，ALL (全部)") @RequestParam(defaultValue = "PENDING") String status,
