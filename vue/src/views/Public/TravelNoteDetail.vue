@@ -47,8 +47,9 @@
 
         <div class="note-stats">
           <span class="stat-item"><el-icon><View /></el-icon> {{ note.viewCount || 0 }}</span>
-          <span class="stat-item"><el-icon><Star /></el-icon> {{ note.favoriteCount || 0 }}</span>
-          <span class="stat-item"><el-icon><Pointer /></el-icon> {{ note.likeCount || 0 }}</span>
+          <span class="stat-item" @click="toggleLike(note)">
+          <el-icon :class="{ 'liked': note.isLiked }"><Pointer /></el-icon> {{ note.likeCount || 0 }}
+          </span>
           <span class="stat-item"><el-icon><ChatDotRound /></el-icon> {{ note.commentCount || 0 }}</span>
         </div>
 
@@ -278,6 +279,110 @@ const activeReplyInputId = ref(null); // 当前显示回复输入框的评论ID 
 const replyContent = ref(''); // 回复输入框的内容
 const currentReplyTarget = ref(null); // 当前回复的目标（可能是主评论，也可能是某个回复）
 
+// 获取互动状态
+const fetchInteractionStatus = async (itemId) => {
+    if (note.value) { 
+        note.value.isLiked = false;
+        note.value.isFavorited = false;
+    }
+
+    if (!authStore.isLoggedIn) { 
+        console.log('用户未登录，跳过获取互动状态。');
+        return;
+    }
+
+    if (!itemId) {
+        console.warn('缺少项目ID，无法获取互动状态。');
+        return;
+    }
+    const itemType = 'POST'; 
+    const statusMapKey = `${itemType}_${itemId}`; 
+    try {
+        const response = await authAxios.post('/user/interactions/status', {
+            items: [
+                {
+                    id: itemId,
+                    type: 'POST' 
+                }
+            ]
+        });
+
+        if (response.data.code === 200 && response.data.data.statusMap) {
+            const status = response.data.data.statusMap[statusMapKey];
+            if (status) {
+                note.value.isLiked = status.liked;
+                note.value.isFavorited = status.favorited; 
+            }
+            console.log('status ',response.data.data)
+        } else {
+            console.warn('获取互动状态失败:', response.data.message);
+        }
+    } catch (error) {
+        console.error('获取互动状态请求失败:', error);
+        if (error.response && error.response.status === 401) {
+            ElMessage.warning('您未登录，无法获取点赞和收藏状态。');
+        } else {
+           ElMessage.error('获取点赞/收藏状态网络错误！');
+        }
+    }
+};
+
+// --- 点赞功能 ---
+const toggleLike = async (note) => {
+  // 防止重复点击导致多次请求
+  if (note.liking) { 
+    return;
+  }
+  note.liking = true; 
+
+  const itemId = note.id;
+  const itemType = note.itemType || 'POST'; 
+
+  try {
+    let response;
+    if (note.isLiked) {
+      response = await authAxios.delete('/user/likes', {
+        data: { 
+          itemId: itemId,
+          itemType: itemType
+        }
+      });
+    } else {
+      response = await authAxios.post('/user/likes', {
+        itemId: itemId,
+        itemType: itemType
+      });
+    }
+
+    if (response.data.code === 200) {
+      if (note.isLiked) {
+        note.likeCount--; 
+      } else {
+        note.likeCount++; 
+      }
+      note.isLiked = !note.isLiked; 
+      ElMessage.success(note.isLiked ? '点赞成功！' : '取消点赞成功！');
+    } else {
+      ElMessage.error(response.data.message || '操作失败，请稍后再试。');
+      await fetchInteractionStatus(itemId);
+    }
+  } catch (error) {
+    console.error('点赞/取消请求失败:', error);
+    if (error.response && error.response.data && error.response.data.message) {
+      ElMessage.error(error.response.data.message);
+    } else if (error.response && error.response.status === 401) {
+       ElMessage.error('请先登录才能点赞！'); 
+       router.push('/login');
+    } else if (error.response && error.response.status === 403) {
+       ElMessage.error('您没有权限进行此操作！'); 
+    } else {
+      ElMessage.error('网络错误或操作失败，请稍后再试！');
+    }
+    await fetchInteractionStatus(itemId);
+  } finally {
+    note.liking = false; 
+  }
+};
 
 // 计算属性：是否有更多主评论可以加载
 const hasMoreComments = computed(() => {
@@ -311,6 +416,7 @@ const fetchNoteDetail = async () => {
     
     if (response.data && response.data.code === 200 && response.data.data) {
       note.value = response.data.data;
+      
       ElMessage.success('游记详情加载成功！');
       console.log('游记详情:', note.value);
     } else {
@@ -335,6 +441,7 @@ onMounted(() => {
   postId.value = route.params.id; 
   if (postId.value) {
     fetchNoteDetail();
+    fetchInteractionStatus(postId.value);
     fetchComments(true); // 首次加载主评论，从第一页开始
   } else {
     loading.value = false;
@@ -983,6 +1090,14 @@ watch(
   color: #909399;
 }
 
+.stat-item .el-icon.liked {
+    color: var(--el-color-primary); 
+}
+
+.stat-item .el-icon.favorited {
+    color: var(--el-color-primary); 
+}
+
 /* 互动按钮区 */
 .note-actions {
   display: flex;
@@ -1186,7 +1301,7 @@ watch(
   transition: color 0.2s ease;
 }
 .view-more-replies:hover {
-  color: #409EFF; /* 悬停变色 */
+  color: #52ac98; /* 悬停变色 */
   text-decoration: underline;
 }
 
@@ -1325,7 +1440,7 @@ watch(
   transition: color 0.2s ease;
 }
 .collapse-replies:hover {
-  color: #409EFF;
+  color: #60b9b2;
 }
 
 /* 就地回复输入框 */
