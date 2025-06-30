@@ -184,16 +184,16 @@
 </template>
 
 <script setup>
-import { onMounted, ref,computed,reactive } from 'vue'
+import { onMounted, ref,computed,reactive,watch } from 'vue'
 import { Star, Tickets, EditPen, Comment, Bell, ArrowLeft, Plus } from '@element-plus/icons-vue' 
 import { ElTabs, ElTabPane, ElCard, ElForm, ElFormItem, ElInput, ElSelect, ElOption, ElButton, ElPagination, ElEmpty, ElMessage } from 'element-plus';
 import AccountOverview from '@/components/AccountOverview.vue' 
-import ChangePassword from '@/components/ChangePassword.vue'  
 
 import { useRoute,useRouter } from 'vue-router';
-import { authAxios } from '@/utils/request';
+import { authAxios,publicAxios } from '@/utils/request';
 
 const router = useRouter();
+const route = useRoute();
 const user = reactive({
   id: '',
   email: '',
@@ -212,10 +212,12 @@ const collectedTours = ref([
   { id: 4, title: '青海湖秘境', image: 'https://picsum.photos/id/40/120/90', location: '青海' },
 ])
 
-const joinedTours = ref([
-  { id: 3, title: '成都美食团', image: 'https://picsum.photos/id/50/120/90', date: '2025-07-10', progress: 50 }, // 添加进度
-  { id: 4, title: '上海迪士尼乐园', image: 'https://picsum.photos/id/60/120/90', date: '2025-08-01', progress: 80 }, // 添加进度
-])
+const joinedTours = ref([]); // 存储我的报名旅行团列表
+const joinedTotal = ref(0); // 我的报名总数
+const joinedPageSize = 6; // 每页显示数量，你可以根据需要调整
+const joinedCurrentPage = ref(1); // 当前页码
+
+const loadingJoinedTours = ref(false); // 专门用于“我的报名”Tab 的加载状态
 
 // 示例评价数据
 const reviews = ref([
@@ -262,6 +264,68 @@ const fetchUserProfile = async () => {
       console.error('Error setting up the request:', error.message);
       ElMessage.error(`获取用户信息失败：${error.message}`);
     }
+  }
+};
+
+// --- 获取我的报名（订单） ---
+const fetchJoinedTours = async () => {
+  loadingJoinedTours.value = true; 
+  try {
+    const response = await authAxios.get('/user/orders', {
+      params: {
+        page: joinedCurrentPage.value,
+        size: joinedPageSize,
+      },
+    });
+
+    if (response.data.code === 200) {
+      joinedTours.value = response.data.data.content.map(order => {
+        let progress = 0; 
+
+        // 根据订单状态设置进度和日期（示例逻辑，请根据你的业务需求调整）
+        switch (order.status) {
+          case 'CONFIRMED': // 已确认
+            progress = 50;
+            tourDate = '即将出发'; // 或从其他地方获取实际出发日期
+            break;
+          case 'COMPLETED': // 已完成
+            progress = 100;
+            tourDate = '已完成';
+            break;
+          case 'PENDING': // 待处理/待确认
+            progress = 20;
+            tourDate = '等待确认';
+            break;
+        }
+        
+        let tourDate = new Date(order.orderTime).toLocaleDateString();
+
+        return {
+          id: order.orderId,
+          image: order.packageCoverImageUrl,
+          title: order.packageTitle,
+          date: tourDate, 
+          progress: progress, 
+          orderId: order.packageId,
+          status: order.status,
+          travelerCount: order.travelerCount,
+          totalPrice: order.totalPrice,
+          orderTime: order.orderTime
+        };
+      });
+      joinedTotal.value = response.data.data.totalElements || 0;
+    } else {
+      ElMessage.error(response.data.message || '获取我的报名数据失败！');
+      joinedTours.value = [];
+      joinedTotal.value = 0;
+    }
+  } catch (error) {
+    console.error('获取我的报名失败:', error);
+    ElMessage.error('网络请求失败，请检查您的网络或稍后再试！');
+    joinedTours.value = [];
+    joinedTotal.value = 0;
+  } finally {
+    loadingJoinedTours.value = false; // 结束加载
   }
 };
 
@@ -353,6 +417,7 @@ const handleUserUpdated = () => {
 onMounted(() => {
   fetchNotes(true);
   fetchUserProfile();
+  fetchJoinedTours();
 })
 
 // 跳转详情页并传递游记id

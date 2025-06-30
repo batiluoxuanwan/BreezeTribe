@@ -4,7 +4,7 @@ const routes =[
     {
         path:'/',
         name:'首页',
-        component:() =>import('../views/Public/Home.vue')
+        component:() =>import('../views/Public/home.vue')
     },
     {
         path:'/login',
