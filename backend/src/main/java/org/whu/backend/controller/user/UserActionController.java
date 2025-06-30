@@ -21,7 +21,6 @@ import org.whu.backend.dto.like.LikePageRequestDto;
 import org.whu.backend.dto.like.LikeRequestDto;
 import org.whu.backend.dto.order.OrderCreateRequestDto;
 import org.whu.backend.dto.order.OrderDetailDto;
-import org.whu.backend.entity.Favorite;
 import org.whu.backend.dto.order.OrderForReviewDto;
 import org.whu.backend.dto.user.InteractionStatusRequestDto;
 import org.whu.backend.dto.user.InteractionStatusResponseDto;
