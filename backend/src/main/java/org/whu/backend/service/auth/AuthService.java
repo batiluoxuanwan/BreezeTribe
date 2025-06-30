@@ -17,6 +17,7 @@ import org.whu.backend.util.AliyunOssUtil;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Optional;
 import java.util.Random;
 
@@ -141,10 +142,23 @@ public class AuthService {
             throw new BizException("账号不存在");
         }
         Account account = optionalAccount.get();
-        if (account.getBanDurationDays()!=0) {
-            //throw new BizException("账号暂时不可使用，请联系管理员");
+
+        if (account.getBanDurationDays() != 0) {
+            if(account.getBanDurationDays()==-1)
+                throw new BizException("账号已被永久封禁，如有疑问请联系管理员");
             LocalDateTime banEndTime = account.getBanStartTime().plusDays(account.getBanDurationDays());
-            throw new BizException("账号暂时不可使用，被封禁至"+banEndTime+"如有疑问请联系管理员");
+            if (LocalDateTime.now().isAfter(banEndTime)) {
+                // 解封时间已到，解除封禁
+                account.setBanDurationDays(0);
+                account.setBanStartTime(null);
+                account.setBanReason(null);
+                authRepository.save(account); // 保存变更
+            } else {
+                // 只显示到分钟（yyyy-MM-dd HH:mm）
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+                String formattedBanEndTime = banEndTime.format(formatter);
+                throw new BizException("账号暂时不可使用，被封禁至 " + formattedBanEndTime + "，如有疑问请联系管理员");
+            }
         }
         if (!passwordEncoder.matches(request.getPassword(), account.getPassword())) {
             throw new BizException("密码错误");
