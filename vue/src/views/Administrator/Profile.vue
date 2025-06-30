@@ -185,7 +185,7 @@
         <el-tab-pane label="系统设置" name="systemSettings">
           <h3 class="tab-header">系统配置</h3>
           <div style="margin-bottom: 32px;">
-            <AccountOverview />
+            <AccountOverview @userUpdated="handleUserUpdated"/>
           </div>
           </el-tab-pane>
       </el-tabs>
@@ -274,7 +274,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue';
+import { ref, onMounted, nextTick,reactive } from 'vue';
 import { User, Shop, PictureFilled, Document, Setting, EditPen, ArrowLeft } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { authAxios } from '@/utils/request'; // 假设你的认证请求实例
@@ -284,19 +284,18 @@ import AccountOverview from '@/components/AccountOverview.vue'
 const router = useRouter();
 
 // --- 管理员信息及侧边栏数据 ---
-const adminInfo = ref({
-  username: '管理员',
-  avatarUrl: 'https://fuss10.elemecdn.com/a/3f/3302e58f9a181d2509373dffb03dc.jpg', // 示例管理员头像
-  totalUsers: 0,
-  totalMerchants: 0,
-  pendingTours: 0, // 待审核旅行团数量
-  // 可以添加更多管理员维度的统计数据
+const adminInfo = reactive({
+  id: '',
+  email: '',
+  phone: '',
+  role: '', 
+  username: '',
+  avatarUrl: '',
+  createdAt: '',
+  updatedAt: '',
 });
 
 const activeTab = ref('userManagement'); // 默认激活的 Tab
-
-const editProfileDialog = ref(false);
-const editForm = ref({ username: adminInfo.value.username, password: '' });
 
 // --- 用户管理数据 ---
 const users = ref([]);
@@ -355,6 +354,33 @@ const debounce = (func, delay) => {
     timeout = setTimeout(() => func.apply(this, args), delay);
   };
 };
+//获取管理员个人信息
+const fetchAdminInfo = async () => {
+  try {
+    const res = await authAxios.get('/auth/me'); // 调用同一个接口
+
+    if (res.data.code === 200) {
+      Object.assign(adminInfo, res.data.data);
+      ElMessage.success('管理员信息获取成功！');
+      console.log('Admin Info Data:', adminInfo); // 调试用
+    } else {
+      ElMessage.error(res.data.message || '获取管理员信息失败');
+      console.error('Failed to fetch admin info:', res.data.message);
+    }
+  } catch (error) {
+    if (error.response) {
+      console.error('Error response data:', error.response.data);
+      ElMessage.error(`获取管理员信息失败：${error.response.data.message || '服务器错误'}`);
+    } else if (error.request) {
+      console.error('No response received:', error.request);
+      ElMessage.error('获取管理员信息失败：网络错误或服务器无响应');
+    } else {
+      console.error('Error setting up the request:', error.message);
+      ElMessage.error(`获取管理员信息失败：${error.message}`);
+    }
+  }
+};
+
 
 // 获取管理员概览数据 (侧边栏统计)
 const fetchAdminOverview = async () => {
@@ -763,8 +789,14 @@ const toggleBanStatus = async (user) => {
   }
 };
 
+const handleUserUpdated = () => {
+  console.log('Parent: User update notification received from child. Re-fetching user profile...');
+  fetchAdminInfo();
+};
+
 // --- 初始化数据 ---
 onMounted(() => {
+  fetchAdminInfo();  //获取管理员个人信息
   // fetchAdminOverview(); // 获取管理员概览数据
   fetchUsers();         // 加载用户列表
   fetchMerchants();     // 加载团长列表

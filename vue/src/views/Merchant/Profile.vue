@@ -274,7 +274,7 @@
 
         <el-tab-pane label="账户设置" name="accountSettings">
           <div style="margin-bottom: 32px;">
-            <AccountOverview />
+            <AccountOverview @userUpdated="handleUserUpdated"/>
           </div>            
         </el-tab-pane>
       </el-tabs>
@@ -356,7 +356,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue';
+import { ref, onMounted, nextTick,reactive } from 'vue';
 import { Monitor, Compass, Plus, Tickets, Comment, Message, Setting, DocumentCopy, Calendar, TrendCharts, StarFilled ,ArrowLeft} from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { authAxios } from '@/utils/request';
@@ -366,14 +366,17 @@ import AccountOverview from '@/components/AccountOverview.vue'
 const router = useRouter();
 
 // --- 团长信息及侧边栏数据 ---
-const merchantProfile = ref({
-  username: '李四',
-  companyName: '敬旅旅行社',
-  contactEmail: 'contact@jinglu.com',
-  contactPhone: '13800138000',
-  companyAddress: '上海市徐汇区XXXX路XXX号',
-  avatarUrl: 'https://fuss10.elemecdn.com/d/e6/c4d93ebc038f921f00a6c026b91c1jpeg.jpeg', // 示例头像
+const merchantProfile = reactive({
+  id: '',
+  email: '',
+  phone: '',
+  role: '',
+  companyName: '', // 经销商特有的公司名称
+  avatarUrl: '',
+  createdAt: '',
+  updatedAt: '',
 });
+
 
 const merchantOverview = ref({
   totalTours: 0,
@@ -467,15 +470,30 @@ const fetchMerchantOverview = async () => {
 // 获取团长个人资料
 const fetchMerchantProfile = async () => {
   try {
-    const response = await authAxios.get('/api/merchant/profile'); // 假设后端接口
-    if (response.data.code === 200 && response.data.data) {
-      Object.assign(merchantProfile.value, response.data.data); // 更新团长资料
+    const res = await authAxios.get('/auth/me'); 
+
+    if (res.data.code === 200) {
+      Object.assign(merchantProfile, res.data.data);
+      ElMessage.success('经销商信息获取成功！');
+      console.log('Merchant Profile Data:', merchantProfile); // 调试用
+    } else {
+      ElMessage.error(res.data.message || '获取经销商信息失败');
+      console.error('Failed to fetch merchant profile:', res.data.message);
     }
   } catch (error) {
-    console.error('获取团长资料失败:', error);
-    ElMessage.error('获取个人资料失败。');
+    if (error.response) {
+      console.error('Error response data:', error.response.data);
+      ElMessage.error(`获取经销商信息失败：${error.response.data.message || '服务器错误'}`);
+    } else if (error.request) {
+      console.error('No response received:', error.request);
+      ElMessage.error('获取经销商信息失败：网络错误或服务器无响应');
+    } else {
+      console.error('Error setting up the request:', error.message);
+      ElMessage.error(`获取经销商信息失败：${error.message}`);
+    }
   }
 };
+
 
 // 获取近期旅行团审核状态
 const fetchRecentTourReviews = async () => {
@@ -838,10 +856,14 @@ const getTourStatusText = (status) => {
   }
 };
 
+const handleUserUpdated = () => {
+  console.log('Parent: User update notification received from child. Re-fetching user profile...');
+  fetchMerchantProfile();
+};
 
 // --- 初始化数据 ---
 onMounted(() => {
-  // fetchMerchantProfile();    // 获取团长个人资料
+  fetchMerchantProfile();    // 获取团长个人资料
   // fetchMerchantOverview();   // 获取概览数据
   // fetchRecentTourReviews(); // 获取近期旅行团审核状态
   // fetchRecentOrders();      // 获取近期订单概览
