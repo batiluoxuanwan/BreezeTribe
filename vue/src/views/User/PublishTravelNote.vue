@@ -107,8 +107,7 @@ import {
   ElIcon,
   ElMessage,
   ElDialog,
-  // 移除了 ElRadioGroup, ElRadio
-  ElAutocomplete, // 新增 ElAutocomplete
+  ElAutocomplete, 
   ElMessageBox
 } from 'element-plus';
 import { ArrowLeft, Plus, Location, InfoFilled, CircleCloseFilled } from '@element-plus/icons-vue';
@@ -345,15 +344,16 @@ const publishNote = async () => {
     const requestBody = {
       title: noteTitle.value.trim() === '' ? '无标题游记' : noteTitle.value,
       content: noteContent.value,
-      spotId: selectedSpotData.value ? selectedSpotData.value.id : null,
+      spotId: selectedSpotData.value ? selectedSpotData.value.uid : null,
       imageIds: imageIds, 
     };
-
-    ElMessage.info('正在提交游记信息...');
+    
+    console.log('正在提交游记信息...',selectedSpotData.value);
     const postRes = await authAxios.post('/user/posts', requestBody); 
 
     if (postRes.data.code === 200) {
       ElMessage.success('游记发布成功！');
+      console.log('发表成功',postRes.data.data)
       noteContent.value = '';
       noteTitle.value = '';
       mediaFiles.value.forEach(item => {

@@ -407,7 +407,7 @@ const goLogin = () => {
   width: 400px;
   height: 575px;
   padding: 30px 30px;
-  background: #56899cce;
+  background: #6fc3b06f;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
   z-index: 10;
 

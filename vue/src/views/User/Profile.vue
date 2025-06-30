@@ -112,6 +112,7 @@
                 v-for="note in notes"
                 :key="note.id"
                 class="note-card hover-card"
+                @click.stop="goToDetail(note.id)"
               >
                 <img v-if="note.coverImageUrl" :src="note.coverImageUrl" class="note-img" />
                 <div class="card-info">
@@ -189,7 +190,7 @@ import { ElTabs, ElTabPane, ElCard, ElForm, ElFormItem, ElInput, ElSelect, ElOpt
 import AccountOverview from '@/components/AccountOverview.vue' 
 import ChangePassword from '@/components/ChangePassword.vue'  
 
-import { useRouter } from 'vue-router';
+import { useRoute,useRouter } from 'vue-router';
 import { authAxios } from '@/utils/request';
 
 const router = useRouter();
@@ -276,7 +277,7 @@ const goToPublishTravelNote = () => {
 
 const notes = ref([]);
 const currentPage = ref(1);
-const pageSize = ref(3); // 每页记录数
+const pageSize = ref(9); // 每页记录数
 const totalNotes = ref(0); // 总游记数量
 const noteLoading = ref(false); // 加载状态
 const noMoreNotes = ref(false); // 是否没有更多游记了
@@ -354,10 +355,27 @@ onMounted(() => {
   fetchUserProfile();
 })
 
+// 跳转详情页并传递游记id
+const goToDetail = (id) => {
+  console.log('查看游记详情:', id);
+  router.push({ name: 'EditNote', params: { id: id } });
+};
+
+// --- 监听路由查询参数，用于激活对应的Tab ---
+watch(
+  () => route.query.tab,
+  (newTab) => {
+    if (newTab) {
+      activeTab.value = newTab;
+    }
+  },
+  { immediate: true } 
+);
+
+
 </script>
 
 <style scoped>
-/* 引入 Google Fonts - Poppins 用于更好的字体视觉效果 */
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
 
 .user-profile-page {

@@ -53,6 +53,18 @@ const routes =[
         component:() =>import('../views/Public/TravelGroupDetail.vue'),
         props: true, 
     },
+    {
+        path: '/travel-note/:id', 
+        name: 'TravelNoteDetail', 
+        component:() =>import('../views/Public/TravelNoteDetail.vue'),
+        props: true, 
+    },
+    {
+        path: '/my-note/:id', 
+        name: 'EditNote', 
+        component:() =>import('../views/User/EditNote.vue'),
+        props: true, 
+    },
 ];
 
 const router = createRouter({
