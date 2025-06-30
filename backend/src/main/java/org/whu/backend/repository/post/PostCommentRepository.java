@@ -51,6 +51,18 @@ public interface PostCommentRepository extends JpaRepository<Comment, String> {
     Page<Comment> findAllRepliesByParentId(String commentId, Pageable pageable);
 
     /**
+     * [新增] 使用原生SQL的递归查询，计算一个评论下的所有后代回复的总数
+     * 这会遍历整个回复树，得到准确的总数。
+     */
+    @Query(value = "WITH RECURSIVE ReplyTree AS (" +
+            "  SELECT id FROM post_comments WHERE parent_id = :commentId" + // 1. 找到所有直接回复
+            "  UNION ALL" +
+            "  SELECT c.id FROM post_comments c JOIN ReplyTree rt ON c.parent_id = rt.id" + // 2. 不断向下找
+            ") SELECT count(*) FROM ReplyTree", // 3. 最后统计总数
+            nativeQuery = true)
+    long countAllDescendants(String commentId);
+
+    /**
      * 根据游记ID批量删除所有评论
      */
     @Modifying

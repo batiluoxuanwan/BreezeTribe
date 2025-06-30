@@ -206,7 +206,7 @@ public class UserPostCommentService {
                             .map(dtoConverter::convertCommentToDto)
                             .collect(Collectors.toList());
 
-                    long totalReplies = commentRepository.countByParentId(comment.getId());
+                    long totalReplies = commentRepository.countAllDescendants(comment.getId());
 
                     return dtoConverter.convertCommentToDtoWithReplies(comment, repliesPreview, totalReplies);
                 })
