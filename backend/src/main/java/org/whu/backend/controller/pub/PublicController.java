@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import org.whu.backend.common.Result;
 import org.whu.backend.dto.PageRequestDto;
 import org.whu.backend.dto.PageResponseDto;
+import org.whu.backend.dto.accounts.UserProfileDto;
 import org.whu.backend.dto.baidumap.BaiduSuggestionResponseDto;
 import org.whu.backend.dto.packagecomment.PackageCommentDto;
 import org.whu.backend.dto.post.PostDetailDto;
@@ -151,6 +152,25 @@ public class PublicController {
     ) {
         log.info("正在获取旅行团评价 '{}' 的直接回复列表...", commentId);
         PageResponseDto<PackageCommentDto> resultPage = userPackageCommentService.getPackageCommentDetails(commentId, pageRequestDto);
+        return Result.success(resultPage);
+    }
+
+    @Operation(summary = "获取用户的公开主页信息")
+    @GetMapping("/users/{userId}/profile")
+    public Result<UserProfileDto> getUserProfile(@PathVariable String userId) {
+        log.info("访问获取用户 '{}' 的主页信息接口", userId);
+        UserProfileDto userProfile = publicService.getUserProfile(userId);
+        return Result.success(userProfile);
+    }
+
+    @Operation(summary = "获取指定用户发布的游记列表（分页）")
+    @GetMapping("/users/{userId}/posts")
+    public Result<PageResponseDto<PostSummaryDto>> getUserPosts(
+            @PathVariable String userId,
+            @Valid @ParameterObject PageRequestDto pageRequestDto
+    ) {
+        log.info("访问获取用户 '{}' 的游记列表接口", userId);
+        PageResponseDto<PostSummaryDto> resultPage = publicService.getUserPosts(userId, pageRequestDto);
         return Result.success(resultPage);
     }
 
