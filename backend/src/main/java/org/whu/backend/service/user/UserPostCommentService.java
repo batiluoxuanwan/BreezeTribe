@@ -48,7 +48,7 @@ public class UserPostCommentService {
 
 
     /**
-     * 发布一条新评论或回复，对游记
+     * [已修改] 创建评论，并实现精准的通知推送逻辑
      */
     @Transactional
     public Comment createComment(String postId, PostCommentCreateRequestDto dto, String currentUserId) {
@@ -56,7 +56,6 @@ public class UserPostCommentService {
 
         User author = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new BizException("找不到用户 " + currentUserId));
-
         TravelPost post = postRepository.findById(postId)
                 .orElseThrow(() -> new BizException("找不到游记 " + postId));
 
@@ -70,36 +69,42 @@ public class UserPostCommentService {
             Comment parentComment = commentRepository.findById(dto.getParentId())
                     .orElseThrow(() -> new BizException("找不到要回复的评论 " + dto.getParentId()));
 
-            // [安全漏洞修复] 关键！验证父评论是否属于当前帖子
             if (!parentComment.getTravelPost().getId().equals(postId)) {
-                log.warn("用户 '{}' 尝试跨帖子回复！帖子ID: '{}', 父评论所属帖子ID: '{}'",
-                        currentUserId, postId, parentComment.getTravelPost().getId());
                 throw new BizException("无效操作：不能跨越不同的游记进行回复。");
             }
             newComment.setParent(parentComment);
+
+            // --- 发送“楼中楼回复”通知 ---
+            String description = String.format("%s 回复了你的评论", author.getUsername());
+            String content = truncateContent(dto.getContent());
+
+            notificationService.createAndSendNotification(
+                    parentComment.getAuthor(),           // 接收者：父评论的作者
+                    Notification.NotificationType.NEW_COMMENT_REPLY,  // 类型：新的回复
+                    description,
+                    content,
+                    author,                              // 触发者：当前用户
+                    post.getId()                         // 关联项目：这篇游记的ID
+            );
+
+        } else {
+            // --- 发送“一级评论”通知 ---
+            String description = String.format("%s 评论了你的游记 %s", author.getUsername(), post.getTitle());
+            String content = truncateContent(dto.getContent());
+
+            notificationService.createAndSendNotification(
+                    post.getAuthor(),                    // 接收者：游记的作者
+                    Notification.NotificationType.NEW_POST_COMMENT,   // 类型：新的评论
+                    description,
+                    content,
+                    author,                              // 触发者：当前用户
+                    post.getId()                         // 关联项目：这篇游记的ID
+            );
         }
 
         Comment savedComment = commentRepository.save(newComment);
-
         postRepository.incrementCommentCount(post.getId());
-
-        log.info("评论ID '{}' 已成功发布，给游记作者发送通知。", savedComment.getId());
-
-        // 准备发送通知
-        String description = String.format("用户 %s 评论了你的游记 %s : ", author.getUsername(), post.getTitle());
-        String content = dto.getContent().length() > MAX_NOTIFICATION_CONTENT_LENGTH
-                ? dto.getContent().substring(0, MAX_NOTIFICATION_CONTENT_LENGTH) + "..."
-                : dto.getContent();
-
-        notificationService.createAndSendNotification(
-                post.getAuthor(),
-                Notification.NotificationType.NEW_POST_COMMENT,
-                description,
-                content,
-                author,
-                post.getId()
-        );
-
+        log.info("评论ID '{}' 已成功发布。", savedComment.getId());
         return savedComment;
     }
 
@@ -257,5 +262,13 @@ public class UserPostCommentService {
                 .collect(Collectors.toList());
 
         return dtoConverter.convertPageToDto(replyPage, replyDtos);
+    }
+
+    // 一个私有辅助方法，用于截断过长的内容
+    private String truncateContent(String content) {
+        if (content.length() <= MAX_NOTIFICATION_CONTENT_LENGTH) {
+            return content;
+        }
+        return content.substring(0, MAX_NOTIFICATION_CONTENT_LENGTH) + "...";
     }
 }
