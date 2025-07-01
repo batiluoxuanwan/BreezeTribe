@@ -1,4 +1,4 @@
-package org.whu.backend.controller;
+package org.whu.backend.controller.ai;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.whu.backend.common.Result;
-import org.whu.backend.service.AIService;
+import org.whu.backend.service.ai.AIService;
 import reactor.core.publisher.Flux;
 
 @RestController

@@ -1,4 +1,4 @@
-package org.whu.backend.service;
+package org.whu.backend.service.ai;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;

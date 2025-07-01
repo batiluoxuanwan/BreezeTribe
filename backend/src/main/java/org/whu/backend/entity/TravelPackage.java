@@ -71,6 +71,10 @@ public class TravelPackage {
     @Column(nullable = false)
     private LocalDateTime updatedTime;
 
+//    // ---------标记是否已经同步到RAG知识库--------
+//    @ColumnDefault("false")
+//    private Boolean hasSyncedToRag = false; // 默认还没同步
+
     public enum PackageStatus {DRAFT, PENDING_APPROVAL, PUBLISHED, REJECTED}
 
     public String rejectionReason;//拒绝原因

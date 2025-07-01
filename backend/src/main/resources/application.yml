@@ -61,10 +61,17 @@ ai:
     model:
       name: DeepSeek-R1-Distill-Llama-8B-F16
 
+dashscope:
+  api-key: sk-98e1d9b45e064da1a03e214f7c0ff468
+  app-id: a3a0b11cce024d7b8325632b2cab6924
+
 
 baidu:
   map:
-    ak: cX3Lu6F9cEcRr7M2K80G0Di49wvz4hY0
+#    ak: cX3Lu6F9cEcRr7M2K80G0Di49wvz4hY0
+    ak: r49IueXKnldrFS4IWoqnlW0iM1GD77KE
+
+
 
 #Sms
 sms:
