@@ -90,16 +90,24 @@
                 <h3>{{ tour.title }}</h3>
                 <p>出发日期：{{ tour.date }}</p>
                 <div class="progress-row">
-                  <p class="progress-text">当前状态：{{ tour.progressText }}</p>
-                  <div v-if="tour.showPayButton" class="payment-actions">
-                    <el-button
-                      type="primary"
-                      size="small"
-                      @click.stop="confirmPayment(tour.orderId)">
-                      去支付
-                    </el-button>
-                  </div>
-                </div>
+                <p class="progress-text">当前状态：{{ tour.progressText }}</p>
+                <div class="payment-actions" >
+                <el-button
+                  v-if="tour.showPayButton"
+                  type="primary"
+                  size="small"
+                  @click.stop="confirmPayment(tour.orderId)">
+                  去支付
+                </el-button>
+                <el-button
+                  v-if="tour.showCancelButton"
+                  type="danger"
+                  size="small"
+                  @click.stop="cancelOrder(tour.orderId)">
+                  取消订单
+                </el-button>
+              </div>
+              </div>
               </div>
             </el-card>
           </div>
@@ -191,7 +199,7 @@
 <script setup>
 import { onMounted, ref,computed,reactive,watch } from 'vue'
 import { Star, Tickets, EditPen, Comment, Bell, ArrowLeft, Plus } from '@element-plus/icons-vue' 
-import { ElTabs, ElTabPane, ElCard, ElForm, ElFormItem, ElInput, ElSelect, ElOption, ElButton, ElPagination, ElEmpty, ElMessage } from 'element-plus';
+import { ElMessageBox,ElTabs, ElTabPane, ElCard, ElForm, ElFormItem, ElInput, ElSelect, ElOption, ElButton, ElPagination, ElEmpty, ElMessage } from 'element-plus';
 import AccountOverview from '@/components/AccountOverview.vue' 
 
 import { useRoute,useRouter } from 'vue-router';
@@ -386,18 +394,21 @@ const fetchJoinedTours = async () => {
         let tourDate = ''; 
         let progressText = ''; 
         let showPayButton = false; // 支付按钮
+        let showCancelButton = false; //取消按钮
 
         // 设置进度和状态文字
         switch (order.status) {
           case 'PENDING_PAYMENT': // 待支付
             progress = 20;
             progressText = '待支付';
-            showPayButton = true; // 待支付时显示支付按钮
+            showPayButton = true; 
+            showCancelButton = true;
             tourDate = new Date(order.orderTime).toLocaleDateString(); 
             break;
           case 'PAID': // 已支付（可以认为是已确认，即将出发）
             progress = 50;
             progressText = '已支付 (即将出发)';
+            showCancelButton = true;
             tourDate = new Date(order.orderTime).toLocaleDateString();
             break;
           case 'ONGOING': // 正在进行
@@ -433,7 +444,8 @@ const fetchJoinedTours = async () => {
           travelerCount: order.travelerCount,
           totalPrice: order.totalPrice,
           orderTime: order.orderTime,
-          showPayButton: showPayButton
+          showPayButton: showPayButton,
+          showCancelButton:showCancelButton
         };
       });
 
@@ -453,6 +465,7 @@ const fetchJoinedTours = async () => {
   }
 };
 
+//支付订单
 const confirmPayment = async (orderId) => {
   try {
     const response = await authAxios.post(`/user/orders/${orderId}/confirm-payment`);
@@ -465,6 +478,37 @@ const confirmPayment = async (orderId) => {
   } catch (error) {
     console.error('支付接口调用失败:', error);
     ElMessage.error('网络错误，请稍后再试');
+  }
+};
+
+// 取消订单
+const cancelOrder = async (orderId) => {
+  try {
+    await ElMessageBox.confirm('您确定要取消这笔订单吗？取消后将无法恢复。', '确认取消', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    });
+
+    const response = await authAxios.post(`/user/orders/${orderId}/cancel`);
+
+    if (response.data.code === 200) { 
+      ElMessage.success('订单已成功取消！');
+      fetchJoinedTours();
+    } else {
+      ElMessage.error(response.data.message || '取消订单失败，请稍后再试。');
+    }
+  } catch (error) {
+    if (error === 'cancel') {
+      ElMessage.info('已取消订单操作。');
+    } else {
+      console.error('取消订单时发生错误:', error);
+      if (error.response) {
+        ElMessage.error(`取消订单失败：${error.response.data.message || '服务器错误'}`);
+      } else {
+        ElMessage.error('取消订单失败：网络错误或服务器无响应');
+      }
+    }
   }
 };
 
@@ -926,6 +970,11 @@ watch(
 }
 .progress-text {
   margin: 0;
+}
+
+.payment-actions {
+  display: flex;
+  gap: 8px;
 }
 
 </style>
