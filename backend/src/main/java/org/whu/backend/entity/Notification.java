@@ -1,4 +1,4 @@
-package org.whu.backend.entity.travelpost;
+package org.whu.backend.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;

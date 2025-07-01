@@ -28,7 +28,7 @@ import org.whu.backend.dto.user.ItemIdentifierDto;
 import org.whu.backend.dto.user.ItemStatusDto;
 import org.whu.backend.entity.*;
 import org.whu.backend.entity.accounts.User;
-import org.whu.backend.entity.travelpost.Notification;
+import org.whu.backend.entity.Notification;
 import org.whu.backend.entity.travelpost.TravelPost;
 import org.whu.backend.repository.FavoriteRepository;
 import org.whu.backend.repository.LikeRepository;
@@ -137,7 +137,7 @@ public class UserService {
         orderRepository.save(order);
 
         // 发送支付成功通知
-        String description = String.format("您的关于旅行团 %s 的订单已经取消成功，如果已经支付，金额将会原路退款到您的账户", travelPackage.getTitle());
+        String description = String.format("您的关于旅行团 %s 的订单已成功支付", travelPackage.getTitle());
         notificationService.createAndSendNotification(
                 user,
                 Notification.NotificationType.ORDER_CANCELED,

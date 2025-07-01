@@ -26,7 +26,7 @@ import org.whu.backend.dto.travelpack.PackageSummaryDto;
 import org.whu.backend.entity.*;
 import org.whu.backend.entity.accounts.User;
 import org.whu.backend.entity.travelpost.Comment;
-import org.whu.backend.entity.travelpost.Notification;
+import org.whu.backend.entity.Notification;
 import org.whu.backend.entity.travelpost.TravelPost;
 import org.whu.backend.util.AliyunOssUtil;
 
