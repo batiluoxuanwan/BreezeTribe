@@ -67,29 +67,15 @@
               v-for="tour in collectedTours"
               :key="tour.itemid"
               class="tour-card hover-card"
-              @click="goToTourDetail(tour)"
+              @click="goToTourDetail(tour.itemid)"
             >
-              <img :src="getTourImage(tour.itemType)" class="card-img" alt="收藏图片" />
+              <img :src="tour.coverImageUrls[0]" class="card-img" alt="收藏图片" />
               <div class="card-info">
-                <h3>{{ getTourTitle(tour) }}</h3>
-                <p>{{ getTourLocation(tour) }}</p>
+                <h3>{{ tour.title || '未知旅行团名称' }}</h3>
               </div>
             </el-card>
           </div>
           <el-empty v-else description="暂无收藏"></el-empty>
-
-          <div v-if="pagination.totalElements > 0" class="pagination-container">
-            <el-pagination
-              @size-change="handleSizeChange"
-              @current-change="handleCurrentChange"
-              :current-page="pagination.pageNumber + 1"
-              :page-sizes="[10, 20, 50, 100]"
-              :page-size="pagination.pageSize"
-              layout="total, sizes, prev, pager, next, jumper"
-              :total="pagination.totalElements"
-            >
-            </el-pagination>
-          </div>
         </el-tab-pane>
 
         <el-tab-pane label="我的报名" name="joined">
@@ -103,8 +89,17 @@
               <div class="card-info">
                 <h3>{{ tour.title }}</h3>
                 <p>出发日期：{{ tour.date }}</p>
-                <el-progress :percentage="tour.progress" color="#13ce66" />
-                <p class="progress-text">当前进度：{{ tour.progress }}%</p>
+                <div class="progress-row">
+                  <p class="progress-text">当前状态：{{ tour.progressText }}</p>
+                  <div v-if="tour.showPayButton" class="payment-actions">
+                    <el-button
+                      type="primary"
+                      size="small"
+                      @click.stop="confirmPayment(tour.orderId)">
+                      去支付
+                    </el-button>
+                  </div>
+                </div>
               </div>
             </el-card>
           </div>
@@ -287,6 +282,22 @@ const fetchUserProfile = async () => {
   }
 };
 
+//获得单个旅行团详情
+const fetchTravelPackageDetail = async (id) => {
+  try {
+    const response = await publicAxios.get(`/public/travel-packages/${id}`);
+    if (response.data.code === 200 && response.data.data) {
+      return response.data.data;
+    } else {
+      console.warn(`获取旅行团ID ${id} 详情失败:`, response.data.message);
+      return null;
+    }
+  } catch (error) {
+    console.error(`获取旅行团ID ${id} 详情时发生错误:`, error);
+    return null;
+  }
+};
+
 //获取用户收藏列表
 const fetchCollectedTours = async () => {
   try {
@@ -294,70 +305,73 @@ const fetchCollectedTours = async () => {
       params: {
         page: searchParams.page,
         size: searchParams.size,
-        sortBy: searchParams.sortBy,
-        sortDirection: searchParams.sortDirection
       },
     });
 
     if (response.data.code === 200 && response.data.data) {
-      collectedTours.value = response.data.data.content; 
+      const basicCollectedItems = response.data.data.content;
       pagination.pageNumber = response.data.data.pageNumber;
       pagination.pageSize = response.data.data.pageSize;
       pagination.totalElements = response.data.data.totalElements;
       pagination.totalPages = response.data.data.totalPages;
+
+      const detailedItemsPromises = basicCollectedItems.map(async (item) => {
+        if (!item || !item.itemid || !item.itemType) {
+          console.warn('发现无效的收藏项，跳过处理:', item);
+          return {
+            itemid: `invalid-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`, 
+            itemType: item?.itemType || 'UNKNOWN',
+            title: '无效收藏项',
+            coverImageUrls: [],
+
+          };
+        }
+        if (item.itemType === 'PACKAGE') {
+          const packageDetail = await fetchTravelPackageDetail(item.itemid);
+          if (packageDetail) {
+            return {
+              ...item, 
+              title: packageDetail.title,
+              coverImageUrls: packageDetail.coverImageUrls,
+            };
+          } else {
+            return {
+              ...item,
+              title: `[${item.itemType}] ${item.itemid} (详情加载失败)`,
+              location: '详情获取失败',
+              coverImageUrls: [],
+              price: 0,
+              durationInDays: 0,
+            };
+          }
+        } else {
+          return {
+            ...item,
+            title: `[${item.itemType}] ${item.itemid} (非旅行团)`,
+            location: '非旅行团类型',
+            coverImageUrls: [],
+            price: 0,
+            durationInDays: 0,
+          };
+        }
+      });
+      collectedTours.value = await Promise.all(detailedItemsPromises);
     } else {
       ElMessage.error(response.data.message || '获取收藏列表失败。');
     }
   } catch (error) {
-    console.error('获取收藏列表时发生错误:', error);
+    console.error('获取收藏列表或详情时发生错误:', error);
     ElMessage.error('获取收藏列表时发生网络或服务器错误。');
   }
 };
 
-//处理每页显示数量变化的事件
-const handleSizeChange = (newSize) => {
-  searchParams.size = newSize;
-  searchParams.page = 1; 
-  fetchCollectedTours();
-};
-
-//处理当前页码变化的事件
-const handleCurrentChange = (newPage) => {
-  searchParams.page = newPage;
-  fetchCollectedTours();
-};
-
-//根据收藏项类型获取图片URL
-const getTourImage = (itemType) => {
-  switch (itemType) {
-    case 'PACKAGE':
-      return 'https://via.placeholder.com/150/FF5733/FFFFFF?text=旅游套餐';
-    case 'SCENIC_SPOT':
-      return 'https://via.placeholder.com/150/33A8FF/FFFFFF?text=景点';
-    default:
-      return 'https://via.placeholder.com/150/CCCCCC/FFFFFF?text=默认';
-  }
-};
-
-//根据收藏项获取标题
-const getTourTitle = (tour) => {
-  return `收藏ID: ${tour.itemid} (${tour.itemType})`;
-};
-
-//根据收藏项获取地点/简要描述
-const getTourLocation = (tour) => {
-  return `收藏时间: ${new Date(tour.createdTime).toLocaleDateString()}`;
-};
-
-//点击收藏卡片时的处理函数，例如跳转到详情页
-const goToTourDetail = (tour) => {
-  ElMessage.info(`点击了收藏项: ${tour.itemid}，类型: ${tour.itemType}`);
-  console.log('Clicked tour:', tour);
+const goToTourDetail = (id) => {
+  router.push({ name: 'TravelGroupDetail', params: { id } });
 };
 
 // --- 获取我的报名（订单） ---
 const fetchJoinedTours = async () => {
-  loadingJoinedTours.value = true; 
+  loadingJoinedTours.value = true;
   try {
     const response = await authAxios.get('/user/orders', {
       params: {
@@ -368,39 +382,61 @@ const fetchJoinedTours = async () => {
 
     if (response.data.code === 200) {
       joinedTours.value = response.data.data.content.map(order => {
-        let progress = 0; 
+        let progress = 0;
+        let tourDate = ''; 
+        let progressText = ''; 
+        let showPayButton = false; // 支付按钮
 
-        // 根据订单状态设置进度和日期（示例逻辑，请根据你的业务需求调整）
+        // 设置进度和状态文字
         switch (order.status) {
-          case 'CONFIRMED': // 已确认
+          case 'PENDING_PAYMENT': // 待支付
+            progress = 20;
+            progressText = '待支付';
+            showPayButton = true; // 待支付时显示支付按钮
+            tourDate = new Date(order.orderTime).toLocaleDateString(); 
+            break;
+          case 'PAID': // 已支付（可以认为是已确认，即将出发）
             progress = 50;
-            tourDate = '即将出发'; // 或从其他地方获取实际出发日期
+            progressText = '已支付 (即将出发)';
+            tourDate = new Date(order.orderTime).toLocaleDateString();
+            break;
+          case 'ONGOING': // 正在进行
+            progress = 75; // 可以调整进度条值
+            progressText = '旅行中';
+            tourDate = new Date(order.orderTime).toLocaleDateString();
             break;
           case 'COMPLETED': // 已完成
             progress = 100;
-            tourDate = '已完成';
+            progressText = '已完成';
+            tourDate = new Date(order.orderTime).toLocaleDateString();
             break;
-          case 'PENDING': // 待处理/待确认
-            progress = 20;
-            tourDate = '等待确认';
+          case 'CANCELED': // 已取消
+            progress = 0; // 或者一个表示取消的特定值
+            progressText = '已取消';
+            tourDate = new Date(order.orderTime).toLocaleDateString();
             break;
+          default:
+            progress = 0;
+            progressText = '未知状态';
+            tourDate = new Date(order.orderTime).toLocaleDateString();
         }
-        
-        let tourDate = new Date(order.orderTime).toLocaleDateString();
 
         return {
-          id: order.orderId,
+          orderId: order.orderId,
           image: order.packageCoverImageUrl,
           title: order.packageTitle,
-          date: tourDate, 
-          progress: progress, 
-          orderId: order.packageId,
+          date: tourDate,
+          progress: progress,
+          progressText: progressText, 
+          packageId: order.packageId,
           status: order.status,
           travelerCount: order.travelerCount,
           totalPrice: order.totalPrice,
-          orderTime: order.orderTime
+          orderTime: order.orderTime,
+          showPayButton: showPayButton
         };
       });
+
       joinedTotal.value = response.data.data.totalElements || 0;
     } else {
       ElMessage.error(response.data.message || '获取我的报名数据失败！');
@@ -413,7 +449,22 @@ const fetchJoinedTours = async () => {
     joinedTours.value = [];
     joinedTotal.value = 0;
   } finally {
-    loadingJoinedTours.value = false; // 结束加载
+    loadingJoinedTours.value = false;
+  }
+};
+
+const confirmPayment = async (orderId) => {
+  try {
+    const response = await authAxios.post(`/user/orders/${orderId}/confirm-payment`);
+    if (response.data.code === 200) {
+      ElMessage.success('支付成功！');
+      fetchJoinedTours(); 
+    } else {
+      ElMessage.error(response.data.message || '支付失败');
+    }
+  } catch (error) {
+    console.error('支付接口调用失败:', error);
+    ElMessage.error('网络错误，请稍后再试');
   }
 };
 
@@ -867,4 +918,14 @@ watch(
   font-size: 0.9rem;
   margin-top: 15px;
 }
+
+.progress-row {
+  display: flex;
+  gap: 135px;
+  align-items: center;
+}
+.progress-text {
+  margin: 0;
+}
+
 </style>

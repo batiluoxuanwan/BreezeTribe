@@ -414,7 +414,7 @@ const sendBindPhoneCode = async () => {
   startCodeCountdown('phone');
   try {
     const res = await authAxios.post('/captcha/bindSms', null, { params: { phone: form.phone } });
-    if (res.data.code === 0) { 
+    if (res.data.code === 200 ){ 
       ElMessage.success(res.data.message || '手机验证码已发送，请注意查收！');
     } else {
       ElMessage.error(res.data.message || '手机验证码发送失败，请重试。');
@@ -435,7 +435,7 @@ const sendBindEmailCode = async () => {
   startCodeCountdown('email');
   try {
     const res = await authAxios.post('/captcha/bindEmail', null, { params: { email: form.email } });
-    if (res.data.code === 0) { 
+    if (res.data.code === 200) { 
       ElMessage.success(res.data.message || '邮箱验证码已发送，请注意查收！');
     } else {
       ElMessage.error(res.data.message || '邮箱验证码发送失败，请重试。');
@@ -455,8 +455,8 @@ const sendModifyPhoneCode = async () => {
   if (!phoneValidated) { ElMessage.warning('请先输入正确的新手机号码！'); return; }
   startCodeCountdown('phone');
   try {
-    const res = await authAxios.post('/captcha/resetBySms', null, { params: { phone: form.phone } });
-    if (res.data.code === 0) { 
+    const res = await authAxios.post('/captcha/bindBySms', null, { params: { phone: form.phone } });
+    if (res.data.code === 200) { 
       ElMessage.success(res.data.message || '新手机验证码已发送，请注意查收！');
     } else {
       ElMessage.error(res.data.message || '新手机验证码发送失败，请重试。');
@@ -476,8 +476,8 @@ const sendModifyEmailCode = async () => {
   if (!emailValidated) { ElMessage.warning('请先输入正确的新邮箱地址！'); return; }
   startCodeCountdown('email');
   try {
-    const res = await authAxios.post('/captcha/resetByEmail', null, { params: { email: form.email } });
-    if (res.data.code === 0) { 
+    const res = await authAxios.post('/captcha/bindByEmail', null, { params: { email: form.email } });
+    if (res.data.code === 200) { 
       ElMessage.success(res.data.message || '新邮箱验证码已发送，请注意查收！');
     } else {
       ElMessage.error(res.data.message || '新邮箱验证码发送失败，请重试。');
