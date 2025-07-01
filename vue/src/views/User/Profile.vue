@@ -107,41 +107,7 @@
         </el-tab-pane>
 
         <el-tab-pane label="我的游记" name="notes">
-          <div class="notes-header">
-            <h3 class="notes-section-title">我的游记</h3>
-            <el-button type="primary" :icon="Plus" @click="goToPublishTravelNote">发布新游记</el-button>
-          </div>
-          <div v-loading="noteLoading">
-            <div v-if="notes.length > 0" class="card-grid">
-              <el-card
-                v-for="note in notes"
-                :key="note.id"
-                class="note-card hover-card"
-                @click.stop="goToDetail(note.id)"
-              >
-                <img v-if="note.coverImageUrl" :src="note.coverImageUrl" class="note-img" />
-                <div class="card-info">
-                  <h3>{{ note.title }}</h3>
-                </div>
-              </el-card>
-            </div>
-            <el-empty v-else description="暂无游记"></el-empty>
-          </div>
-
-          <div class="load-more-container">
-            <el-button
-              v-if="hasMoreNotes"
-              type="primary"
-              :loading="noteLoading"
-              @click="fetchNotes(false)"
-              class="load-more-btn"
-            >
-              {{ noteLoading ? '加载中...' : '加载更多游记' }}
-            </el-button>
-            <p v-else-if="notes.length > 0 && noMoreNotes" class="no-more-text">
-              已加载全部游记
-            </p>
-          </div>
+          <MyNotes/>
         </el-tab-pane>
 
         <el-tab-pane label="我的评价" name="reviews">
@@ -228,6 +194,8 @@ import AccountOverview from '@/components/AccountOverview.vue'
 
 import { useRoute,useRouter } from 'vue-router';
 import { authAxios,publicAxios } from '@/utils/request';
+
+import MyNotes from '@/components/profile/MyNotes.vue' // 引入我的游记组件
 
 const router = useRouter();
 const route = useRoute();
@@ -603,7 +571,7 @@ const goToHome = () => {
 
 // 跳转到发布游记页面
 const goToPublishTravelNote = () => {
-  router.push('/user/publish-travel-note'); 
+  router.push('/user/publish-travel-note');
 };
 
 const notes = ref([]);
@@ -879,23 +847,6 @@ watch(activeNotificationTab, (newCategory) => {
 
 .hidden-tabs-header .el-tabs__content {
   padding: 0;
-}
-
-/* 我的游记部分的标题和按钮容器 */
-.notes-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px; 
-  padding-bottom: 10px; 
-  border-bottom: 1px solid #eee; 
-}
-
-.notes-section-title {
-  font-size: 1.5rem; 
-  font-weight: 600;
-  color: #333;
-  margin: 0; 
 }
 
 /* 内容卡片网格布局 */
