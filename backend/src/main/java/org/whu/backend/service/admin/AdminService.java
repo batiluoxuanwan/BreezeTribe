@@ -24,7 +24,7 @@ import org.whu.backend.dto.travelpack.PackageSummaryDto;
 import org.whu.backend.entity.Spot;
 import org.whu.backend.entity.TravelPackage;
 import org.whu.backend.entity.accounts.*;
-import org.whu.backend.entity.travelpost.Notification;
+import org.whu.backend.entity.Notification;
 import org.whu.backend.repository.authRepo.MerchantRepository;
 import org.whu.backend.repository.authRepo.UserRepository;
 import org.whu.backend.repository.travelRepo.SpotRepository;

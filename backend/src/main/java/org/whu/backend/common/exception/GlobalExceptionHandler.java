@@ -174,7 +174,7 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public Result<?> handleDataAccessException(org.springframework.dao.DataAccessException e) {
         // 在日志中记录详细的根本原因，但不对外暴露
-        log.error("数据库访问异常: {}", e.getMessage());
+        log.error("数据库访问异常: {}", e.getMessage(),e);
         // 返回给前端一个通用的、友好的错误提示
         return Result.failure(HttpStatus.INTERNAL_SERVER_ERROR.value(), "数据查询操作失败，请联系管理员");
     }
