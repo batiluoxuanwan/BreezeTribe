@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 import org.whu.backend.dto.PageResponseDto;
 import org.whu.backend.dto.accounts.AuthorDto;
 import org.whu.backend.dto.accounts.UserProfileDto;
+import org.whu.backend.dto.favourite.FavouriteDetailDto;
 import org.whu.backend.dto.mediafile.MediaFileDto;
 import org.whu.backend.dto.notification.NotificationDto;
 import org.whu.backend.dto.order.OrderDetailDto;
@@ -65,6 +66,13 @@ public class DtoConverter {
                 .build();
     }
 
+    public FavouriteDetailDto convertFavoriteToDetailDto(Favorite favorite){
+        return FavouriteDetailDto.builder()
+                .itemid(favorite.getItemId())
+                .itemType(favorite.getItemType())
+                .createdTime(favorite.getCreatedTime())
+                .build();
+    }
 
     // 将文件元信息实体MediaFile转换为MediaFileDto
     public MediaFileDto convertMediaFileToDto(MediaFile entity) {

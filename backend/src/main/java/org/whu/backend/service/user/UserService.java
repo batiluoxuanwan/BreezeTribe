@@ -126,7 +126,8 @@ public class UserService {
         // User user = securityUtil.getCurrentUser();
 
         // 获取订单
-        Order order = JpaUtil.getOrThrow(orderRepository, orderId, "订单不存在");        TravelPackage travelPackage = JpaUtil.getOrThrow(travelPackageRepository,order.getTravelPackage().getId(),"旅行团不存在");
+        Order order = JpaUtil.getOrThrow(orderRepository, orderId, "订单不存在");
+        TravelPackage travelPackage = JpaUtil.getOrThrow(travelPackageRepository, order.getTravelPackage().getId(), "旅行团不存在");
         User user = securityUtil.getCurrentUser();
         if (order.getStatus() != Order.OrderStatus.PENDING_PAYMENT) {
             throw new BizException("订单状态错误");
@@ -154,7 +155,7 @@ public class UserService {
 
         // 获取订单
         Order order = JpaUtil.getOrThrow(orderRepository, orderId, "订单不存在");
-        TravelPackage travelPackage = JpaUtil.getOrThrow(travelPackageRepository,order.getTravelPackage().getId(),"旅行团不存在");
+        TravelPackage travelPackage = JpaUtil.getOrThrow(travelPackageRepository, order.getTravelPackage().getId(), "旅行团不存在");
         User user = securityUtil.getCurrentUser();
         // 检查状态
         if (order.getStatus() == Order.OrderStatus.CANCELED
@@ -240,6 +241,12 @@ public class UserService {
 
     @Transactional // 必须加上事务注解！！！！！！
     public boolean addFavorite(FavoriteRequestDto favoriteRequestDto) {
+
+        // TODO: 仅允许对旅游团进行
+        if (favoriteRequestDto.getItemType()!=InteractionItemType.PACKAGE){
+            throw new BizException("仅允许对旅行团进行收藏");
+        }
+
         User user = securityUtil.getCurrentUser();
 
         if (favoriteRequestDto.getItemType() == null || favoriteRequestDto.getItemId() == null) {
@@ -356,15 +363,7 @@ public class UserService {
         }
 
         List<FavouriteDetailDto> content = favoritePage.getContent().stream()
-                .map(fav -> {
-                    FavouriteDetailDto dto = new FavouriteDetailDto();
-                    dto.setItemid(fav.getItemId());
-                    dto.setItemType(fav.getItemType());
-                    dto.setCreatedTime(fav.getCreatedTime());
-                    dto.setUsername(user.getUsername());
-                    dto.setUserid(user.getId());
-                    return dto;
-                }).toList();
+                .map(dtoConverter::convertFavoriteToDetailDto).toList();
 
         return PageResponseDto.<FavouriteDetailDto>builder()
                 .content(content)
