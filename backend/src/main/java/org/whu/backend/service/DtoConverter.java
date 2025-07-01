@@ -49,21 +49,28 @@ public class DtoConverter {
 
 
     public NotificationDto convertNotificationToDto(Notification notification) {
-        String url = AliyunOssUtil.generatePresignedGetUrl(
-                notification.getTriggerUser().getAvatarUrl(), EXPIRE_TIME, IMAGE_PROCESS);
+        String url = null;
+        if (notification.getTriggerUser() != null && notification.getTriggerUser().getAvatarUrl() != null) {
+            url = AliyunOssUtil.generatePresignedGetUrl(
+                    notification.getTriggerUser().getAvatarUrl(), EXPIRE_TIME, IMAGE_PROCESS);
+        }
 
-        return NotificationDto.builder().
-                id(notification.getId())
+        NotificationDto.NotificationDtoBuilder builder = NotificationDto.builder()
+                .id(notification.getId())
                 .isRead(notification.isRead())
-                .type(notification.getType().toString())
+                .type(notification.getType() != null ? notification.getType().toString() : null)
                 .description(notification.getDescription())
                 .content(notification.getContent())
-                .triggerUserId(notification.getTriggerUser().getId())
-                .triggerUsername(notification.getTriggerUser().getUsername())
                 .triggerUserAvatarUrl(url)
                 .relatedItemId(notification.getRelatedItemId())
-                .createdTime(notification.getCreatedTime())
-                .build();
+                .createdTime(notification.getCreatedTime());
+
+        if (notification.getTriggerUser() != null) {
+            builder.triggerUserId(notification.getTriggerUser().getId())
+                   .triggerUsername(notification.getTriggerUser().getUsername());
+        }
+
+        return builder.build();
     }
 
     public FavouriteDetailDto convertFavoriteToDetailDto(Favorite favorite){
