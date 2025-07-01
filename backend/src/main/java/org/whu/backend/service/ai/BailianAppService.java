@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.whu.backend.common.exception.BizException;
+import org.whu.backend.dto.ai.RecommendedPackageDto;
 
 import java.util.Collections;
 import java.util.List;
@@ -39,7 +40,7 @@ public class BailianAppService {
      * @param userQuery 用户的自然语言查询
      * @return 解析后的旅行团ID列表
      */
-    public List<String> getPackageIdsFromApp(String userQuery) {
+    public List<RecommendedPackageDto> getPackageIdsFromApp(String userQuery) {
         // 1. 创建百炼应用实例
         Application application = new Application();
 
@@ -61,7 +62,7 @@ public class BailianAppService {
             log.info("百炼RAG应用返回原始文本: {}", resultText);
 
             // 4. 【最关键也最脆弱的一步】解析AI返回的文本为ID列表
-            return parseResultTextToIdList(resultText);
+            return parseResultToDtoList(resultText);
 
         } catch (NoApiKeyException | InputRequiredException | ApiException e) {
             log.error("调用百炼RAG应用时发生严重错误！", e);
@@ -71,29 +72,29 @@ public class BailianAppService {
     }
 
     /**
-     * 私有辅助方法：尝试将AI返回的字符串解析为 List<String>
+     * 私有辅助方法：尝试将AI返回的字符串解析为 List<RecommendedPackageDto>
      */
-    private List<String> parseResultTextToIdList(String text) {
-        if (text == null || text.isBlank()) {
+    private List<RecommendedPackageDto> parseResultToDtoList(String text) {
+        if (text == null || text.isBlank() || text.contains("对不起")) {
             return Collections.emptyList();
         }
 
-        // 尝试找到JSON数组的开始和结束位置，以应对AI可能添加的额外文字
+        // ... (之前写的寻找'['和']'的逻辑依然有用) ...
         int startIndex = text.indexOf('[');
         int endIndex = text.lastIndexOf(']');
 
         if (startIndex != -1 && endIndex != -1 && startIndex < endIndex) {
             String jsonArrayStr = text.substring(startIndex, endIndex + 1);
             try {
-                // 使用ObjectMapper将JSON数组字符串转换为Java的List
-                return objectMapper.readValue(jsonArrayStr, new TypeReference<List<String>>() {});
+                // 解析为DTO列表
+                return objectMapper.readValue(jsonArrayStr, new TypeReference<>() {
+                });
             } catch (JsonProcessingException e) {
-                log.error("解析百炼返回的JSON字符串失败！原始文本: '{}', 错误: {}", text, e.getMessage());
-                return Collections.emptyList(); // 解析失败，返回空列表
+                log.error("解析百炼返回的DTO JSON字符串失败！", e);
+                return Collections.emptyList();
             }
         }
 
-        log.warn("百炼返回的文本中未找到有效的JSON数组格式: '{}'", text);
-        return Collections.emptyList(); // 未找到JSON，返回空列表
+        return Collections.emptyList();
     }
 }
