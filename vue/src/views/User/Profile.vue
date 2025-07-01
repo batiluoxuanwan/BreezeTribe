@@ -62,20 +62,7 @@
     <main class="main-content">
       <el-tabs v-model="activeTab" class="hidden-tabs-header">
           <el-tab-pane label="我的收藏" name="collected">
-          <div v-if="collectedTours.length > 0" class="card-grid">
-            <el-card
-              v-for="tour in collectedTours"
-              :key="tour.itemid"
-              class="tour-card hover-card"
-              @click="goToTourDetail(tour.itemid)"
-            >
-              <img :src="tour.coverImageUrls[0]" class="card-img" alt="收藏图片" />
-              <div class="card-info">
-                <h3>{{ tour.title || '未知旅行团名称' }}</h3>
-              </div>
-            </el-card>
-          </div>
-          <el-empty v-else description="暂无收藏"></el-empty>
+            <MyFavorites/>
         </el-tab-pane>
 
         <el-tab-pane label="我的报名" name="joined">
@@ -203,7 +190,8 @@ import AccountOverview from '@/components/AccountOverview.vue'
 import { useRoute,useRouter } from 'vue-router';
 import { authAxios,publicAxios } from '@/utils/request';
 
-import MyNotes from '@/components/profile/MyNotes.vue' // 引入我的游记组件
+import MyNotes from '@/components/profile_user/MyNotes.vue' // 引入我的游记组件
+import MyFavorites from '@/components/profile_user/MyFavorites.vue' // 引入我的游记组件
 
 const router = useRouter();
 const route = useRoute();
@@ -218,22 +206,6 @@ const user = reactive({
   updatedAt: '',
 });
 
-const collectedTours = ref([]);
-
-const pagination = reactive({
-  pageNumber: 0,
-  pageSize: 10,
-  totalElements: 0,
-  totalPages: 0,
-});
-
-const searchParams = reactive({
-  keyword: '',
-  page: 1,
-  size: 10,
-  sortBy: 'createdTime',
-  sortDirection: 'DESC',
-});
 
 const joinedTours = ref([]); // 存储我的报名旅行团列表
 const joinedTotal = ref(0); // 我的报名总数
@@ -288,93 +260,6 @@ const fetchUserProfile = async () => {
       ElMessage.error(`获取用户信息失败：${error.message}`);
     }
   }
-};
-
-//获得单个旅行团详情
-const fetchTravelPackageDetail = async (id) => {
-  try {
-    const response = await publicAxios.get(`/public/travel-packages/${id}`);
-    if (response.data.code === 200 && response.data.data) {
-      return response.data.data;
-    } else {
-      console.warn(`获取旅行团ID ${id} 详情失败:`, response.data.message);
-      return null;
-    }
-  } catch (error) {
-    console.error(`获取旅行团ID ${id} 详情时发生错误:`, error);
-    return null;
-  }
-};
-
-//获取用户收藏列表
-const fetchCollectedTours = async () => {
-  try {
-    const response = await authAxios.get('/user/favorites', {
-      params: {
-        page: searchParams.page,
-        size: searchParams.size,
-      },
-    });
-
-    if (response.data.code === 200 && response.data.data) {
-      const basicCollectedItems = response.data.data.content;
-      pagination.pageNumber = response.data.data.pageNumber;
-      pagination.pageSize = response.data.data.pageSize;
-      pagination.totalElements = response.data.data.totalElements;
-      pagination.totalPages = response.data.data.totalPages;
-
-      const detailedItemsPromises = basicCollectedItems.map(async (item) => {
-        if (!item || !item.itemid || !item.itemType) {
-          console.warn('发现无效的收藏项，跳过处理:', item);
-          return {
-            itemid: `invalid-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`, 
-            itemType: item?.itemType || 'UNKNOWN',
-            title: '无效收藏项',
-            coverImageUrls: [],
-
-          };
-        }
-        if (item.itemType === 'PACKAGE') {
-          const packageDetail = await fetchTravelPackageDetail(item.itemid);
-          if (packageDetail) {
-            return {
-              ...item, 
-              title: packageDetail.title,
-              coverImageUrls: packageDetail.coverImageUrls,
-            };
-          } else {
-            return {
-              ...item,
-              title: `[${item.itemType}] ${item.itemid} (详情加载失败)`,
-              location: '详情获取失败',
-              coverImageUrls: [],
-              price: 0,
-              durationInDays: 0,
-            };
-          }
-        } else {
-          return {
-            ...item,
-            title: `[${item.itemType}] ${item.itemid} (非旅行团)`,
-            location: '非旅行团类型',
-            coverImageUrls: [],
-            price: 0,
-            durationInDays: 0,
-          };
-        }
-      });
-      collectedTours.value = await Promise.all(detailedItemsPromises);
-    } else {
-      ElMessage.error(response.data.message || '获取收藏列表失败。');
-    }
-  } catch (error) {
-    console.error('获取收藏列表或详情时发生错误:', error);
-    ElMessage.error('获取收藏列表时发生网络或服务器错误。');
-  }
-};
-
-const goToTourDetail = (id) => {
-  router.push({ name: 'TravelGroupDetail', params: { id } });
 };
 
 // --- 获取我的报名（订单） ---

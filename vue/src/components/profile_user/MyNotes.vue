@@ -1,6 +1,6 @@
 <template>
   <div class="notes-header">
-    <h3 class="notes-section-title">我的游记</h3>
+    <!-- <h3 class="notes-section-title">我的游记</h3> -->
     <el-button type="primary" :icon="Plus" @click="goToPublishTravelNote"
       >发布新游记</el-button
     >
