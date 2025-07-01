@@ -44,12 +44,22 @@ spring:
       port: 6379
       password: cloudora100points
       database: 0
+      repositories:
+        enabled: false
 
 # 服务器配置
 server:
   address: 127.0.0.1   # 确保只监听本地回环地址
   port: 8081           # 将 Spring Boot 应用的监听端口改为 8081 (HTTP)
   forward-headers-strategy: FRAMEWORK # 正确推断出API的公共访问URL的协议（https）、主机和端口
+
+ai:
+  studio:
+    api:
+      base-url: https://api-16cddcc9j7rci6vb.aistudio-app.com/v1
+      key: df113a1f8c4d874fe44b284c82a5b39a774204b2
+    model:
+      name: DeepSeek-R1-Distill-Llama-8B-F16
 
 
 baidu:
