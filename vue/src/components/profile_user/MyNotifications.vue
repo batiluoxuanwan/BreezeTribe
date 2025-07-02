@@ -215,6 +215,11 @@ onMounted(() => {
   gap: 10px;
 }
 
+.notification-center > div:not(.notification-tabs-vertical) {
+  flex: 1; /* 保证右侧通知列表区域自动拉伸 */
+  min-width: 0;
+}
+
 .notification-content {
   flex-grow: 1;
 }
