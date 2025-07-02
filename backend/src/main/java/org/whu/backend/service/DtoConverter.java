@@ -1,6 +1,7 @@
 package org.whu.backend.service;
 
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 import org.whu.backend.dto.PageResponseDto;
@@ -35,8 +36,11 @@ import org.whu.backend.entity.Notification;
 import org.whu.backend.entity.travelpost.TravelPost;
 import org.whu.backend.util.AliyunOssUtil;
 
+import java.math.BigDecimal;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -45,6 +49,7 @@ import java.util.stream.Collectors;
  * 这是一个独立的、无状态的组件，专门负责将实体(Entity)转换为数据传输对象(DTO)。
  * 所有的Service都应该注入这个组件来执行转换，从而避免Service之间的循环依赖。
  */
+@Slf4j
 @Component
 public class DtoConverter {
 
@@ -458,18 +463,28 @@ public class DtoConverter {
                 .build();
     }
 
-    // 把旅游团实体TravelPackage转化为简略的信息PackageSummaryDto
+    // 把旅游团实体TravelPackage转化为简略的信息PackageSummaryDto TODO: 可能需要处理一下旅游团没有团期的情况
     public PackageSummaryDto convertPackageToSummaryDto(TravelPackage entity) {
         String coverImageUrl = null;
         if (entity.getCoverImageUrl() != null) {
             coverImageUrl = AliyunOssUtil.generatePresignedGetUrl(entity.getCoverImageUrl(), EXPIRE_TIME, IMAGE_PROCESS);
         }
 
+        Optional<BigDecimal> minPriceOpt = entity.getDepartures().stream()
+                .filter(d -> d.getStatus() == TravelDeparture.DepartureStatus.OPEN) // 只考虑可报名的团期
+                .map(TravelDeparture::getPrice)
+                .min(Comparator.naturalOrder());
+        BigDecimal minPrice = BigDecimal.valueOf(0);
+        if (minPriceOpt.isPresent()) {
+            log.warn("产品ID '{}' 没有找到任何可报名的团期，无法获取起步价。", entity.getId());
+            minPrice = minPriceOpt.get();
+        }
+
         return PackageSummaryDto.builder()
                 .id(entity.getId())
                 .title(entity.getTitle())
                 .coverImageUrl(coverImageUrl)
-//                .price(entity.getPrice())
+                .price(minPrice)
                 .description(entity.getDetailedDescription())
                 .durationInDays(entity.getDurationInDays())
                 .favouriteCount(entity.getFavoriteCount())
@@ -500,6 +515,17 @@ public class DtoConverter {
                 .map(this::convertTagToDto) // 调用已有的Tag到TagDto的转换方法
                 .toList();
 
+        // 2.b 拿到最小价格
+        Optional<BigDecimal> minPriceOpt = entity.getDepartures().stream()
+                .filter(d -> d.getStatus() == TravelDeparture.DepartureStatus.OPEN) // 只考虑可报名的团期
+                .map(TravelDeparture::getPrice)
+                .min(Comparator.naturalOrder());
+        BigDecimal minPrice = BigDecimal.valueOf(0);
+        if (minPriceOpt.isPresent()) {
+            log.warn("产品ID '{}' 没有找到任何可报名的团期，无法获取起步价。", entity.getId());
+            minPrice = minPriceOpt.get();
+        }
+
         // 3. 构建最外层的PackageDetailDto
         return PackageDetailDto.builder()
                 .id(entity.getId())
@@ -511,6 +537,7 @@ public class DtoConverter {
                 .commentCount(entity.getCommentCount())
                 .viewCount(entity.getViewCount())
                 .status(entity.getStatus().name())
+                .price(minPrice)
                 .tags(tagDtos)
                 .routes(routeDtos)
                 .build();

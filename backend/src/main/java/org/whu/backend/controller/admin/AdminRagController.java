@@ -37,7 +37,6 @@ public class AdminRagController {
         // 核心业务逻辑
         ragDataService.syncKnowledgeBase();
         log.info("RAG知识库同步任务已成功完成！");
-        // 按照你们的风格，返回统一的Result格式
         return Result.success("知识库同步任务已成功完成！");
     }
 

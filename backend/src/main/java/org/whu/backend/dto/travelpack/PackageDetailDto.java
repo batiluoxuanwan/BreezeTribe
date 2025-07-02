@@ -6,6 +6,7 @@ import lombok.experimental.SuperBuilder;
 import org.whu.backend.dto.route.RouteDetailDto;
 import org.whu.backend.dto.tag.TagDto;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -21,6 +22,9 @@ public class PackageDetailDto {
 
     @Schema(description = "旅行团标题")
     private String title;
+
+    @Schema(description = "旅行团起步价格价格")
+    private BigDecimal price;
 
     @Schema(description = "旅行团图集")
     private List<String> coverImageUrls;
