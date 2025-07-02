@@ -12,14 +12,14 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
- * 表示一个用户创建的加入旅游团的订单
+ * 实体类 3: Order (订单) - 【需要修改】
+ * 职责：关联到具体的出发团期，而不是产品模板。
  */
-// 已经废弃！！！！！！！！！！！！！！！！！！！！！！！！
 @Data
 @Entity
 @SoftDelete
-@Table(name = "orders")
-public class Order {
+@Table(name = "travel_orders")
+public class TravelOrder {
     @Id
     @Column(length = 36)
     private String id;
@@ -30,6 +30,7 @@ public class Order {
     @Column(nullable = false)
     private BigDecimal totalPrice; // 订单总价
 
+    // ... 其他字段保持不变 ...
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private OrderStatus status; // 订单状态
@@ -55,20 +56,18 @@ public class Order {
         COMPLETED // 完成
     }
 
-    // 实体关联，表示订单所属的用户账号
+    // --- 【核心修改】 ---
+    // 订单关联的是一个具体的“出发团期”，而不是一个模糊的“产品”
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "departure_id", nullable = false) // 外键从 package_id 改为 departure_id
+    private TravelDeparture travelDeparture; // 类型从 TravelPackage 改为 TravelDeparture
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_account_id", referencedColumnName = "id", nullable = false)
     private User user;
 
-    // 实体关联，该订单对应的旅行团
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "package_id", nullable = false)
-    private TravelPackage travelPackage;
-
     @PrePersist
     protected void onPrePersist() {
-        if (this.id == null || this.id.trim().isEmpty()) {
-            this.id = UUID.randomUUID().toString();
-        }
+        if (this.id == null) this.id = UUID.randomUUID().toString();
     }
 }

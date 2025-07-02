@@ -17,9 +17,11 @@ import org.whu.backend.dto.accounts.UserProfileDto;
 import org.whu.backend.dto.post.PostDetailDto;
 import org.whu.backend.dto.post.PostSearchRequestDto;
 import org.whu.backend.dto.post.PostSummaryDto;
+import org.whu.backend.dto.travelpack.DepartureSummaryDto;
 import org.whu.backend.dto.travelpack.PackageDetailDto;
 import org.whu.backend.dto.travelpack.PackageSearchRequestDto;
 import org.whu.backend.dto.travelpack.PackageSummaryDto;
+import org.whu.backend.entity.TravelDeparture;
 import org.whu.backend.entity.TravelPackage;
 import org.whu.backend.entity.accounts.Account;
 import org.whu.backend.entity.accounts.User;
@@ -27,6 +29,7 @@ import org.whu.backend.entity.travelpost.TravelPost;
 import org.whu.backend.repository.authRepo.AuthRepository;
 import org.whu.backend.repository.authRepo.UserRepository;
 import org.whu.backend.repository.post.TravelPostRepository;
+import org.whu.backend.repository.travelRepo.TravelDepartureRepository;
 import org.whu.backend.repository.travelRepo.TravelPackageRepository;
 import org.whu.backend.service.DtoConverter;
 import org.whu.backend.service.ViewCountService;
@@ -36,6 +39,7 @@ import org.whu.backend.util.AliyunOssUtil;
 import org.whu.backend.util.JpaUtil;
 
 import java.util.*;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -52,6 +56,8 @@ public class PublicService {
     private ViewCountService viewCountService;
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private TravelDepartureRepository travelDepartureRepository;
     @Autowired
     private AccountUtil accountUtil;
     @Autowired
@@ -99,6 +105,37 @@ public class PublicService {
         log.info("成功查询到旅行团 '{}' 的详情。", travelPackage.getTitle());
         // 2. 将Entity转换为详细的DTO
         return dtoConverter.convertPackageToDetailDto(travelPackage);
+    }
+
+    /**
+     * 【新增】获取指定产品的可报名团期列表（分页）
+     */
+    public PageResponseDto<DepartureSummaryDto> getAvailableDeparturesForPackage(String packageId, PageRequestDto pageRequestDto) {
+        log.info("服务层：开始查询产品ID '{}' 的可报名团期列表...", packageId);
+
+        // 1. 验证产品是否存在且已发布，防止查询到草稿或已下架产品的团期
+        if (!travelPackageRepository.existsByIdAndStatus(packageId, TravelPackage.PackageStatus.PUBLISHED)) {
+            throw new BizException("该旅游产品不存在或未发布");
+        }
+
+        // 2. 创建分页请求，默认按出发日期升序排序
+        Sort sort = Sort.by(Sort.Direction.ASC, "departureDate");
+        Pageable pageable = PageRequest.of(pageRequestDto.getPage() - 1, pageRequestDto.getSize(), sort);
+
+        // 3. 查询状态为OPEN（可报名）的团期
+        Page<TravelDeparture> departurePage = travelDepartureRepository.findByTravelPackageIdAndStatus(
+                packageId,
+                TravelDeparture.DepartureStatus.OPEN,
+                pageable
+        );
+        log.info("服务层：为产品ID '{}' 查询到 {} 个可报名团期。", packageId, departurePage.getTotalElements());
+
+        // 4. 将查询结果转换为DTO
+        List<DepartureSummaryDto> dtos = departurePage.getContent().stream()
+                .map(dtoConverter::convertDepartureToSummaryDto)
+                .collect(Collectors.toList());
+
+        return dtoConverter.convertPageToDto(departurePage, dtos);
     }
 
 

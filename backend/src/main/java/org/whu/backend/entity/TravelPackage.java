@@ -36,19 +36,21 @@ public class TravelPackage {
     @Lob
     private String detailedDescription; // 旅行团描述
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private BigDecimal price; // 价格
 
     private Integer capacity; // 总容量
 
+    // TODO: 这个东西可能要被废弃！！！！下放到Departure类
     private Integer participants; // 参与人数
 
+    // TODO: 这个东西可能要被废弃！！！！下放到Departure类
     private LocalDateTime departureDate; // 出发日期
 
     private Integer durationInDays; // 持续天数
 
 
-    // ------- 统计数据 -----------
+    // ------- 统计数据，属于产品模板 -----------
 
     @ColumnDefault("0")
     private Integer favoriteCount; // 收藏量
@@ -58,6 +60,16 @@ public class TravelPackage {
 
     @ColumnDefault("0")
     private Integer viewCount; // 浏览量
+
+    @ColumnDefault("0")
+    private Integer salesCount; // 销售量
+
+
+
+    // 【新增关联】一个产品模板，可以有多个具体的出发团期
+    @OneToMany(mappedBy = "travelPackage", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<TravelDeparture> departures = new ArrayList<>();
+
 
 
     @Enumerated(EnumType.STRING)

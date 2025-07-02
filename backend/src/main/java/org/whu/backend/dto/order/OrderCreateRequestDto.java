@@ -7,9 +7,9 @@ import lombok.Data;
 
 @Data
 public class OrderCreateRequestDto {
-    @Schema(description = "要报名的旅行团ID")
-    @NotBlank
-    private String packageId;
+    @Schema(description = "要报名的团期ID，不再是旅行团id！！！")
+    @NotBlank(message = "必须指定要报名的团期ID")
+    private String departureId; // 从 packageId 变为 departureId
 
     @Schema(description = "出行人数", example = "2")
     @Min(1)

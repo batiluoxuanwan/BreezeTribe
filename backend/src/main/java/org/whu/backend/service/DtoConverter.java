@@ -12,6 +12,7 @@ import org.whu.backend.dto.notification.NotificationDto;
 import org.whu.backend.dto.order.OrderDetailDto;
 import org.whu.backend.dto.order.OrderForReviewDto;
 import org.whu.backend.dto.order.OrderSummaryForDealerDto;
+import org.whu.backend.dto.order.TravelOrderDetailDto;
 import org.whu.backend.dto.packagecomment.PackageCommentDto;
 import org.whu.backend.dto.post.PostDetailDto;
 import org.whu.backend.dto.post.PostDetailToOwnerDto;
@@ -21,6 +22,7 @@ import org.whu.backend.dto.postcomment.PostCommentWithRepliesDto;
 import org.whu.backend.dto.route.RouteDetailDto;
 import org.whu.backend.dto.route.RouteSummaryDto;
 import org.whu.backend.dto.spot.SpotDetailDto;
+import org.whu.backend.dto.travelpack.DepartureSummaryDto;
 import org.whu.backend.dto.travelpack.PackageDetailDto;
 import org.whu.backend.dto.travelpack.PackageSummaryDto;
 import org.whu.backend.entity.*;
@@ -159,6 +161,29 @@ public class DtoConverter {
     }
 
     /**
+     * 将Order实体转换为详细的OrderDetailDto
+     */
+    public TravelOrderDetailDto convertTravelOrderToDetailDto(TravelOrder order) {
+        return TravelOrderDetailDto.builder()
+                .id(order.getId())
+                .departureId(order.getTravelDeparture().getId())
+                .packageId(order.getTravelDeparture().getTravelPackage().getId())
+                .packageTitle(order.getTravelDeparture().getTravelPackage().getTitle())
+                .packageCoverImageUrl(AliyunOssUtil.generatePresignedGetUrl(
+                        order.getTravelDeparture().getTravelPackage().getCoverImageUrl(), 
+                        EXPIRE_TIME, 
+                        IMAGE_PROCESS))
+                .travelerCount(order.getTravelerCount())
+                .totalPrice(order.getTotalPrice())
+                .status(order.getStatus().toString())
+                .contactName(order.getContactName())
+                .contactPhone(order.getContactPhone())
+                .userId(order.getUser().getId())
+                .orderTime(order.getCreatedTime())
+                .build();
+    }
+
+    /**
      * 将订单实体转换为给用户查看的DTO
      */
     public OrderForReviewDto convertOrderToReviewDto(Order order) {
@@ -171,6 +196,8 @@ public class DtoConverter {
                 .totalPrice(order.getTotalPrice().toString())
                 .build();
     }
+
+
 
     /**
      * 将PackageComment实体转换为带少量预览回复的DTO
@@ -428,7 +455,7 @@ public class DtoConverter {
                 .id(entity.getId())
                 .title(entity.getTitle())
                 .coverImageUrl(coverImageUrl)
-                .price(entity.getPrice())
+//                .price(entity.getPrice())
                 .description(entity.getDetailedDescription())
                 .durationInDays(entity.getDurationInDays())
                 .favouriteCount(entity.getFavoriteCount())
@@ -492,5 +519,20 @@ public class DtoConverter {
     private String maskPhone(String phone) {
         if (phone == null || phone.length() != 11) return "手机号格式错误";
         return phone.substring(0, 3) + "****" + phone.substring(7);
+    }
+
+    public DepartureSummaryDto convertDepartureToSummaryDto(TravelDeparture departure) {
+        DepartureSummaryDto.DepartureSummaryDtoBuilder builder = DepartureSummaryDto.builder()
+                .id(departure.getId())
+                .departureDate(departure.getDepartureDate())
+                .price(departure.getPrice())
+                .capacity(departure.getCapacity())
+                .participants(departure.getParticipants())
+                .status(departure.getStatus().name());
+        if (departure.getTravelPackage() != null) {
+            builder.packageId(departure.getTravelPackage().getId())
+                   .packageTitle(departure.getTravelPackage().getTitle());
+        }
+        return builder.build();
     }
 }

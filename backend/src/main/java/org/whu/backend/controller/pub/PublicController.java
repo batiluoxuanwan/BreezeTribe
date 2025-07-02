@@ -1,6 +1,7 @@
 package org.whu.backend.controller.pub;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -20,6 +21,7 @@ import org.whu.backend.dto.post.PostSearchRequestDto;
 import org.whu.backend.dto.post.PostSummaryDto;
 import org.whu.backend.dto.postcomment.PostCommentDto;
 import org.whu.backend.dto.postcomment.PostCommentWithRepliesDto;
+import org.whu.backend.dto.travelpack.DepartureSummaryDto;
 import org.whu.backend.dto.travelpack.PackageDetailDto;
 import org.whu.backend.dto.travelpack.PackageSearchRequestDto;
 import org.whu.backend.dto.travelpack.PackageSummaryDto;
@@ -71,6 +73,16 @@ public class PublicController {
         String ipAddress = IpUtil.getRealIp(request);
         PackageDetailDto packageDetails = publicService.getPackageDetails(id, ipAddress);
         return Result.success(packageDetails);
+    }
+
+    @Operation(summary = "获取指定产品的可报名团期列表（分页）", description = "查询一个产品下所有可供用户选择报名的出发团期。")
+    @GetMapping("/travel-packages/{packageId}/departures")
+    public Result<PageResponseDto<DepartureSummaryDto>> getAvailableDepartures(
+            @Parameter(description = "产品模板的ID") @PathVariable String packageId,
+            @Valid @ParameterObject PageRequestDto pageRequestDto) {
+        log.info("请求日志：收到查询产品ID '{}' 的可报名团期列表请求, 分页参数: {}", packageId, pageRequestDto);
+        PageResponseDto<DepartureSummaryDto> resultPage = publicService.getAvailableDeparturesForPackage(packageId, pageRequestDto);
+        return Result.success("团期列表查询成功", resultPage);
     }
 
     @Operation(summary = "获取地点输入提示", description = "用于前端搜索框的实时输入提示，后端转发百度地图API请求")

@@ -60,4 +60,8 @@ public interface TravelPackageRepository extends JpaRepository<TravelPackage, St
     @Query("UPDATE TravelPackage p SET p.participants = GREATEST(p.participants - :num, 0) WHERE p.id = :packageId")
     void subParticipantCount(String packageId, Integer num);
 
+    // 查询某个团是否属于某个经销商
+    boolean existsByIdAndDealerId(String packageId, String currentDealerId);
+
+    boolean existsByIdAndStatus(String packageId, TravelPackage.PackageStatus packageStatus);
 }
