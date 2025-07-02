@@ -53,23 +53,21 @@ public class TravelPackage {
     // ------- 统计数据，属于产品模板 -----------
 
     @ColumnDefault("0")
-    private Integer favoriteCount; // 收藏量
+    private Integer favoriteCount = 0; // 收藏量
 
     @ColumnDefault("0")
-    private Integer commentCount; // 评论数量
+    private Integer commentCount = 0; // 评论数量
 
     @ColumnDefault("0")
-    private Integer viewCount; // 浏览量
+    private Integer viewCount = 0; // 浏览量
 
     @ColumnDefault("0")
-    private Integer salesCount; // 销售量
-
+    private Integer salesCount = 0; // 销售量
 
 
     // 【新增关联】一个产品模板，可以有多个具体的出发团期
     @OneToMany(mappedBy = "travelPackage", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<TravelDeparture> departures = new ArrayList<>();
-
 
 
     @Enumerated(EnumType.STRING)

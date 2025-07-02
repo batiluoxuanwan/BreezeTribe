@@ -25,6 +25,7 @@ import org.whu.backend.dto.spot.SpotDetailDto;
 import org.whu.backend.dto.tag.TagDto;
 import org.whu.backend.dto.travelpack.DepartureSummaryDto;
 import org.whu.backend.dto.travelpack.PackageDetailDto;
+import org.whu.backend.dto.travelpack.PackageDetailForMerchantDto;
 import org.whu.backend.dto.travelpack.PackageSummaryDto;
 import org.whu.backend.entity.*;
 import org.whu.backend.entity.accounts.User;
@@ -337,6 +338,11 @@ public class DtoConverter {
                 })
                 .collect(Collectors.toList());
 
+        // 转换Tags列表
+        List<TagDto> tagDtos = post.getTags().stream()
+                .map(this::convertTagToDto) // 调用已有的Tag到TagDto的转换方法
+                .toList();
+
         // 构建最终的DTO
         return PostDetailDto.builder()
                 .id(post.getId())
@@ -349,6 +355,7 @@ public class DtoConverter {
                 .favoriteCount(post.getFavoriteCount())
                 .commentCount(post.getCommentCount())
                 .viewCount(post.getViewCount())
+                .tags(tagDtos)
                 .createdTime(post.getCreatedTime())
                 .build();
     }
@@ -377,6 +384,11 @@ public class DtoConverter {
                         )
                 ));
 
+        // 转换Tags列表
+        List<TagDto> tagDtos = post.getTags().stream()
+                .map(this::convertTagToDto) // 调用已有的Tag到TagDto的转换方法
+                .toList();
+
         // 构建最终的DTO
         return PostDetailToOwnerDto.builder()
                 .id(post.getId())
@@ -389,6 +401,7 @@ public class DtoConverter {
                 .favoriteCount(post.getFavoriteCount())
                 .commentCount(post.getCommentCount())
                 .viewCount(post.getViewCount())
+                .tags(tagDtos)
                 .createdTime(post.getCreatedTime())
                 .build();
     }
@@ -492,7 +505,6 @@ public class DtoConverter {
                 .id(entity.getId())
                 .title(entity.getTitle())
                 .coverImageUrls(signedImageUrls)
-                .price(entity.getPrice())
                 .durationInDays(entity.getDurationInDays())
                 .detailedDescription(entity.getDetailedDescription())
                 .favouriteCount(entity.getFavoriteCount())
@@ -501,6 +513,56 @@ public class DtoConverter {
                 .status(entity.getStatus().name())
                 .tags(tagDtos)
                 .routes(routeDtos)
+                .build();
+    }
+
+    /**
+     * 将TravelPackage实体转换为商家视角的详情DTO
+     * @param entity 旅游产品实体
+     * @return 包含所有团期信息的详情DTO
+     */
+    public PackageDetailForMerchantDto convertPackageToDetailForMerchantDto(TravelPackage entity) {
+        // 1. 转换所有团期列表
+        List<DepartureSummaryDto> departureDtos = entity.getDepartures().stream()
+                .map(departure -> DepartureSummaryDto.builder()
+                        .id(departure.getId())
+                        .departureDate(departure.getDepartureDate())
+                        .price(departure.getPrice())
+                        .capacity(departure.getCapacity())
+                        .participants(departure.getParticipants())
+                        .status(departure.getStatus().name())
+                        .build())
+                .collect(Collectors.toList());
+
+        // 2. 转换其他公共信息（可以复用之前的逻辑）
+        List<RouteDetailDto> routeDtos = entity.getRoutes().stream()
+                .map(packageRoute -> convertRouteToDetailDto(packageRoute.getRoute()))
+                .collect(Collectors.toList());
+
+        List<String> signedImageUrls = entity.getImages().stream()
+                .map(packageImage -> AliyunOssUtil.generatePresignedGetUrl(packageImage.getMediaFile().getObjectKey(), EXPIRE_TIME, IMAGE_PROCESS))
+                .collect(Collectors.toList());
+
+        List<TagDto> tagDtos = entity.getTags().stream()
+                .map(this::convertTagToDto)
+                .collect(Collectors.toList());
+
+        // 3. 使用 @SuperBuilder 构建最终的DTO
+        return PackageDetailForMerchantDto.builder()
+                // 填充父类字段
+                .id(entity.getId())
+                .title(entity.getTitle())
+                .coverImageUrls(signedImageUrls)
+                .durationInDays(entity.getDurationInDays())
+                .detailedDescription(entity.getDetailedDescription())
+                .favouriteCount(entity.getFavoriteCount())
+                .commentCount(entity.getCommentCount())
+                .viewCount(entity.getViewCount())
+                .status(entity.getStatus().name())
+                .tags(tagDtos)
+                .routes(routeDtos)
+                // 填充子类特有字段
+                .departures(departureDtos)
                 .build();
     }
 

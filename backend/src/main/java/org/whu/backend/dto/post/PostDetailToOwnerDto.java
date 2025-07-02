@@ -5,8 +5,10 @@ import lombok.Builder;
 import lombok.Data;
 import org.whu.backend.dto.accounts.AuthorDto;
 import org.whu.backend.dto.spot.SpotDetailDto;
+import org.whu.backend.dto.tag.TagDto;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 
 @Data
@@ -22,5 +24,6 @@ public class PostDetailToOwnerDto {
     private int favoriteCount;
     private int commentCount;
     private int viewCount;
+    private List<TagDto> tags;
     private LocalDateTime createdTime;
 }

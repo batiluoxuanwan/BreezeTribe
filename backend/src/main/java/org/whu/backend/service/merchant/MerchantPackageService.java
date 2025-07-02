@@ -14,10 +14,7 @@ import org.whu.backend.dto.PageRequestDto;
 import org.whu.backend.dto.PageResponseDto;
 import org.whu.backend.dto.baidumap.BaiduPlaceDetailResponseDto;
 import org.whu.backend.dto.order.TravelOrderDetailDto;
-import org.whu.backend.dto.travelpack.DayScheduleDto;
-import org.whu.backend.dto.travelpack.PackageCreateRequestDto;
-import org.whu.backend.dto.travelpack.PackageSummaryDto;
-import org.whu.backend.dto.travelpack.PackageUpdateRequestDto;
+import org.whu.backend.dto.travelpack.*;
 import org.whu.backend.entity.*;
 import org.whu.backend.entity.accounts.Merchant;
 import org.whu.backend.entity.association.PackageImage;
@@ -147,7 +144,7 @@ public class MerchantPackageService {
             newPackage.getRoutes().add(packageRoute);
         }
 
-        // 3. 【新增】处理并关联标签
+        // 3. 处理并关联标签
         if (dto.getTagIds() != null && !dto.getTagIds().isEmpty()) {
             List<Tag> tags = tagRepository.findAllById(dto.getTagIds());
             if (tags.size() != dto.getTagIds().size()) {
@@ -161,6 +158,25 @@ public class MerchantPackageService {
         TravelPackage savedPackage = packageRepository.save(newPackage);
         log.info("新旅行团 '{}' (ID: {}) 已成功创建，状态为待审核。", savedPackage.getTitle(), savedPackage.getId());
         return savedPackage;
+    }
+
+    /**
+     * 【新增】获取单个产品的详细信息（商家视角）
+     */
+    @Transactional(readOnly = true)
+    public PackageDetailForMerchantDto getPackageDetailsForMerchant(String packageId, String currentDealerId) {
+        log.info("服务层：开始为经销商 '{}' 查询产品ID '{}' 的详细信息", currentDealerId, packageId);
+
+        // 1. 查找产品，同时验证所有权
+        TravelPackage travelPackage = packageRepository.findById(packageId)
+                .orElseThrow(() -> new BizException("找不到对应的旅游产品"));
+
+        if (!travelPackage.getDealer().getId().equals(currentDealerId)) {
+            throw new BizException("无权查看不属于自己的产品详情");
+        }
+
+        // 2. 调用新的转换方法，将实体转换为商家专用的DTO
+        return dtoConverter.convertPackageToDetailForMerchantDto(travelPackage);
     }
 
     /**
