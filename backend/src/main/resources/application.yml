@@ -2,18 +2,18 @@ spring:
   application:
     name: backend
   datasource:
-    url: jdbc:mysql://rm-cn-9me4964qo001148o.rwlb.rds.aliyuncs.com:3306/breeze-tribe
+    #    url: jdbc:mysql://rm-cn-9me4964qo001148o.rwlb.rds.aliyuncs.com:3306/breeze-tribe
+    #    username: root
+    #    password: H2v4uZwDpBVv4ysHy5wy
+    #    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/breeze-tribe
     username: root
-    password: H2v4uZwDpBVv4ysHy5wy
+    password: 95515
     driver-class-name: com.mysql.cj.jdbc.Driver
-  #    url: jdbc:mysql://localhost:3306/breeze-tribe
-  #    username: root
-  #    password: 95515
-  #    driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     show-sql: false # 是否在控制台显示Hibernate执行的SQL语句
     hibernate:
-      ddl-auto: update # 开发和测试阶段，'update' 比较方便
+      ddl-auto: create # 开发和测试阶段，'update' 比较方便
     properties:
       hibernate:
         format_sql: true
@@ -68,7 +68,7 @@ dashscope:
 
 baidu:
   map:
-#    ak: cX3Lu6F9cEcRr7M2K80G0Di49wvz4hY0
+    #    ak: cX3Lu6F9cEcRr7M2K80G0Di49wvz4hY0
     ak: r49IueXKnldrFS4IWoqnlW0iM1GD77KE
 
 

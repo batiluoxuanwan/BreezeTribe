@@ -21,6 +21,7 @@ import org.whu.backend.dto.postcomment.PostCommentWithRepliesDto;
 import org.whu.backend.dto.route.RouteDetailDto;
 import org.whu.backend.dto.route.RouteSummaryDto;
 import org.whu.backend.dto.spot.SpotDetailDto;
+import org.whu.backend.dto.travelpack.DepartureSummaryDto;
 import org.whu.backend.dto.travelpack.PackageDetailDto;
 import org.whu.backend.dto.travelpack.PackageSummaryDto;
 import org.whu.backend.entity.*;
@@ -492,5 +493,20 @@ public class DtoConverter {
     private String maskPhone(String phone) {
         if (phone == null || phone.length() != 11) return "手机号格式错误";
         return phone.substring(0, 3) + "****" + phone.substring(7);
+    }
+
+    public DepartureSummaryDto convertDepartureToSummaryDto(TravelDeparture departure) {
+        DepartureSummaryDto.DepartureSummaryDtoBuilder builder = DepartureSummaryDto.builder()
+                .id(departure.getId())
+                .departureDate(departure.getDepartureDate())
+                .price(departure.getPrice())
+                .capacity(departure.getCapacity())
+                .participants(departure.getParticipants())
+                .status(departure.getStatus().name());
+        if (departure.getTravelPackage() != null) {
+            builder.packageId(departure.getTravelPackage().getId())
+                   .packageTitle(departure.getTravelPackage().getTitle());
+        }
+        return builder.build();
     }
 }
