@@ -66,20 +66,24 @@
         </el-tab-pane>
       </el-tabs>
 
-      <div v-if="loading" class="loading-overlay">
-        <el-spinner size="large"></el-spinner>
+      <div class="loading-container" v-if="loading">
+        <el-icon class="is-loading">
+          <Loading />
+        </el-icon>
+        <span>加载中...</span>
       </div>
-    </div>
+        </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, watch } from 'vue';
-import { ElTabs, ElTabPane, ElCard, ElForm, ElFormItem, ElInput, ElSelect, ElOption, ElButton, ElPagination, ElEmpty, ElMessage } from 'element-plus'; 
+import { ElIcon,ElTabs, ElTabPane, ElCard, ElForm, ElFormItem, ElInput, ElSelect, ElOption, ElButton, ElPagination, ElEmpty, ElMessage } from 'element-plus'; 
 import TravelGroupCard from '@/components/TravelGroupCard.vue';
 import TravelNoteCard from '@/components/TravelNoteCard.vue';
 import { useRouter, useRoute } from 'vue-router';
 import { publicAxios } from '@/utils/request'
+import { Loading } from '@element-plus/icons-vue'
 
 const router = useRouter(); 
 const route = useRoute(); // 当前路由信息
@@ -94,18 +98,6 @@ const goHome = () => {
 
 // --- 激活的Tab ---
 const activeTab = ref('groups');
-
-// --- 监听路由查询参数，用于激活对应的Tab ---
-watch(
-  () => route.query.tab,
-  (newTab) => {
-    if (newTab) {
-      activeTab.value = newTab;
-    }
-  },
-  { immediate: true } 
-);
-
 
 // --- 搜索表单 ---
 const searchForm = ref({
@@ -143,19 +135,6 @@ const fetchTravelGroups = async () => {
           // sortDirection: 'DESC',
         },
       })
-     
-    const resultList = response.data.data?.content || [];
-      // 如果搜索无结果，尝试普通接口
-      if (resultList.length === 0) {
-        ElMessage.warning('未找到匹配的旅行团，为您推荐其他旅行团。');
-        isSearchMode.value = false; // 取消搜索模式
-        response = await publicAxios.get('/public/travel-packages', {
-          params: {
-            page: groupCurrentPage.value,
-            size: groupPageSize,
-          },
-        });
-      }
     }
     else {
       // 走普通获取广场列表接口
@@ -190,7 +169,7 @@ const fetchTravelNotes = async () => {
     let response = null
     if (isSearchMode.value && searchKeyword.value.trim()) {
       // 走搜索接口
-      response = await publicAxios.get('/public/travel-packages/search', {
+      response = await publicAxios.get('/public/posts/search', {
         params: {
           keyword: searchKeyword.value,
           page: noteCurrentPage.value,    // 当前页码
@@ -261,37 +240,37 @@ const resetFilters = () => {
   applyFilters(); // 重置后重新加载数据
 };
 
-// watch(
-//   [activeTab, searchKeyword], // 监听 activeTab 和 keyword
-//   ([newTab, newKeyword], [oldTab, oldKeyword]) => {
-//     // 只有当 activeTab 改变或者 keyword 改变时才触发刷新
-//     // 避免不必要的重复加载，可以根据需求更精细地控制
+watch(
+  [activeTab, searchKeyword], // 监听 activeTab 和 keyword
+  ([newTab, newKeyword], [oldTab, oldKeyword]) => {
+    // 只有当 activeTab 改变或者 keyword 改变时才触发刷新
+    // 避免不必要的重复加载，可以根据需求更精细地控制
 
-//     // 如果是 activeTab 改变，根据新的 tab 加载数据
-//     if (newTab !== oldTab) {
-//       if (newTab === 'groups') {
-//         console.log('Tab switched to groups, fetching travel groups...');
-//         fetchTravelGroups();
-//       } else if (newTab === 'notes') {
-//         console.log('Tab switched to notes, fetching travel notes...');
-//         fetchTravelNotes();
-//       }
-//     } 
+    // 如果是 activeTab 改变，根据新的 tab 加载数据
+    if (newTab !== oldTab) {
+      if (newTab === 'groups') {
+        console.log('Tab switched to groups, fetching travel groups...');
+        fetchTravelGroups();
+      } else if (newTab === 'notes') {
+        console.log('Tab switched to notes, fetching travel notes...');
+        fetchTravelNotes();
+      }
+    } 
     
-//     // 如果是 keyword 改变，并且当前 tab 匹配，也加载数据
-//     // 注意：这里需要确保 newTab 是你想要加载数据的 tab
-//     if (newKeyword !== oldKeyword && newKeyword.trim() !== '') { // 确保 keyword 不为空
-//         if (newTab === 'groups') {
-//             console.log('Keyword changed in groups tab, fetching travel groups...');
-//             fetchTravelGroups();
-//         } else if (newTab === 'notes') {
-//             console.log('Keyword changed in notes tab, fetching travel notes...');
-//             fetchTravelNotes();
-//         }
-//     }
-//   },
-//   { immediate: true } 
-// );
+    // 如果是 keyword 改变，并且当前 tab 匹配，也加载数据
+    // 注意：这里需要确保 newTab 是你想要加载数据的 tab
+    if (newKeyword !== oldKeyword && newKeyword.trim() !== '') { // 确保 keyword 不为空
+        if (newTab === 'groups') {
+            console.log('Keyword changed in groups tab, fetching travel groups...');
+            fetchTravelGroups();
+        } else if (newTab === 'notes') {
+            console.log('Keyword changed in notes tab, fetching travel notes...');
+            fetchTravelNotes();
+        }
+    }
+  },
+  { immediate: true } 
+);
 
 // --- 组件挂载时默认加载旅行团数据 ---
 onMounted(() => {

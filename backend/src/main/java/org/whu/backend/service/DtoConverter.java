@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 import org.whu.backend.dto.PageResponseDto;
 import org.whu.backend.dto.accounts.AuthorDto;
 import org.whu.backend.dto.accounts.UserProfileDto;
+import org.whu.backend.dto.favourite.FavouriteDetailDto;
 import org.whu.backend.dto.mediafile.MediaFileDto;
 import org.whu.backend.dto.notification.NotificationDto;
 import org.whu.backend.dto.order.OrderDetailDto;
@@ -25,7 +26,7 @@ import org.whu.backend.dto.travelpack.PackageSummaryDto;
 import org.whu.backend.entity.*;
 import org.whu.backend.entity.accounts.User;
 import org.whu.backend.entity.travelpost.Comment;
-import org.whu.backend.entity.travelpost.Notification;
+import org.whu.backend.entity.Notification;
 import org.whu.backend.entity.travelpost.TravelPost;
 import org.whu.backend.util.AliyunOssUtil;
 
@@ -46,25 +47,38 @@ public class DtoConverter {
     public static final String IMAGE_PROCESS = "image/resize,l_400/quality,q_50";
 
 
-
     public NotificationDto convertNotificationToDto(Notification notification) {
-        String url = AliyunOssUtil.generatePresignedGetUrl(
-                notification.getTriggerUser().getAvatarUrl(), EXPIRE_TIME, IMAGE_PROCESS);
+        String url = null;
+        if (notification.getTriggerUser() != null && notification.getTriggerUser().getAvatarUrl() != null) {
+            url = AliyunOssUtil.generatePresignedGetUrl(
+                    notification.getTriggerUser().getAvatarUrl(), EXPIRE_TIME, IMAGE_PROCESS);
+        }
 
-        return NotificationDto.builder().
-                id(notification.getId())
+        NotificationDto.NotificationDtoBuilder builder = NotificationDto.builder()
+                .id(notification.getId())
                 .isRead(notification.isRead())
-                .type(notification.getType().toString())
-                .description(notification.getDescription())
-                .content(notification.getContent())
-                .triggerUserId(notification.getTriggerUser().getId())
-                .triggerUsername(notification.getTriggerUser().getUsername())
+                .type(notification.getType() != null ? notification.getType().toString() : null)
+                .description(notification.getDescription() != null ? notification.getDescription() : null)
+                .content(notification.getContent() != null ? notification.getContent() : null)
                 .triggerUserAvatarUrl(url)
                 .relatedItemId(notification.getRelatedItemId())
-                .createdTime(notification.getCreatedTime())
-                .build();
+                .createdTime(notification.getCreatedTime());
+
+        if (notification.getTriggerUser() != null) {
+            builder.triggerUserId(notification.getTriggerUser().getId())
+                    .triggerUsername(notification.getTriggerUser().getUsername());
+        }
+
+        return builder.build();
     }
 
+    public FavouriteDetailDto convertFavoriteToDetailDto(Favorite favorite) {
+        return FavouriteDetailDto.builder()
+                .itemid(favorite.getItemId())
+                .itemType(favorite.getItemType())
+                .createdTime(favorite.getCreatedTime())
+                .build();
+    }
 
     // 将文件元信息实体MediaFile转换为MediaFileDto
     public MediaFileDto convertMediaFileToDto(MediaFile entity) {

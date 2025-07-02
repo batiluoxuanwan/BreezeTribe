@@ -8,11 +8,14 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.whu.backend.entity.TravelPackage;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface TravelPackageRepository extends JpaRepository<TravelPackage, String> {
     // 根据状态查询旅行团（分页）
     Page<TravelPackage> findByStatus(TravelPackage.PackageStatus status, Pageable pageable);
+
+    List<TravelPackage> findByStatus(TravelPackage.PackageStatus status);
 
     // 根据ID和状态查询单个旅行团
     Optional<TravelPackage> findByIdAndStatus(String id, TravelPackage.PackageStatus status);

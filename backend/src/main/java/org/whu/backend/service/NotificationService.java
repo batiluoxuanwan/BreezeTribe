@@ -15,7 +15,7 @@ import org.whu.backend.dto.notification.MarkAsReadRequestDto;
 import org.whu.backend.dto.notification.NotificationDto;
 import org.whu.backend.dto.notification.UnreadCountDto;
 import org.whu.backend.entity.accounts.Account;
-import org.whu.backend.entity.travelpost.Notification;
+import org.whu.backend.entity.Notification;
 import org.whu.backend.repository.NotificationRepository;
 
 import java.util.HashMap;
