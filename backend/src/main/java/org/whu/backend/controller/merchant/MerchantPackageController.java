@@ -16,7 +16,7 @@ import org.whu.backend.dto.travelpack.PackageCreateRequestDto;
 import org.whu.backend.dto.travelpack.PackageDetailDto;
 import org.whu.backend.dto.travelpack.PackageSummaryDto;
 import org.whu.backend.dto.travelpack.PackageUpdateRequestDto;
-import org.whu.backend.entity.TravelPackage;
+import org.whu.backend.entity.travelpac.TravelPackage;
 import org.whu.backend.service.DtoConverter;
 import org.whu.backend.service.merchant.MerchantPackageService;
 import org.whu.backend.util.AccountUtil;

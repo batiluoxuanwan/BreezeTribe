@@ -1,4 +1,4 @@
-package org.whu.backend.entity;
+package org.whu.backend.entity.travelpac;
 
 import jakarta.persistence.*;
 import lombok.Data;
@@ -6,6 +6,7 @@ import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.SoftDelete;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.whu.backend.entity.MediaFile;
 import org.whu.backend.entity.accounts.Merchant;
 import org.whu.backend.entity.association.PackageImage;
 import org.whu.backend.entity.association.PackageRoute;

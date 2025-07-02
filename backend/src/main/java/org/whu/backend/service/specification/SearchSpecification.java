@@ -5,13 +5,13 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.util.StringUtils;
 import org.whu.backend.dto.post.PostSearchRequestDto;
 import org.whu.backend.dto.travelpack.PackageSearchRequestDto;
-import org.whu.backend.entity.Route;
+import org.whu.backend.entity.travelpac.Route;
 import org.whu.backend.entity.Spot;
-import org.whu.backend.entity.TravelPackage;
+import org.whu.backend.entity.travelpac.TravelPackage;
 import org.whu.backend.entity.accounts.User;
 import org.whu.backend.entity.association.PackageRoute;
 import org.whu.backend.entity.association.RouteSpot;
-import org.whu.backend.entity.travelpost.Tag;
+import org.whu.backend.entity.Tag;
 import org.whu.backend.entity.travelpost.TravelPost;
 
 import java.util.ArrayList;

@@ -23,6 +23,9 @@ import org.whu.backend.entity.accounts.Merchant;
 import org.whu.backend.entity.association.PackageImage;
 import org.whu.backend.entity.association.PackageRoute;
 import org.whu.backend.entity.association.RouteSpot;
+import org.whu.backend.entity.travelpac.Route;
+import org.whu.backend.entity.travelpac.TravelOrder;
+import org.whu.backend.entity.travelpac.TravelPackage;
 import org.whu.backend.repository.MediaFileRepository;
 import org.whu.backend.repository.authRepo.MerchantRepository;
 import org.whu.backend.repository.travelRepo.*;
@@ -58,6 +61,8 @@ public class MerchantPackageService {
     private TravelPackageRepository travelPackageRepository;
     @Autowired
     private TravelOrderRepository travelOrderRepository;
+    @Autowired
+    private TravelDepartureRepository travelDepartureRepository;
 
     @Transactional
     public TravelPackage createPackage(PackageCreateRequestDto dto, String dealerId) {
@@ -174,10 +179,10 @@ public class MerchantPackageService {
         // 1. 查找并验证旅行团的所有权
         TravelPackage packageToDelete = findPackageByIdAndVerifyOwnership(packageId, currentDealerId);
 
-        boolean hasActiveOrders = orderRepository.existsByTravelPackageId(packageId);
-        if (hasActiveOrders) {
-            log.warn("删除失败：旅行团ID '{}' 存在有效的关联订单。", packageId);
-            throw new BizException("无法删除：该旅行团尚有未完成或未取消的订单，请先处理相关订单。");
+        boolean hasActiveDepartures = travelDepartureRepository.existsByTravelPackageId(packageId);
+        if (hasActiveDepartures) {
+            log.warn("删除失败：旅行团ID '{}' 存在有效的关联团期。", packageId);
+            throw new BizException("无法删除：该旅行团存在有效的关联团期，请先处理相关团期。");
         }
 
         // 2. [核心修改] 在删除旅行团之前，先手动删除它关联的所有路线

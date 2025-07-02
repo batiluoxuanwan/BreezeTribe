@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.whu.backend.entity.Order;
 import org.whu.backend.entity.accounts.User;
-import org.whu.backend.entity.TravelPackage;
+import org.whu.backend.entity.travelpac.TravelPackage;
 
 import java.time.LocalDateTime;
 import java.util.Set;

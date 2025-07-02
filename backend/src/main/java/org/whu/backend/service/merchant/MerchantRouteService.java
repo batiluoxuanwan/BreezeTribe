@@ -16,7 +16,7 @@ import org.whu.backend.dto.route.RouteDetailDto;
 import org.whu.backend.dto.route.RouteSummaryDto;
 import org.whu.backend.dto.route.RouteUpdateRequestDto;
 import org.whu.backend.dto.baidumap.BaiduPlaceDetailResponseDto;
-import org.whu.backend.entity.Route;
+import org.whu.backend.entity.travelpac.Route;
 import org.whu.backend.entity.Spot;
 import org.whu.backend.entity.accounts.Merchant;
 import org.whu.backend.entity.association.RouteSpot;

@@ -22,11 +22,13 @@ import org.whu.backend.dto.postcomment.PostCommentWithRepliesDto;
 import org.whu.backend.dto.route.RouteDetailDto;
 import org.whu.backend.dto.route.RouteSummaryDto;
 import org.whu.backend.dto.spot.SpotDetailDto;
+import org.whu.backend.dto.tag.TagDto;
 import org.whu.backend.dto.travelpack.DepartureSummaryDto;
 import org.whu.backend.dto.travelpack.PackageDetailDto;
 import org.whu.backend.dto.travelpack.PackageSummaryDto;
 import org.whu.backend.entity.*;
 import org.whu.backend.entity.accounts.User;
+import org.whu.backend.entity.travelpac.*;
 import org.whu.backend.entity.travelpost.Comment;
 import org.whu.backend.entity.Notification;
 import org.whu.backend.entity.travelpost.TravelPost;
@@ -170,8 +172,8 @@ public class DtoConverter {
                 .packageId(order.getTravelDeparture().getTravelPackage().getId())
                 .packageTitle(order.getTravelDeparture().getTravelPackage().getTitle())
                 .packageCoverImageUrl(AliyunOssUtil.generatePresignedGetUrl(
-                        order.getTravelDeparture().getTravelPackage().getCoverImageUrl(), 
-                        EXPIRE_TIME, 
+                        order.getTravelDeparture().getTravelPackage().getCoverImageUrl(),
+                        EXPIRE_TIME,
                         IMAGE_PROCESS))
                 .travelerCount(order.getTravelerCount())
                 .totalPrice(order.getTotalPrice())
@@ -196,7 +198,6 @@ public class DtoConverter {
                 .totalPrice(order.getTotalPrice().toString())
                 .build();
     }
-
 
 
     /**
@@ -497,6 +498,14 @@ public class DtoConverter {
                 .build();
     }
 
+    public TagDto convertTagToDto(Tag savedTag) {
+        return TagDto.builder()
+                .id(savedTag.getId())
+                .category(savedTag.getCategory().toString())
+                .name(savedTag.getName())
+                .build();
+    }
+
     // 将Order实体转换为对经销商安全的摘要DTO的私有辅助方法
     public OrderSummaryForDealerDto convertOrderToSummaryForDealerDto(Order order) {
         return OrderSummaryForDealerDto.builder()
@@ -531,7 +540,7 @@ public class DtoConverter {
                 .status(departure.getStatus().name());
         if (departure.getTravelPackage() != null) {
             builder.packageId(departure.getTravelPackage().getId())
-                   .packageTitle(departure.getTravelPackage().getTitle());
+                    .packageTitle(departure.getTravelPackage().getTitle());
         }
         return builder.build();
     }

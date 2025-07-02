@@ -21,8 +21,8 @@ import org.whu.backend.dto.travelpack.DepartureSummaryDto;
 import org.whu.backend.dto.travelpack.PackageDetailDto;
 import org.whu.backend.dto.travelpack.PackageSearchRequestDto;
 import org.whu.backend.dto.travelpack.PackageSummaryDto;
-import org.whu.backend.entity.TravelDeparture;
-import org.whu.backend.entity.TravelPackage;
+import org.whu.backend.entity.travelpac.TravelDeparture;
+import org.whu.backend.entity.travelpac.TravelPackage;
 import org.whu.backend.entity.accounts.Account;
 import org.whu.backend.entity.accounts.User;
 import org.whu.backend.entity.travelpost.TravelPost;
@@ -36,7 +36,6 @@ import org.whu.backend.service.ViewCountService;
 import org.whu.backend.service.specification.SearchSpecification;
 import org.whu.backend.util.AccountUtil;
 import org.whu.backend.util.AliyunOssUtil;
-import org.whu.backend.util.JpaUtil;
 
 import java.util.List;
 import java.util.stream.Collectors;
