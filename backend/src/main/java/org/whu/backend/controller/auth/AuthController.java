@@ -136,6 +136,7 @@ public class AuthController {
     @PostMapping("/refresh")
     public Result<Map<String, String>> refreshToken(@RequestBody Map<String, String> req) {
         String refreshToken = req.get("refreshToken");
+        System.out.println("#######  刷新token   ##########");
         return authService.refreshAccessToken(refreshToken);
     }
 }

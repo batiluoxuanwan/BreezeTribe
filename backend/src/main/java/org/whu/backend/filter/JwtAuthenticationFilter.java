@@ -45,8 +45,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws IOException, ServletException {
         String authHeader = request.getHeader("Authorization");
         String tokenPrefix = "Bearer ";
-
-        // 检查是否携带 Token
+        String requestPath = request.getRequestURI();
+//        //跳过 Token 校验（白名单）
+//        if (requestPath.startsWith("/api/auth/refresh")) {
+//            filterChain.doFilter(request, response);
+//            return;
+//        }
+        // 检查是否携带 Token，不带则跳过
         if (!StringUtils.hasText(authHeader) || !authHeader.startsWith(tokenPrefix)) {
             filterChain.doFilter(request, response);
             return;

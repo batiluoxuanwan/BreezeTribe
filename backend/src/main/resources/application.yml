@@ -24,7 +24,7 @@ spring:
 
   jwt:
     secret: ThereisnofuturethereisnopastThankGodthismomentisnotthelast
-    expiration: 72000000 # 20h，单位毫秒
+    expiration: 3600000 # 1h，单位毫秒
 
   mail:
     host: smtp.qq.com
@@ -71,8 +71,6 @@ baidu:
     #    ak: cX3Lu6F9cEcRr7M2K80G0Di49wvz4hY0
     ak: r49IueXKnldrFS4IWoqnlW0iM1GD77KE
 
-
-
 #Sms
 sms:
   host: https://gyytz.market.alicloudapi.com
@@ -85,3 +83,10 @@ sms:
 devtools:
   restart:
     enabled: false
+
+
+logging:
+  level:
+    org:
+      springframework:
+        security=DEBUG:

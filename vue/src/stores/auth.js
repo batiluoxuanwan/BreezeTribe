@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { jwtDecode } from 'jwt-decode';
+import {statsBuffer as accessToken} from "motion-dom";
 
 export const useAuthStore = defineStore('auth', () => {
   const isLoggedIn = ref(false)
@@ -38,7 +39,10 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.setItem('role', Role )
     localStorage.setItem('userId', userId )
   }
-
+  function updateAccessToken(newToken) {
+    accessToken.value = newToken
+    localStorage.setItem('accessToken', newToken)
+  }
   // 登出
   function logout() {
     accessToken.value = ''
@@ -77,6 +81,7 @@ export const useAuthStore = defineStore('auth', () => {
     login,
     logout,
     checkAuth,
+    updateAccessToken,
     userId
   }
 }, {
