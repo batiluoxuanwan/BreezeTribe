@@ -1,5 +1,6 @@
 package org.whu.backend.filter;
 
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -28,11 +29,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final AuthRepository authRepository;
+    private final RedisTemplate<String, String> redisTemplate; // ✅ 注入 RedisTemplate
 
     public JwtAuthenticationFilter(JwtService jwtService,
-                                   AuthRepository authRepository) {
+                                   AuthRepository authRepository,
+                                   RedisTemplate<String, String> redisTemplate) {
         this.jwtService = jwtService;
         this.authRepository = authRepository;
+        this.redisTemplate = redisTemplate;
     }
 
     @Override
@@ -49,6 +53,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         String token = authHeader.substring(tokenPrefix.length());
+
+        // 检查 token 是否在黑名单中
+        if (Boolean.TRUE.equals(redisTemplate.hasKey("blacklist:" + token))) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json;charset=UTF-8");
+            response.getWriter().write("{\"code\":401,\"msg\":\"登录状态已失效，请重新登录\"}");
+            return;
+        }
+
         String identifier = jwtService.extractAccountIdentifier(token);
         Role role = jwtService.extractAccountRole(token);
 

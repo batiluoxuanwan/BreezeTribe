@@ -1,15 +1,22 @@
 package org.whu.backend.controller.auth;
 
+import io.jsonwebtoken.Jwt;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.whu.backend.common.Result;
+import org.whu.backend.common.exception.BizException;
 import org.whu.backend.dto.auth.*;
 import org.whu.backend.dto.mediafile.FileUploadRequestDto;
+import org.whu.backend.entity.accounts.Account;
 import org.whu.backend.service.auth.AuthService;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -24,7 +31,7 @@ public class AuthController {
     @PostMapping("/register")
     public Result<?> register(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                    description = "注册请求体，包含用户名、密码、邮箱/手机号等",
+                    description = "注册请求体，包含密码、邮箱/手机号等",
                     required = true,
                     content = @Content(schema = @Schema(implementation = RegisterRequest.class))
             )
@@ -35,7 +42,7 @@ public class AuthController {
     /**
      * 用户登录
      */
-    @Operation(summary = "用户登录", description = "使用用户名/邮箱/手机号和密码登录")
+    @Operation(summary = "用户登录", description = "使用邮箱/手机号和密码登录")
     @PostMapping("/login")
     public Result<?> login(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
@@ -46,7 +53,11 @@ public class AuthController {
             @RequestBody LoginRequest request) {
         return authService.login(request);
     }
-
+    @Operation(summary = "用户登出", description = "用户登出")
+    @PostMapping("/logout")
+    public Result<?> logout(HttpServletRequest request) {
+        return authService.logout(request);
+    }
     /**
      * 重置密码
      */
@@ -119,5 +130,12 @@ public class AuthController {
             )
             @RequestBody RebindRequest request) {
         return authService.rebind(request);
+    }
+
+    @Operation(summary = "更新token", description = "刷新token")
+    @PostMapping("/refresh")
+    public Result<Map<String, String>> refreshToken(@RequestBody Map<String, String> req) {
+        String refreshToken = req.get("refreshToken");
+        return authService.refreshAccessToken(refreshToken);
     }
 }

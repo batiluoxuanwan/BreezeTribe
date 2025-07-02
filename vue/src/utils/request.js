@@ -1,6 +1,7 @@
 // utils/request.js
 import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
+import {statsBuffer as accessToken} from "motion-v";
 
 // 创建不带 token 的 Axios 实例：用于登录、注册等公共接口
 export const publicAxios = axios.create({
@@ -31,9 +32,9 @@ export const authAxios = axios.create({
 authAxios.interceptors.request.use(
   (config) => {
     const authStore = useAuthStore()
-    console.log(authStore.token)
-    if (authStore.token) {
-      config.headers['Authorization'] = `Bearer ${authStore.token}`
+    console.log(authStore.accessToken)
+    if (authStore.accessToken) {
+      config.headers['Authorization'] = `Bearer ${authStore.accessToken}`
     }
     console.log('最终请求 headers:', config.headers)
     return config
@@ -41,15 +42,84 @@ authAxios.interceptors.request.use(
   (error) => Promise.reject(error)
 )
 
+function updateAccessToken(newToken) {
+    accessToken.value = newToken
+    localStorage.setItem('token', newToken)
+}
+
+let isRefreshing = false
+let pendingQueue = []
 // 响应拦截器：处理 401 错误
 authAxios.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
       const authStore = useAuthStore()
-      authStore.logout()
-      window.location.href = '/login'
-    }
+      //authStore.logout()
+      //window.location.href = '/login'
+      const originalRequest = error.config
+        // accessToken 失效（401） 且当前请求不是刷新请求自身
+        if (error.response?.status === 401 && !originalRequest._retry) {
+            originalRequest._retry = true
+
+            // 避免并发多次刷新
+            if (isRefreshing) {
+                return new Promise(resolve => {
+                    pendingQueue.push(() => {
+                        originalRequest.headers['Authorization'] = `Bearer ${authStore.accessToken}`
+                        resolve(authAxios(originalRequest))
+                    })
+                })
+            }
+            isRefreshing = true
+
+            try {
+                const res = publicAxios.post('/auth/refresh', {
+                    refreshToken: authStore.refreshToken
+                })
+
+                const newAccessToken = res.data.data.accessToken
+                authStore.updateAccessToken(newAccessToken)
+
+                // 执行等待队列
+                pendingQueue.forEach(cb => cb())
+                pendingQueue = []
+
+                // 重试原请求
+                originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`
+                return authAxios(originalRequest)
+            } catch (e) {
+                // 刷新失败，跳转登录
+                authStore.logout()
+                window.location.href = '/login'
+                return Promise.reject(e)
+            } finally {
+                isRefreshing = false
+            }
+        }
     return Promise.reject(error)
+    }
   }
 )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

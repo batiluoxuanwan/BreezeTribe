@@ -38,6 +38,7 @@ public class SecurityConfig {
                                 "/api/auth/**",
                                 "/api/captcha/**",
                                 "/api/public/**",
+                                "/auth/refresh",
                                 "/api/hello/world").permitAll()
                         //放行swagger
                         .requestMatchers(
