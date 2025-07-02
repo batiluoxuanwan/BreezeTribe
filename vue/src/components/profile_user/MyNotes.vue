@@ -1,45 +1,40 @@
 <template>
-  <div class="notes-header">
-    <!-- <h3 class="notes-section-title">我的游记</h3> -->
-    <el-button type="primary" :icon="Plus" @click="goToPublishTravelNote"
-      >发布新游记</el-button
-    >
-  </div>
-  <div v-loading="noteLoading">
-    <div v-if="notes.length > 0" class="card-grid">
-      <el-card
-        v-for="note in notes"
-        :key="note.id"
-        class="note-card hover-card"
-        @click.stop="goToDetail(note.id)"
-      >
-        <img
-          v-if="note.coverImageUrl"
-          :src="note.coverImageUrl"
-          class="note-img"
-        />
-        <div class="card-info">
-          <h3>{{ note.title }}</h3>
-        </div>
-      </el-card>
+    <el-button type="primary" :icon="Plus" @click="goToPublishTravelNote">发布新游记</el-button>
+    <div v-loading="noteLoading">
+      <div v-if="notes.length > 0" class="card-grid">
+        <el-card
+          v-for="note in notes"
+          :key="note.id"
+          class="note-card hover-card"
+          @click.stop="goToDetail(note.id)"
+        >
+          <img
+            v-if="note.coverImageUrl"
+            :src="note.coverImageUrl"
+            class="note-img"
+          />
+          <div class="card-info">
+            <h3>{{ note.title }}</h3>
+          </div>
+        </el-card>
+      </div>
+      <el-empty v-else description="暂无游记"></el-empty>
     </div>
-    <el-empty v-else description="暂无游记"></el-empty>
-  </div>
 
-  <div class="load-more-container">
-    <el-button
-      v-if="hasMoreNotes"
-      type="primary"
-      :loading="noteLoading"
-      @click="fetchNotes(false)"
-      class="load-more-btn"
-    >
-      {{ noteLoading ? "加载中..." : "加载更多游记" }}
-    </el-button>
-    <p v-else-if="notes.length > 0 && noMoreNotes" class="no-more-text">
-      已加载全部游记
-    </p>
-  </div>
+    <div class="load-more-container">
+      <el-button
+        v-if="hasMoreNotes"
+        type="text"
+        :loading="noteLoading"
+        @click="fetchNotes(false)"
+        class="load-more-btn"
+      >
+        {{ noteLoading ? "加载中..." : "加载更多游记" }}
+      </el-button>
+      <p v-else-if="notes.length > 0 && noMoreNotes" class="no-more-text">
+        已加载全部游记
+      </p>
+    </div>
 </template>
 
 <script setup>
@@ -52,7 +47,7 @@ import { Plus } from "@element-plus/icons-vue";
 const router = useRouter();
 const notes = ref([]);
 const currentPage = ref(1);
-const pageSize = ref(9); // 每页记录数
+const pageSize = ref(6); // 每页记录数
 const totalNotes = ref(0); // 总游记数量
 const noteLoading = ref(false); // 加载状态
 const noMoreNotes = ref(false); // 是否没有更多游记了
@@ -216,4 +211,11 @@ onMounted(() => {
   font-size: 0.9rem;
   margin-top: 15px;
 }
+
+.load-more-container {
+  text-align: center;
+  padding: 20px;
+  margin-top: 30px; 
+}
+
 </style>
