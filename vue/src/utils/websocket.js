@@ -8,22 +8,26 @@ let connected = false;
  * 建立 WebSocket 连接，传入收到消息后的回调函数
  * @param {function} onMessageCallback - 收到消息时调用
  */
-export function connectWebSocket(onMessageCallback) {
-    const socket = new SockJS('http://localhost:8081/ws'); // 你的后端地址，注意端口和路径
+export function connectWebSocket(token, onMessageCallback) {
+    //const socket = new SockJS('http://localhost:8081/ws');
+    const socket = new SockJS(`http://localhost:8081/ws?token=${encodeURIComponent(token)}`);
     stompClient = Stomp.over(socket);
 
-    stompClient.connect({}, () => {
-        connected = true;
-        console.log('✅ WebSocket 已连接');
+    stompClient.connect(
+        { Authorization: `Bearer ${token}` },
+        () => {
+            connected = true;
+            console.log('✅ WebSocket 已连接');
 
-        // 订阅私聊消息，Spring 默认是 /user/queue/messages
-        stompClient.subscribe('/user/queue/messages', (message) => {
-            const msgObj = JSON.parse(message.body);
-            onMessageCallback(msgObj);
-        });
-    }, (error) => {
-        console.error('❌ WebSocket 连接失败：', error);
-    });
+            stompClient.subscribe('/user/queue/messages', (message) => {
+                const msgObj = JSON.parse(message.body);
+                onMessageCallback(msgObj);
+            });
+        },
+        (error) => {
+            console.error('❌ WebSocket 连接失败：', error);
+        }
+    );
 }
 
 /**

@@ -153,7 +153,7 @@ public class CaptchaService {
         String code = generateCode();
         redisTemplate.opsForValue().set("email:" + email, code, 5, TimeUnit.MINUTES);
 
-        String title = "您正在重置 BreezeTribe 账号密码，您的验证码为：";
+        String title = "您正在重置 BreezeTribe 密码，您的验证码为：";
         String url = "https://yourdomain.com/reset?code=" + code + "&email=" + email;
 
         sendEmail(email, "【风旅集】重置密码验证码", title, title, code, url);
@@ -286,10 +286,10 @@ public class CaptchaService {
         String code = generateCode();
         redisTemplate.opsForValue().set("email:" + newEmail, code, 5, TimeUnit.MINUTES);
 
-        String title = "您正在换绑邮箱 BreezeTribe，您的验证码为：";
+        String title = "您正在绑定邮箱 BreezeTribe，您的验证码为：";
         String url = "https://yourdomain.com/verify?code=" + code + "&email=" + newEmail;
 
-        sendEmail(newEmail, "【风旅集】换绑验证码", title, title, code, url);
+        sendEmail(newEmail, "【风旅集】绑定验证码", title, title, code, url);
     }
 
     public void resetPhone(String newPhone) {

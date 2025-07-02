@@ -74,9 +74,15 @@ const routes =[
     },
     {
         path: '/chat/:friendId',
-        name: 'ChatView',
-        component: () => import('../views/User/ChatView.vue'),
+        name: 'ChatRoom',
+        component: () => import('../views/User/ChatRoom.vue'),
         props: true // 开启 props 传参
+    },
+    {
+        path: '/user/friends',
+        name: 'FriendList',
+        component: () => import('../views/User/FriendList.vue'),
+        //props: true // 开启 props 传参
     },
 
 ];

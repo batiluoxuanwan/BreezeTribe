@@ -64,3 +64,7 @@ sms:
   appcode: aae61b6883c6461a8a50da193577b818
   smsSignId: 2e65b1bb3d054466b82f0c9d125465e2
   templateId: 908e94ccf08b4476ba6c876d13f084ad
+
+devtools:
+  restart:
+    enabled: false

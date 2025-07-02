@@ -10,6 +10,8 @@ import org.whu.backend.entity.association.friend.Message;
 import org.whu.backend.repository.authRepo.friend.MessageRepository;
 import org.whu.backend.util.AccountUtil;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 @RestController
@@ -21,7 +23,22 @@ public class MessageController {
 
     @GetMapping("/{friendId}")
     public List<Message> getHistory(@PathVariable String friendId) {
+
+        System.out.println("✅ 接口已进入");
         String accountId = AccountUtil.getCurrentAccountId();
-        return messageRepository.findByFromAccountIdAndToAccountIdOrViceVersa(accountId,friendId);
+        System.out.println("当前用户ID: " + accountId);
+        System.out.println("好友ID: " + friendId);
+        List<Message> fromMe = messageRepository.findByFromAccountIdAndToAccountId(accountId, friendId);
+        List<Message> toMe = messageRepository.findByFromAccountIdAndToAccountId(friendId, accountId);
+
+        List<Message> combined = new ArrayList<>();
+        combined.addAll(fromMe);
+        combined.addAll(toMe);
+
+        // 按时间戳升序排序
+        combined.sort(Comparator.comparing(Message::getTimestamp));
+        System.out.println(combined);
+        return combined;
+        //return messageRepository.findByFromAccountIdAndToAccountIdOrViceVersa(accountId,friendId);
     }
 }
