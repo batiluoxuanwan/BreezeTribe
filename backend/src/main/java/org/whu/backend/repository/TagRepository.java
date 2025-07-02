@@ -36,4 +36,8 @@ public interface TagRepository extends JpaRepository<Tag, String> {
     boolean isTagInUse(@Param("tagId") String tagId);
 
     Page<Tag> findByCategory(Tag.TagCategory category, Pageable pageable);
+
+    Page<Tag> findByCategoryAndNameContainingIgnoreCase(Tag.TagCategory category, String name, Pageable pageable);
+
+    Page<Tag> findByNameContainingIgnoreCase(String name, Pageable pageable);
 }

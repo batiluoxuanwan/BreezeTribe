@@ -7,15 +7,14 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.SoftDelete;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.whu.backend.entity.MediaFile;
+import org.whu.backend.entity.Tag;
 import org.whu.backend.entity.accounts.Merchant;
 import org.whu.backend.entity.association.PackageImage;
 import org.whu.backend.entity.association.PackageRoute;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * 单个旅游团实体，一个旅游团实体可以有很多个路线
@@ -105,6 +104,14 @@ public class TravelPackage {
     @OneToMany(mappedBy = "travelPackage", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("dayNumber ASC") // 正确地按照关联实体中的字段排序
     private List<PackageRoute> routes = new ArrayList<>();
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "package_tags", // 这是JPA会自动创建的中间关联表
+            joinColumns = @JoinColumn(name = "package_id"),
+            inverseJoinColumns = @JoinColumn(name = "tag_id")
+    )
+    private Set<Tag> tags = new HashSet<>();
 
     @PrePersist
     protected void onPrePersist() {

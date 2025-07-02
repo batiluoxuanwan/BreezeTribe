@@ -1,6 +1,7 @@
 package org.whu.backend.controller.merchant;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +21,8 @@ import org.whu.backend.entity.travelpac.TravelPackage;
 import org.whu.backend.service.DtoConverter;
 import org.whu.backend.service.merchant.MerchantPackageService;
 import org.whu.backend.util.AccountUtil;
+
+import java.util.List;
 
 @Tag(name = "经销商-旅行团管理", description = "经销商管理自己的旅行团商品")
 @RestController
@@ -45,6 +48,19 @@ public class MerchantPackageController {
         PackageDetailDto dto = dtoConverter.convertPackageToDetailDto(createdPackage);
 
         return Result.success("旅行团创建成功，请等待管理员审核", dto);
+    }
+
+    @Operation(summary = "【新增】更新一个旅行团的标签", description = "用新的标签列表完全替换旧的标签列表。传一个空列表则为清空所有标签。")
+    @PutMapping("/{packageId}/tags")
+    public Result<?> updatePackageTags(
+            @Parameter(description = "要更新标签的产品ID") @PathVariable String packageId,
+            @RequestBody List<String> tagIds) {
+        String currentDealerId = AccountUtil.getCurrentAccountId();
+        log.info("请求日志：经销商ID '{}' 正在更新产品ID '{}' 的标签", currentDealerId, packageId);
+
+        merchantPackageService.updatePackageTags(packageId, tagIds, currentDealerId);
+
+        return Result.success("产品标签更新成功");
     }
 
     @Operation(summary = "更新自己的一个旅行团", description = "目前版本只允许更新文本信息，更新后状态变为待审核")

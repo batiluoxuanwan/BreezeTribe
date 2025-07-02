@@ -27,11 +27,13 @@ import org.whu.backend.entity.travelpac.Route;
 import org.whu.backend.entity.travelpac.TravelOrder;
 import org.whu.backend.entity.travelpac.TravelPackage;
 import org.whu.backend.repository.MediaFileRepository;
+import org.whu.backend.repository.TagRepository;
 import org.whu.backend.repository.authRepo.MerchantRepository;
 import org.whu.backend.repository.travelRepo.*;
 import org.whu.backend.service.BaiduMapService;
 import org.whu.backend.service.DtoConverter;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -63,6 +65,8 @@ public class MerchantPackageService {
     private TravelOrderRepository travelOrderRepository;
     @Autowired
     private TravelDepartureRepository travelDepartureRepository;
+    @Autowired
+    private TagRepository tagRepository;
 
     @Transactional
     public TravelPackage createPackage(PackageCreateRequestDto dto, String dealerId) {
@@ -143,10 +147,49 @@ public class MerchantPackageService {
             newPackage.getRoutes().add(packageRoute);
         }
 
+        // 3. 【新增】处理并关联标签
+        if (dto.getTagIds() != null && !dto.getTagIds().isEmpty()) {
+            List<Tag> tags = tagRepository.findAllById(dto.getTagIds());
+            if (tags.size() != dto.getTagIds().size()) {
+                throw new BizException("部分标签ID无效，请检查后重试");
+            }
+            newPackage.setTags(new HashSet<>(tags));
+            log.info("服务层：为新旅行团关联了 {} 个标签", tags.size());
+        }
+
         // 4. 保存旅行团
         TravelPackage savedPackage = packageRepository.save(newPackage);
         log.info("新旅行团 '{}' (ID: {}) 已成功创建，状态为待审核。", savedPackage.getTitle(), savedPackage.getId());
         return savedPackage;
+    }
+
+    /**
+     * 【新增】更新一个旅行团的标签
+     */
+    @Transactional
+    public void updatePackageTags(String packageId, List<String> tagIds, String currentDealerId) {
+        log.info("服务层：开始为产品ID '{}' 更新标签", packageId);
+
+        // 1. 验证产品是否存在且属于当前经销商
+        TravelPackage travelPackage = packageRepository.findById(packageId)
+                .orElseThrow(() -> new BizException("找不到对应的旅游产品"));
+
+        if (!travelPackage.getDealer().getId().equals(currentDealerId)) {
+            throw new BizException("无权操作不属于自己的产品");
+        }
+
+        // 2. 查找新的标签实体列表
+        List<Tag> newTags = tagRepository.findAllById(tagIds);
+        if (newTags.size() != tagIds.size()) {
+            throw new BizException("部分标签ID无效，请检查后重试");
+        }
+
+        // 3. 替换标签集合
+        travelPackage.setTags(new HashSet<>(newTags));
+
+        // 4. 保存更新
+        packageRepository.save(travelPackage);
+        log.info("服务层：成功将产品ID '{}' 的标签更新为 {} 个", packageId, newTags.size());
     }
 
 

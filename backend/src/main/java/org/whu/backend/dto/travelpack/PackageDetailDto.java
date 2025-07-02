@@ -4,9 +4,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Data;
 import org.whu.backend.dto.route.RouteDetailDto;
+import org.whu.backend.dto.tag.TagDto;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 旅行团详情 DTO (用于详情页展示)
@@ -45,6 +47,9 @@ public class PackageDetailDto {
 
     @Schema(description = "旅行团状态")
     private String status;
+
+    @Schema(description = "旅行团标签列表")
+    private List<TagDto> tags;
 
     // 嵌套的路线信息
     @Schema(description = "旅行团路线信息")

@@ -482,6 +482,11 @@ public class DtoConverter {
                 })
                 .collect(Collectors.toList());
 
+        // 2.a 转换Tags列表
+        List<TagDto> tagDtos = entity.getTags().stream()
+                .map(this::convertTagToDto) // 调用已有的Tag到TagDto的转换方法
+                .toList();
+
         // 3. 构建最外层的PackageDetailDto
         return PackageDetailDto.builder()
                 .id(entity.getId())
@@ -494,6 +499,7 @@ public class DtoConverter {
                 .commentCount(entity.getCommentCount())
                 .viewCount(entity.getViewCount())
                 .status(entity.getStatus().name())
+                .tags(tagDtos)
                 .routes(routeDtos)
                 .build();
     }

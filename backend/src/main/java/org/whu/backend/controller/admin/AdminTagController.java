@@ -42,26 +42,16 @@ public class AdminTagController {
         return Result.success("标签创建成功", createdTag);
     }
 
-//    @Operation(summary = "获取所有标签列表", description = "可以按分类进行筛选")
-//    @GetMapping
-//    public Result<List<TagDto>> getAllTags(
-//            @Parameter(description = "按分类筛选（可选），如 THEME, TARGET_AUDIENCE 等")
-//            @RequestParam(required = false) org.whu.backend.entity.Tag.TagCategory category) {
-//        log.info("请求日志：管理员正在查询标签列表，筛选分类: {}", category);
-//        List<TagDto> tags = adminTagService.getAllTags(category);
-//        return Result.success("查询成功", tags);
-//    }
-
-    @Operation(summary = "获取所有标签列表（分页）", description = "可以按分类进行筛选")
+    @Operation(summary = "获取所有标签列表", description = "可以按分类进行筛选")
     @GetMapping
-    public Result<PageResponseDto<TagDto>> getAllTags(
+    public Result<List<TagDto>> getAllTags(
             @Parameter(description = "按分类筛选（可选），如 THEME, TARGET_AUDIENCE 等")
-            @RequestParam(required = false) org.whu.backend.entity.Tag.TagCategory category,
-            @Valid @ParameterObject PageRequestDto pageRequestDto) {
-        log.info("请求日志：管理员正在查询标签列表（分页），筛选分类: {}, 分页参数: {}", category, pageRequestDto);
-        PageResponseDto<TagDto> resultPage = adminTagService.getAllTags(category, pageRequestDto);
-        return Result.success("查询成功", resultPage);
+            @RequestParam(required = false) org.whu.backend.entity.Tag.TagCategory category) {
+        log.info("请求日志：管理员正在查询标签列表，筛选分类: {}", category);
+        List<TagDto> tags = adminTagService.getAllTags(category);
+        return Result.success("查询成功", tags);
     }
+
 
     @Operation(summary = "更新一个标签的信息")
     @PutMapping("/{id}")

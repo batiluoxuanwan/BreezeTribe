@@ -2,8 +2,11 @@ package org.whu.backend.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.SoftDelete;
+import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Data
@@ -22,6 +25,14 @@ public class Tag {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TagCategory category;
+
+    @CreationTimestamp
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdTime; // 创建时间
+
+    @UpdateTimestamp
+    @Column(nullable = false)
+    private LocalDateTime updatedTime; // 更新时间
 
     /**
      * 标签分类的枚举

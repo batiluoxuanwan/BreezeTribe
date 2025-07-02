@@ -21,6 +21,7 @@ import org.whu.backend.dto.post.PostSearchRequestDto;
 import org.whu.backend.dto.post.PostSummaryDto;
 import org.whu.backend.dto.postcomment.PostCommentDto;
 import org.whu.backend.dto.postcomment.PostCommentWithRepliesDto;
+import org.whu.backend.dto.tag.TagDto;
 import org.whu.backend.dto.travelpack.DepartureSummaryDto;
 import org.whu.backend.dto.travelpack.PackageDetailDto;
 import org.whu.backend.dto.travelpack.PackageSearchRequestDto;
@@ -47,6 +48,20 @@ public class PublicController {
     private UserPostCommentService userPostCommentService;
     @Autowired
     private UserPackageCommentService userPackageCommentService;
+
+    @Operation(summary = "获取所有标签列表（分页）", description = "【已修改】现在支持按分类筛选和按名称模糊搜索。")
+    @GetMapping
+    public Result<PageResponseDto<TagDto>> getAllTags(
+            @Parameter(description = "按分类筛选（可选），如 THEME, TARGET_AUDIENCE 等")
+            @RequestParam(required = false) org.whu.backend.entity.Tag.TagCategory category,
+            @Parameter(description = "按标签名称模糊搜索（可选）")
+            @RequestParam(required = false) String name,
+            @Valid @ParameterObject PageRequestDto pageRequestDto) {
+        log.info("请求日志：管理员正在查询标签列表（分页），筛选分类: {}, 模糊搜索名称: '{}', 分页参数: {}", category, name, pageRequestDto);
+        // 将新的查询参数传递给Service层
+        PageResponseDto<TagDto> resultPage = publicService.getAllTags(category, name, pageRequestDto);
+        return Result.success("查询成功", resultPage);
+    }
 
     // TODO: 分页查询要对排序字段进行检查
     @Operation(summary = "获取已发布的旅行团列表（分页）", description = "供所有用户浏览")
