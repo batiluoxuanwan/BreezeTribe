@@ -13,13 +13,14 @@ import org.whu.backend.dto.PageRequestDto;
 import org.whu.backend.dto.PageResponseDto;
 import org.whu.backend.dto.packagecomment.PackageCommentCreateDto;
 import org.whu.backend.dto.packagecomment.PackageCommentDto;
-import org.whu.backend.entity.Order;
-import org.whu.backend.entity.PackageComment;
-import org.whu.backend.entity.TravelPackage;
+import org.whu.backend.entity.travelpac.PackageComment;
+import org.whu.backend.entity.travelpac.TravelOrder;
+import org.whu.backend.entity.travelpac.TravelPackage;
 import org.whu.backend.entity.accounts.User;
 import org.whu.backend.repository.authRepo.UserRepository;
 import org.whu.backend.repository.travelRepo.OrderRepository;
 import org.whu.backend.repository.travelRepo.PackageCommentRepository;
+import org.whu.backend.repository.travelRepo.TravelOrderRepository;
 import org.whu.backend.repository.travelRepo.TravelPackageRepository;
 import org.whu.backend.service.DtoConverter;
 
@@ -42,6 +43,8 @@ public class UserPackageCommentService {
     private PackageCommentRepository packageCommentRepository;
     @Autowired
     private DtoConverter dtoConverter;
+    @Autowired
+    private TravelOrderRepository travelOrderRepository;
 
     @Transactional
     public PackageComment createComment(String packageId, PackageCommentCreateDto dto, String currentUserId) {
@@ -54,9 +57,9 @@ public class UserPackageCommentService {
                 .orElseThrow(() -> new BizException("找不到旅行团 " + packageId));
 
         // 2.【重要】业务规则校验：用户必须完成过该旅行团才能评价
-        boolean hasPurchased = orderRepository.existsByUserAndTravelPackageAndStatus(author, travelPackage, Order.OrderStatus.COMPLETED);
+        boolean hasPurchased = travelOrderRepository.existsByUserAndTravelDeparture_TravelPackageAndStatus(author, travelPackage, TravelOrder.OrderStatus.COMPLETED);
         if (!hasPurchased) {
-            throw new BizException("尚未购买该旅行团，无法评价");
+            throw new BizException("尚未完成该旅行团，无法评价");
         }
 
         // 2.1  不允许重复评价旅游团

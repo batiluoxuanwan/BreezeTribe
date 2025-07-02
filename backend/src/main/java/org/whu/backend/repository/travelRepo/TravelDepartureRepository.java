@@ -6,7 +6,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
-import org.whu.backend.entity.TravelDeparture;
+import org.whu.backend.entity.travelpac.TravelDeparture;
 
 public interface TravelDepartureRepository extends JpaRepository<TravelDeparture, String> {
 
@@ -30,4 +30,6 @@ public interface TravelDepartureRepository extends JpaRepository<TravelDeparture
     int subParticipantCount(@Param("departureId") String departureId, @Param("num") Integer num);
 
     Page<TravelDeparture> findByTravelPackageIdAndStatus(String packageId, TravelDeparture.DepartureStatus departureStatus, Pageable pageable);
+
+    boolean existsByTravelPackageId(String packageId);
 }

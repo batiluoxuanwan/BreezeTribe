@@ -10,12 +10,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.whu.backend.common.Result;
+import org.whu.backend.common.exception.BizException;
 import org.whu.backend.dto.PageRequestDto;
 import org.whu.backend.dto.PageResponseDto;
 import org.whu.backend.dto.travelpack.DepartureCreateDto;
 import org.whu.backend.dto.travelpack.DepartureSummaryDto;
 import org.whu.backend.dto.travelpack.DepartureUpdateDto;
-import org.whu.backend.entity.TravelDeparture;
+import org.whu.backend.entity.travelpac.TravelDeparture;
+import org.whu.backend.repository.travelRepo.TravelOrderRepository;
 import org.whu.backend.service.DtoConverter;
 import org.whu.backend.service.merchant.MerchantDepartureService;
 import org.whu.backend.util.AccountUtil;
@@ -34,6 +36,8 @@ public class MerchantDepartureController {
 
     @Autowired
     private DtoConverter dtoConverter;
+    @Autowired
+    private TravelOrderRepository travelOrderRepository;
 
     @Operation(summary = "为产品批量添加出发团期", description = "为一个产品模板一次性添加一个或多个出发日期、价格和库存。")
     @PostMapping("/packages/{packageId}/departures")
@@ -71,6 +75,12 @@ public class MerchantDepartureController {
     public Result<?> deleteDeparture(@PathVariable String departureId) {
         String currentDealerId = AccountUtil.getCurrentAccountId();
         log.info("经销商ID '{}' 正在删除团期ID '{}'", currentDealerId, departureId);
+
+        boolean hasActiveOrders = travelOrderRepository.existsByTravelDepartureId(departureId);
+        if (hasActiveOrders) {
+            log.warn("删除失败：团期 '{}' 存在有效的关联团期。", departureId);
+            throw new BizException("无法删除：该旅行团存在有效的关联订单，请先处理相关订单。");
+        }
 
         merchantDepartureService.deleteDeparture(departureId, currentDealerId);
 

@@ -4,6 +4,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Data;
 
+import java.math.BigDecimal;
+
 
 /**
  * 旅行团摘要信息 DTO (用于列表展示)
@@ -25,8 +27,8 @@ public class PackageSummaryDto {
     private String coverImageUrl;
 
 
-//    @Schema(description = "旅行团价格")
-//    private BigDecimal price;
+    @Schema(description = "旅行团起步价格价格")
+    private BigDecimal price;
 
     @Schema(description = "旅行团持续天数")
     private Integer durationInDays;

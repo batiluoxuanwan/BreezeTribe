@@ -22,7 +22,7 @@ import org.whu.backend.dto.spot.SpotSummaryDto;
 import org.whu.backend.dto.spot.SpotUpdateRequestDto;
 import org.whu.backend.dto.travelpack.PackageSummaryDto;
 import org.whu.backend.entity.Spot;
-import org.whu.backend.entity.TravelPackage;
+import org.whu.backend.entity.travelpac.TravelPackage;
 import org.whu.backend.entity.accounts.*;
 import org.whu.backend.entity.Notification;
 import org.whu.backend.repository.authRepo.MerchantRepository;
@@ -39,7 +39,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-import static org.whu.backend.entity.TravelPackage.PackageStatus.*;
+import static org.whu.backend.entity.travelpac.TravelPackage.PackageStatus.*;
 import static org.whu.backend.entity.accounts.Merchant.status.APPROVED;
 import static org.whu.backend.entity.accounts.Merchant.status.PENDING;
 

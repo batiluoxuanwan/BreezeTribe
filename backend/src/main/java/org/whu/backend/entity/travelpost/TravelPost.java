@@ -7,6 +7,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.SoftDelete;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.whu.backend.entity.Spot;
+import org.whu.backend.entity.Tag;
 import org.whu.backend.entity.accounts.User;
 
 import java.time.LocalDateTime;

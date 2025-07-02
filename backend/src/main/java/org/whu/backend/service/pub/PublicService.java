@@ -17,15 +17,18 @@ import org.whu.backend.dto.accounts.UserProfileDto;
 import org.whu.backend.dto.post.PostDetailDto;
 import org.whu.backend.dto.post.PostSearchRequestDto;
 import org.whu.backend.dto.post.PostSummaryDto;
+import org.whu.backend.dto.tag.TagDto;
 import org.whu.backend.dto.travelpack.DepartureSummaryDto;
 import org.whu.backend.dto.travelpack.PackageDetailDto;
 import org.whu.backend.dto.travelpack.PackageSearchRequestDto;
 import org.whu.backend.dto.travelpack.PackageSummaryDto;
-import org.whu.backend.entity.TravelDeparture;
-import org.whu.backend.entity.TravelPackage;
+import org.whu.backend.entity.Tag;
+import org.whu.backend.entity.travelpac.TravelDeparture;
+import org.whu.backend.entity.travelpac.TravelPackage;
 import org.whu.backend.entity.accounts.Account;
 import org.whu.backend.entity.accounts.User;
 import org.whu.backend.entity.travelpost.TravelPost;
+import org.whu.backend.repository.TagRepository;
 import org.whu.backend.repository.authRepo.AuthRepository;
 import org.whu.backend.repository.authRepo.UserRepository;
 import org.whu.backend.repository.post.TravelPostRepository;
@@ -36,7 +39,6 @@ import org.whu.backend.service.ViewCountService;
 import org.whu.backend.service.specification.SearchSpecification;
 import org.whu.backend.util.AccountUtil;
 import org.whu.backend.util.AliyunOssUtil;
-import org.whu.backend.util.JpaUtil;
 
 import java.util.*;
 import java.util.List;
@@ -62,6 +64,48 @@ public class PublicService {
     private AccountUtil accountUtil;
     @Autowired
     private AuthRepository authRepository;
+    @Autowired
+    private TagRepository tagRepository;
+
+    /**
+     * 【已重构】获取标签列表，支持分页和按分类筛选
+     */
+    @Transactional(readOnly = true)
+    public PageResponseDto<TagDto> getAllTags(Tag.TagCategory category, String name, PageRequestDto pageRequestDto) {
+        log.info("服务层：开始分页查询标签，分类: {}, 名称: '{}', 分页参数: {}", category, name, pageRequestDto);
+
+        // 1. 创建分页请求
+        Sort sort = Sort.by(Sort.Direction.fromString(pageRequestDto.getSortDirection()), pageRequestDto.getSortBy());
+        Pageable pageable = PageRequest.of(pageRequestDto.getPage() - 1, pageRequestDto.getSize(), sort);
+
+        // 2. 根据传入的参数组合，决定调用哪个查询方法
+        Page<Tag> tagPage;
+        boolean hasCategory = category != null;
+        boolean hasName = name != null && !name.isBlank();
+
+        if (hasCategory && hasName) {
+            log.info("服务层：按分类 '{}' 和名称 '{}' 进行组合查询", category, name);
+            tagPage = tagRepository.findByCategoryAndNameContainingIgnoreCase(category, name, pageable);
+        } else if (hasCategory) {
+            log.info("服务层：仅按分类 '{}' 进行查询", category);
+            tagPage = tagRepository.findByCategory(category, pageable);
+        } else if (hasName) {
+            log.info("服务层：仅按名称 '{}' 进行模糊查询", name);
+            tagPage = tagRepository.findByNameContainingIgnoreCase(name, pageable);
+        } else {
+            log.info("服务层：查询所有标签");
+            tagPage = tagRepository.findAll(pageable);
+        }
+        log.info("服务层：查询到 {} 条标签数据", tagPage.getTotalElements());
+
+        // 3. 转换DTO
+        List<TagDto> dtos = tagPage.getContent().stream()
+                .map(dtoConverter::convertTagToDto)
+                .collect(Collectors.toList());
+
+        // 4. 封装并返回分页DTO
+        return dtoConverter.convertPageToDto(tagPage, dtos);
+    }
 
     // 获取已发布的旅行团列表（分页）
     public PageResponseDto<PackageSummaryDto> getPublishedPackages(PageRequestDto pageRequestDto) {

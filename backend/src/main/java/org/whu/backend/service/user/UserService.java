@@ -29,6 +29,8 @@ import org.whu.backend.dto.user.ItemStatusDto;
 import org.whu.backend.entity.*;
 import org.whu.backend.entity.accounts.User;
 import org.whu.backend.entity.Notification;
+import org.whu.backend.entity.travelpac.TravelDeparture;
+import org.whu.backend.entity.travelpac.TravelOrder;
 import org.whu.backend.entity.travelpost.TravelPost;
 import org.whu.backend.repository.FavoriteRepository;
 import org.whu.backend.repository.LikeRepository;
@@ -111,7 +113,7 @@ public class UserService {
         order.setStatus(TravelOrder.OrderStatus.PENDING_PAYMENT);
         order.setContactName(orderCreateRequestDto.getContactName());
         order.setContactPhone(orderCreateRequestDto.getContactPhone());
-        TravelOrder savedOrder = travelOrderRepository.save(order);
+        TravelOrder savedOrder = travelOrderRepository.saveAndFlush(order);
 
         // 5. 【重大改变】原子更新团期的已报名人数
         int updatedRows = travelDepartureRepository.addParticipantCount(departure.getId(), order.getTravelerCount());

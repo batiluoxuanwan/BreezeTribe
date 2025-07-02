@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import org.whu.backend.common.Result;
 import org.whu.backend.dto.packagecomment.PackageCommentCreateDto;
 import org.whu.backend.dto.packagecomment.PackageCommentDto;
-import org.whu.backend.entity.PackageComment;
+import org.whu.backend.entity.travelpac.PackageComment;
 import org.whu.backend.service.DtoConverter;
 import org.whu.backend.service.user.UserPackageCommentService;
 import org.whu.backend.util.AccountUtil;
