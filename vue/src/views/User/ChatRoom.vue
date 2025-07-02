@@ -3,7 +3,7 @@
     <!-- 顶部状态栏 -->
     <div class="flex items-center gap-4 mb-4">
       <button @click="goBack" class="text-blue-600 text-3xl p-2 hover:text-blue-800 transition">←</button>
-      <img :src="friend.avatarUrl" class="w-10 h-10 rounded-full shadow" />
+      <img :src="friend.avatarUrl||defaultAvatar" class="w-10 h-10 rounded-full shadow" />
       <div class="flex flex-col">
         <span class="font-semibold text-lg">{{ friend.username }}</span>
         <span class="text-sm text-green-500">● 在线</span>

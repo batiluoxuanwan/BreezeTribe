@@ -29,7 +29,7 @@ export default {
     >
       <div class="flex items-center">
         <img
-            :src="friendAvatars[getFriendId(friend)] || defaultAvatar"
+            :src="getFriend(friend).avatarUrl || defaultAvatar"
             alt="avatar"
             class="w-12 h-12 rounded-full mr-4 object-cover"
         />
@@ -47,20 +47,22 @@ import { authAxios } from '@/utils/request.js';
 import { ElMessage } from 'element-plus';
 import { useAuthStore } from '@/stores/auth';
 import defaultAvatar from '@/assets/NotFoundsonailong.jpg';
+import { useRouter } from 'vue-router';
 
 
+const router = useRouter();
 const authStore = useAuthStore();
 const friends = ref([]);
 const token = authStore.token;
 const userId = computed(() => authStore.userId);
-const friend = reactive({
-  id: '',
-  username: '',
-  avatarUrl: '',
-  role: '',
-  active: true,
-});
-const friendAvatars = ref({}); // userId -> avatarUrl
+// const friend = reactive({
+//   id: '',
+//   username: '',
+//   avatarUrl: '',
+//   role: '',
+//   active: true,
+// });
+// const friendAvatars = ref({}); // userId -> avatarUrl
 
 
 
@@ -72,28 +74,28 @@ const getFriendId = (friend) => {
   return getFriend(friend).id;
 };
 
-const fetchFriendInfo = async (friendId) => {
-  try {
-    //@Operation(summary = "获取指定用户发的基础信息")
-    //@GetMapping("/users/{userId}/info")
-    const res = await authAxios.get(`public/users/${friendId}/info`,{
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    if (res.data.code === 200) {
-      Object.assign(friend, res.data.data);
-      console.log('✅✅✅✅✅✅✅✅✅✅✅✅好友信息:', friend);
-      console.log('聊天对象头像:',friend.avatarUrl);
-      const avatar = res.data.data.avatarUrl;
-      friendAvatars.value[friendId] = avatar;
-      console.log('头像：', avatar);
-    } else {
-      ElMessage.error(res.data.message || '获取好友信息失败');
-    }
-  } catch (error) {
-    ElMessage.error('获取好友信息失败');
-    console.error(error);
-  }
-};
+// const fetchFriendInfo = async (friendId) => {
+//   try {
+//     //@Operation(summary = "获取指定用户发的基础信息")
+//     //@GetMapping("/users/{userId}/info")
+//     const res = await authAxios.get(`public/users/${friendId}/info`,{
+//       headers: { Authorization: `Bearer ${token}` }
+//     });
+//     if (res.data.code === 200) {
+//       Object.assign(friend, res.data.data);
+//       console.log('✅✅✅✅✅✅✅✅✅✅✅✅好友信息:', friend);
+//       console.log('聊天对象头像:',friend.avatarUrl);
+//       const avatar = res.data.data.avatarUrl;
+//       friendAvatars.value[friendId] = avatar;
+//       console.log('头像：', avatar);
+//     } else {
+//       ElMessage.error(res.data.message || '获取好友信息失败');
+//     }
+//   } catch (error) {
+//     ElMessage.error('获取好友信息失败');
+//     console.error(error);
+//   }
+// };
 const fetchFriends = async () => {
   try {
     const params = {
@@ -108,10 +110,10 @@ const fetchFriends = async () => {
     if (res.data.code === 200) {
       friends.value = res.data.data.content;  // 取分页结果中的记录数组
       console.log("OOOOOOOOOOOOOOKKKKKKKKKKKKKKK");
-      //并发请求头像
-      await Promise.all(
-          friends.value.map(friend => fetchFriendInfo(getFriendId(friend)))
-      );
+      // //并发请求头像
+      // await Promise.all(
+      //     friends.value.map(friend => fetchFriendInfo(getFriendId(friend)))
+      // );
     } else {
       ElMessage.error(res.data.message || '获取好友列表失败');
     }
@@ -127,7 +129,8 @@ const openChat = (friendId) => {
 };
 
 const goToAddFriend = () => {
-  
+  router.push('/friends/add');
+  console.log("goToAddFriend")
 };
 
 const goToFriendRequests = () => {

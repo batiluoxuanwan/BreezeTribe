@@ -35,8 +35,7 @@ import org.whu.backend.util.AccountUtil;
 import org.whu.backend.util.AliyunOssUtil;
 import org.whu.backend.util.JpaUtil;
 
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -227,5 +226,58 @@ public class PublicService {
         dto.setActive(account.isActive());
 
         return dto;
+    }
+
+    private boolean isUUID(String input) {
+        try {
+            UUID.fromString(input);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+    private ShareDto toShareDto(Account user) {
+        ShareDto dto = new ShareDto();
+        dto.setId(user.getId());
+        dto.setUsername(user.getUsername());
+        dto.setAvatarUrl(AliyunOssUtil.generatePresignedGetUrl(user.getAvatarUrl(),36000));
+        dto.setRole(user.getRole());
+        dto.setActive(user.isActive());
+        return dto;
+    }
+
+    public List<ShareDto> searchUsers(String keyword) {
+        Set<String> seenIds = new HashSet<>();
+        List<ShareDto> results = new ArrayList<>();
+        String currentUserId=AccountUtil.getCurrentAccountId();
+
+        if (isUUID(keyword)) {
+            authRepository.findById(keyword).ifPresent(user -> {
+                if (!user.getId().equals(currentUserId) && seenIds.add(user.getId())) {
+                    results.add(toShareDto(user));
+                }
+            });
+        }
+
+        authRepository.findByPhone(keyword).ifPresent(user -> {
+            if (!user.getId().equals(currentUserId) && seenIds.add(user.getId())) {
+                results.add(toShareDto(user));
+            }
+        });
+
+        authRepository.findByEmail(keyword).ifPresent(user -> {
+            if (!user.getId().equals(currentUserId) && seenIds.add(user.getId())) {
+                results.add(toShareDto(user));
+            }
+        });
+
+        List<Account> fuzzyUsers = authRepository.findByUsernameContaining(keyword);
+        for (Account user : fuzzyUsers) {
+            if (!user.getId().equals(currentUserId) && seenIds.add(user.getId())) {
+                results.add(toShareDto(user));
+            }
+        }
+
+        return results;
     }
 }
