@@ -77,8 +77,9 @@ import VideoText from '@/components/ui/video-text/VideoText.vue'
 import { computed,ref ,onMounted} from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { useAuthStore } from '@/stores/auth'; 
-import { publicAxios } from "@/utils/request";
+import { useAuthStore } from '@/stores/auth';
+import {authAxios, publicAxios} from "@/utils/request";
+import axios from "axios";
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -92,7 +93,7 @@ const keyword = ref('');
 
 // 判断用户是否已登录
 const isLoggedIn = computed(() => {
-  return !!authStore.token; // 根据 authStore 中是否有 token 来判断
+  return !!authStore.accessToken; // 根据 authStore 中是否有 token 来判断
 });
 
 // 按照身份跳转个人主页
@@ -127,6 +128,20 @@ const handleLogout = () => {
   })
     .then(() => {
       // 用户点击“确定”后执行的操作
+      try {
+        const res = authAxios.post('/auth/logout',null, {
+          headers: { Authorization: `Bearer ${authStore.accessToken}` }
+        });
+        if (res.data.code === 200) {
+          //Object.assign(user, res.data.data);
+          console.log('✅✅✅✅✅✅已登出✅✅✅✅✅✅');
+        } else {
+          ElMessage.error(res.data.message || '获取当前用户失败');
+        }
+      } catch (error) {
+        ElMessage.error('获取当前用户失败');
+        console.error(error);
+      }
       authStore.logout();      // 调用 Pinia store 中的 `logout` 方法，清除 token 和 role
       router.push('/login');   // 将用户重定向到登录页面
       ElMessage.success('已成功退出登录！'); 

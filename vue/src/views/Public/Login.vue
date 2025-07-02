@@ -185,9 +185,9 @@ const handleLogin = () => {
                 if (response.data.code === 200) {
                     ElMessage.success('登录成功！');
                     console.log(response);
-                    authStore.login(response.data.data.token,loginForm.role);
+                    authStore.login(response.data.data.tokens,loginForm.role);
                     console.log(response.data.data,loginForm.role);
-                    router.push('/');
+                    await router.push('/');
                 } else {
                     ElMessage.error(response.data.message || '登录失败');
                 }

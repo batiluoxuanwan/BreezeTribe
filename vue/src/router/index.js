@@ -84,6 +84,11 @@ const routes =[
         component: () => import('../views/User/FriendList.vue'),
         //props: true // 开启 props 传参
     },
+    {
+        path: '/friends/add',
+        name: 'AddFriend',
+        component: () => import('../views/User/AddFriend.vue'),
+    },
 
 ];
 

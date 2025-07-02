@@ -210,4 +210,12 @@ public class PublicController {
         System.out.println("YES/n");
         return Result.success("喜报",dto);
     }
+    @Operation(summary = "根据用户id，phone,email精确查询或者用户名模糊查询")
+    @GetMapping("/users/search")
+    public Result<List<ShareDto>> searchUsers(
+            @RequestParam String keyword)
+    {
+        List<ShareDto> dto = publicService.searchUsers(keyword);
+        return Result.success(dto);
+    }
 }

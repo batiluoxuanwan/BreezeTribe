@@ -1,15 +1,20 @@
 package org.whu.backend.service;
 
 
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.whu.backend.common.Result;
 import org.whu.backend.common.exception.BizException;
 import org.whu.backend.dto.PageRequestDto;
 import org.whu.backend.dto.PageResponseDto;
+import org.whu.backend.dto.accounts.ShareDto;
 import org.whu.backend.dto.friend.FriendDto;
 import org.whu.backend.dto.friend.FriendRequestDto;
 import org.whu.backend.entity.accounts.Account;
@@ -18,7 +23,9 @@ import org.whu.backend.entity.association.friend.Friendship;
 import org.whu.backend.repository.authRepo.AuthRepository;
 import org.whu.backend.repository.authRepo.friend.FriendRequestRepository;
 import org.whu.backend.repository.authRepo.friend.FriendShipRepository;
+import org.whu.backend.service.pub.PublicService;
 import org.whu.backend.util.AccountUtil;
+import org.whu.backend.util.AliyunOssUtil;
 import org.whu.backend.util.JpaUtil;
 
 import java.util.List;
@@ -37,6 +44,8 @@ public class FriendService {
     private AccountUtil accountUtil;
     @Autowired
     private AuthRepository accountRepository;
+    @Autowired
+    private PublicService publicService;
 
     public void sendRequest(String toAccountId) {
         String currentAccountId = AccountUtil.getCurrentAccountId();
@@ -114,8 +123,13 @@ public class FriendService {
                 .map(friend -> {
                     FriendDto dto = new FriendDto();
                     dto.setId(friend.getId());
-                    dto.setAccount1(friend.getAccount1());
-                    dto.setAccount2(friend.getAccount2());
+
+                    Account Account1 = friend.getAccount1();
+                    Account Account2 = friend.getAccount2();
+                    Account1.setAvatarUrl(AliyunOssUtil.generatePresignedGetUrl(Account1.getAvatarUrl(),36000)); // 替换或设置
+                    Account2.setAvatarUrl(AliyunOssUtil.generatePresignedGetUrl(Account2.getAvatarUrl(),36000)); // 替换或设置
+                    dto.setAccount1(Account1);
+                    dto.setAccount2(Account2);
                     dto.setCreatedAt(friend.getCreatedAt());
                     return dto;
                 })
@@ -206,4 +220,5 @@ public class FriendService {
                 .numberOfElements(page.getNumberOfElements())
                 .build();
     }
+
 }
