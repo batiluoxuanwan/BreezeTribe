@@ -21,6 +21,7 @@ import org.whu.backend.repository.travelRepo.TravelPackageRepository;
 import org.whu.backend.service.DtoConverter;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -55,7 +56,7 @@ public class MerchantDepartureService {
 
             TravelDeparture departure = new TravelDeparture();
             departure.setTravelPackage(travelPackage);
-            departure.setDepartureDate(dto.getDepartureDate());
+            departure.setDepartureDate(dto.getDepartureDate().truncatedTo(ChronoUnit.DAYS)); // 截断到天
             departure.setPrice(dto.getPrice());
             departure.setCapacity(dto.getCapacity());
             departure.setStatus(TravelDeparture.DepartureStatus.OPEN); // 默认状态为开放报名
