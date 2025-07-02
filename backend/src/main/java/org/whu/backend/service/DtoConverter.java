@@ -54,7 +54,7 @@ import java.util.stream.Collectors;
 public class DtoConverter {
 
     public static final long EXPIRE_TIME = 60 * 60 * 4 * 1000;
-    public static final String IMAGE_PROCESS = "image/resize,l_400/quality,q_50";
+    public static final String IMAGE_PROCESS = "image/resize,l_400/quality,q_50/format,webp";
 
 
     public NotificationDto convertNotificationToDto(Notification notification) {
@@ -476,8 +476,9 @@ public class DtoConverter {
                 .min(Comparator.naturalOrder());
         BigDecimal minPrice = BigDecimal.valueOf(0);
         if (minPriceOpt.isPresent()) {
-            log.warn("产品ID '{}' 没有找到任何可报名的团期，无法获取起步价。", entity.getId());
             minPrice = minPriceOpt.get();
+        } else {
+            log.warn("产品ID '{}' 没有找到任何可报名的团期，无法获取起步价。", entity.getId());
         }
 
         return PackageSummaryDto.builder()
@@ -522,8 +523,9 @@ public class DtoConverter {
                 .min(Comparator.naturalOrder());
         BigDecimal minPrice = BigDecimal.valueOf(0);
         if (minPriceOpt.isPresent()) {
-            log.warn("产品ID '{}' 没有找到任何可报名的团期，无法获取起步价。", entity.getId());
             minPrice = minPriceOpt.get();
+        } else {
+            log.warn("产品ID '{}' 没有找到任何可报名的团期，无法获取起步价。", entity.getId());
         }
 
         // 3. 构建最外层的PackageDetailDto
@@ -545,6 +547,7 @@ public class DtoConverter {
 
     /**
      * 将TravelPackage实体转换为商家视角的详情DTO
+     *
      * @param entity 旅游产品实体
      * @return 包含所有团期信息的详情DTO
      */

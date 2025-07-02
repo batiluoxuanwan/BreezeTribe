@@ -40,7 +40,7 @@ public class Tag {
     public enum TagCategory {
         THEME,          // 主题特色 (如: 古镇风情, 登山徒步)
         TARGET_AUDIENCE,// 适合人群 (如: 亲子同游, 情侣蜜月)
-        DESTINATION,    // 目的地/地理位置 (如: 云南, 日本)
+        DESTINATION,    // 目的地/地理位置 (如: 云南, 上海)
         FEATURE         // 其他特色 (如: 性价比高, 美食之旅)
     }
 
