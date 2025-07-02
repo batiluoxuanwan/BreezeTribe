@@ -32,7 +32,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     // 将 token 和 role 存储到 localStorage
     localStorage.setItem('token', authToken)
-    localStorage.setItem('role', Role ) 
+    localStorage.setItem('role', Role )
     localStorage.setItem('userId', userId )
   }
 
@@ -74,6 +74,6 @@ export const useAuthStore = defineStore('auth', () => {
   }
 }, {
   persist: {
-    paths: ['isLoggedIn', 'token', 'role','userId'] 
+    paths: ['isLoggedIn', 'token', 'role','userId']
   }
 })

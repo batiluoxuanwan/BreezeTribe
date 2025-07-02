@@ -9,7 +9,7 @@ import piniaPersist from 'pinia-plugin-persistedstate'
 import App from './App.vue'
 import router from '/src/router'
 
-
+window.global = window;
 const pinia = createPinia() // 创建 Pinia 实例
 pinia.use(piniaPersist)
 const app=createApp(App);

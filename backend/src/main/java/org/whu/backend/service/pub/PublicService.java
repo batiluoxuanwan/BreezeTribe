@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.whu.backend.common.exception.BizException;
 import org.whu.backend.dto.PageRequestDto;
 import org.whu.backend.dto.PageResponseDto;
+import org.whu.backend.dto.accounts.ShareDto;
 import org.whu.backend.dto.accounts.UserProfileDto;
 import org.whu.backend.dto.post.PostDetailDto;
 import org.whu.backend.dto.post.PostSearchRequestDto;
@@ -20,17 +21,22 @@ import org.whu.backend.dto.travelpack.PackageDetailDto;
 import org.whu.backend.dto.travelpack.PackageSearchRequestDto;
 import org.whu.backend.dto.travelpack.PackageSummaryDto;
 import org.whu.backend.entity.TravelPackage;
+import org.whu.backend.entity.accounts.Account;
 import org.whu.backend.entity.accounts.User;
 import org.whu.backend.entity.travelpost.TravelPost;
+import org.whu.backend.repository.authRepo.AuthRepository;
 import org.whu.backend.repository.authRepo.UserRepository;
 import org.whu.backend.repository.post.TravelPostRepository;
 import org.whu.backend.repository.travelRepo.TravelPackageRepository;
 import org.whu.backend.service.DtoConverter;
 import org.whu.backend.service.ViewCountService;
 import org.whu.backend.service.specification.SearchSpecification;
+import org.whu.backend.util.AccountUtil;
 import org.whu.backend.util.AliyunOssUtil;
+import org.whu.backend.util.JpaUtil;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -47,6 +53,10 @@ public class PublicService {
     private ViewCountService viewCountService;
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private AccountUtil accountUtil;
+    @Autowired
+    private AuthRepository authRepository;
 
     // 获取已发布的旅行团列表（分页）
     public PageResponseDto<PackageSummaryDto> getPublishedPackages(PageRequestDto pageRequestDto) {
@@ -203,5 +213,19 @@ public class PublicService {
 
         return dtoConverter.convertPageToDto(postPage,
                 postPage.getContent().stream().map(dtoConverter::convertPostToSummaryDto).toList());
+    }
+
+    public ShareDto getUserInfos(String userId) {
+        Account account = authRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("用户不存在"));
+
+        ShareDto dto = new ShareDto();
+        dto.setId(account.getId());
+        dto.setRole(account.getRole());
+        dto.setUsername(account.getUsername());
+        dto.setAvatarUrl(AliyunOssUtil.generatePresignedGetUrl(account.getAvatarUrl(),36000));
+        dto.setActive(account.isActive());
+
+        return dto;
     }
 }

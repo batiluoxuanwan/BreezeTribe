@@ -29,6 +29,7 @@ public class Route {
     private String name; // 路线名字
 
     @Lob
+    @Column(columnDefinition = "TEXT")
     private String description; // 路线描述
 
     @CreationTimestamp

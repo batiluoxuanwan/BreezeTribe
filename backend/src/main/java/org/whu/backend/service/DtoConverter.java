@@ -47,7 +47,6 @@ public class DtoConverter {
     public static final String IMAGE_PROCESS = "image/resize,l_400/quality,q_50";
 
 
-
     public NotificationDto convertNotificationToDto(Notification notification) {
         String url = null;
         if (notification.getTriggerUser() != null && notification.getTriggerUser().getAvatarUrl() != null) {
@@ -59,21 +58,21 @@ public class DtoConverter {
                 .id(notification.getId())
                 .isRead(notification.isRead())
                 .type(notification.getType() != null ? notification.getType().toString() : null)
-                .description(notification.getDescription())
-                .content(notification.getContent())
+                .description(notification.getDescription() != null ? notification.getDescription() : null)
+                .content(notification.getContent() != null ? notification.getContent() : null)
                 .triggerUserAvatarUrl(url)
                 .relatedItemId(notification.getRelatedItemId())
                 .createdTime(notification.getCreatedTime());
 
         if (notification.getTriggerUser() != null) {
             builder.triggerUserId(notification.getTriggerUser().getId())
-                   .triggerUsername(notification.getTriggerUser().getUsername());
+                    .triggerUsername(notification.getTriggerUser().getUsername());
         }
 
         return builder.build();
     }
 
-    public FavouriteDetailDto convertFavoriteToDetailDto(Favorite favorite){
+    public FavouriteDetailDto convertFavoriteToDetailDto(Favorite favorite) {
         return FavouriteDetailDto.builder()
                 .itemid(favorite.getItemId())
                 .itemType(favorite.getItemType())

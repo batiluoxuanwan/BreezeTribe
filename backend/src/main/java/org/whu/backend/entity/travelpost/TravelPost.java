@@ -29,7 +29,7 @@ public class TravelPost {
 
     // 游记的正文内容，使用@Lob来存储长文本
     @Lob
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
     // 作者：这篇游记是谁写的 (多对一关联到User实体)

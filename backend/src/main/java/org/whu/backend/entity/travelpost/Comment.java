@@ -21,7 +21,7 @@ public class Comment {
     private String id;
 
     @Lob
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String content; // 评论内容
 
     @ManyToOne(fetch = FetchType.EAGER)

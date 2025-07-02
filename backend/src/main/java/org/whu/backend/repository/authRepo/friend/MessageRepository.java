@@ -15,5 +15,7 @@ public interface MessageRepository extends JpaRepository<Message, String> {
             "ORDER BY m.timestamp ASC")
     List<Message> findByFromAccountIdAndToAccountIdOrViceVersa(
             @Param("userId") String userId, @Param("friendId") String friendId);
+
+    List<Message> findByFromAccountIdAndToAccountId(String accountId, String friendId);
 }
 
