@@ -21,7 +21,6 @@ import org.whu.backend.service.merchant.MerchantDepartureService;
 import org.whu.backend.util.AccountUtil;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Tag(name = "经销商-团期管理", description = "经销商管理其旅游产品下的具体出发团期")
 @RestController

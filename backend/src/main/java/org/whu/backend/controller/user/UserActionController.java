@@ -20,8 +20,7 @@ import org.whu.backend.dto.like.LikeDetailDto;
 import org.whu.backend.dto.like.LikePageRequestDto;
 import org.whu.backend.dto.like.LikeRequestDto;
 import org.whu.backend.dto.order.OrderCreateRequestDto;
-import org.whu.backend.dto.order.OrderDetailDto;
-import org.whu.backend.dto.order.OrderForReviewDto;
+import org.whu.backend.dto.order.TravelOrderDetailDto;
 import org.whu.backend.dto.user.InteractionStatusRequestDto;
 import org.whu.backend.dto.user.InteractionStatusResponseDto;
 import org.whu.backend.service.user.UserService;
@@ -37,28 +36,28 @@ public class UserActionController {
     @Autowired
     UserService userService;
 
-    @Operation(summary = "报名参加一个旅行团（创建订单）")
+    @Operation(summary = "报名参加一个旅行团（创建订单）", description = "【已重构】现在是针对一个具体的出发团期进行报名。")
     @PostMapping("/orders")
-    public Result<OrderDetailDto> createOrder(@Valid @RequestBody OrderCreateRequestDto orderCreateRequestDto) {
-        OrderDetailDto dto=userService.createOrder(orderCreateRequestDto);
-        if(dto==null)
-            throw new BizException("报名失败");
-        return Result.success("报名成功，待支付",dto);
+    public Result<TravelOrderDetailDto> createOrder(@Valid @RequestBody OrderCreateRequestDto orderCreateRequestDto) {
+        log.info("请求日志：用户正在创建新订单，请求参数: {}", orderCreateRequestDto);
+        // 调用的是已重构的 createOrder 方法
+        TravelOrderDetailDto dto = userService.createOrder(orderCreateRequestDto);
+        return Result.success("报名成功，请及时支付", dto);
     }
 
-    @Operation(summary = "【模拟】假装已经成功支付一笔订单")
+    @Operation(summary = "【模拟】支付一笔订单", description = "【已重构】订单支付成功后，团期状态可能会更新。")
     @PostMapping("/orders/{orderId}/confirm-payment")
     public Result<?> confirmPayment(@PathVariable String orderId) {
-        if(!userService.confirmPayment(orderId))
-            throw new RuntimeException("支付失败");
+        log.info("请求日志：用户正在确认支付订单ID '{}'", orderId);
+        userService.confirmPayment(orderId);
         return Result.success("支付成功");
     }
 
-    @Operation(summary = "用户取消一笔订单")
+    @Operation(summary = "用户取消一笔订单", description = "【已重构】取消后会释放团期库存。")
     @PostMapping("/orders/{orderId}/cancel")
     public Result<?> cancelOrder(@PathVariable String orderId) {
-        if(!userService.cancelOrder(orderId))
-            throw new BizException("取消订单失败");
+        log.info("请求日志：用户正在取消订单ID '{}'", orderId);
+        userService.cancelOrder(orderId);
         return Result.success("订单已取消");
     }
 
@@ -67,14 +66,14 @@ public class UserActionController {
      */
     @Operation(summary = "获取我的订单列表（按评价状态筛选）(返回的都是已完成的订单，分为已完成未评价和已完成已评价)")
     @GetMapping("/orders/for-review")
-    public Result<PageResponseDto<OrderForReviewDto>> getMyOrdersForReview(
+    public Result<PageResponseDto<TravelOrderDetailDto>> getMyOrdersForReview(
             @Parameter(description = "筛选状态: PENDING (待评价), REVIEWED (已评价)，ALL (全部)") @RequestParam(defaultValue = "PENDING") String status,
             @Valid @ParameterObject PageRequestDto pageRequestDto
     ) {
         String currentUserId = AccountUtil.getCurrentAccountId();
         log.info("用户ID '{}' 访问获取 '{}' 状态的订单列表接口", currentUserId, status);
 
-        PageResponseDto<OrderForReviewDto> resultPage = userService.getOrdersByReviewStatus(currentUserId, status, pageRequestDto);
+        PageResponseDto<TravelOrderDetailDto> resultPage = userService.getOrdersByReviewStatus(currentUserId, status, pageRequestDto);
 
         return Result.success(resultPage);
     }
@@ -84,13 +83,13 @@ public class UserActionController {
      */
     @Operation(summary = "获取我的所有订单列表（分页）")
     @GetMapping("/orders")
-    public Result<PageResponseDto<OrderDetailDto>> getMyOrders(
+    public Result<PageResponseDto<TravelOrderDetailDto>> getMyOrders(
             @Valid @ParameterObject PageRequestDto pageRequestDto
     ) {
         String currentUserId = AccountUtil.getCurrentAccountId();
         log.info("用户ID '{}' 访问获取所有订单列表接口", currentUserId);
 
-        PageResponseDto<OrderDetailDto> resultPage = userService.getMyOrders(currentUserId, pageRequestDto);
+        PageResponseDto<TravelOrderDetailDto> resultPage = userService.getMyOrders(currentUserId, pageRequestDto);
 
         return Result.success(resultPage);
     }

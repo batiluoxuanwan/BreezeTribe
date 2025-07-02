@@ -13,7 +13,7 @@ spring:
   jpa:
     show-sql: false # 是否在控制台显示Hibernate执行的SQL语句
     hibernate:
-      ddl-auto: create # 开发和测试阶段，'update' 比较方便
+      ddl-auto: update # 开发和测试阶段，'update' 比较方便
     properties:
       hibernate:
         format_sql: true

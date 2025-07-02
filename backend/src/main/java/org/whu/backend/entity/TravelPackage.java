@@ -36,7 +36,7 @@ public class TravelPackage {
     @Lob
     private String detailedDescription; // 旅行团描述
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private BigDecimal price; // 价格
 
     private Integer capacity; // 总容量

@@ -44,13 +44,13 @@ public class Notification {
     /**
      * 通知描述，例如："张三 回复了你的评论"
      */
-    @Column(nullable = true)
+    @Column(nullable = false)
     private String description;
 
     /**
      * 通知内容，例如："评论内容：哈哈哈哈"
      */
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String content;
 
     /**

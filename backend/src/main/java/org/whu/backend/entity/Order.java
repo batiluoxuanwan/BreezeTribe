@@ -14,6 +14,7 @@ import java.util.UUID;
 /**
  * 表示一个用户创建的加入旅游团的订单
  */
+// 已经废弃！！！！！！！！！！！！！！！！！！！！！！！！
 @Data
 @Entity
 @SoftDelete

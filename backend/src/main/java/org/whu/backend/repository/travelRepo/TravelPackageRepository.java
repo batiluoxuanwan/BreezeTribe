@@ -62,4 +62,6 @@ public interface TravelPackageRepository extends JpaRepository<TravelPackage, St
 
     // 查询某个团是否属于某个经销商
     boolean existsByIdAndDealerId(String packageId, String currentDealerId);
+
+    boolean existsByIdAndStatus(String packageId, TravelPackage.PackageStatus packageStatus);
 }
