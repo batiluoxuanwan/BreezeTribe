@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import org.whu.backend.common.Result;
 import org.whu.backend.dto.PageRequestDto;
 import org.whu.backend.dto.PageResponseDto;
+import org.whu.backend.dto.accounts.ShareDto;
 import org.whu.backend.dto.accounts.UserProfileDto;
 import org.whu.backend.dto.baidumap.BaiduSuggestionResponseDto;
 import org.whu.backend.dto.packagecomment.PackageCommentDto;
@@ -185,5 +186,13 @@ public class PublicController {
         PageResponseDto<PostSummaryDto> resultPage = publicService.getUserPosts(userId, pageRequestDto);
         return Result.success(resultPage);
     }
-
+    @Operation(summary = "获取指定用户发的基础信息")
+    @GetMapping("/users/{userId}/info")
+    public Result<ShareDto> getUserInfos(
+            @PathVariable String userId) {
+        log.info("访问获取用户 '{}' 的信息接口", userId);
+        ShareDto dto = publicService.getUserInfos(userId);
+        System.out.println("YES/n");
+        return Result.success("喜报",dto);
+    }
 }

@@ -72,6 +72,19 @@ const routes =[
         component:() =>import('../views/User/EditNote.vue'),
         props: true, 
     },
+    {
+        path: '/chat/:friendId',
+        name: 'ChatRoom',
+        component: () => import('../views/User/ChatRoom.vue'),
+        props: true // 开启 props 传参
+    },
+    {
+        path: '/user/friends',
+        name: 'FriendList',
+        component: () => import('../views/User/FriendList.vue'),
+        //props: true // 开启 props 传参
+    },
+
 ];
 
 const router = createRouter({

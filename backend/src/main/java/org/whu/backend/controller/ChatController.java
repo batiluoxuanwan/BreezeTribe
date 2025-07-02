@@ -21,6 +21,8 @@ public class ChatController {
 
     @MessageMapping("/chat") // 监听/app/chat
     public void sendMessage(ChatMessageDto msg) {
+        System.out.println("✅ 收到 WebSocket 消息: " + msg);
+
         // 保存消息
         Message message = new Message();
         message.setFromAccountId(msg.getFrom());
