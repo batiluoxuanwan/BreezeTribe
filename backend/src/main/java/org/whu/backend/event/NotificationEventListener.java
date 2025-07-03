@@ -8,7 +8,16 @@ import org.springframework.stereotype.Component;
 import org.whu.backend.entity.Notification;
 import org.whu.backend.entity.accounts.User;
 import org.whu.backend.entity.travelpac.TravelOrder;
+import org.whu.backend.entity.travelpac.TravelPackage;
+import org.whu.backend.event.order.OrderCancelledEvent;
+import org.whu.backend.event.order.OrderConfirmedEvent;
+import org.whu.backend.event.order.OrderCreatedEvent;
+import org.whu.backend.event.post.PostLikedEvent;
+import org.whu.backend.event.travelpac.PackageFavouredEvent;
+import org.whu.backend.repository.travelRepo.TravelPackageRepository;
 import org.whu.backend.service.NotificationService;
+import org.whu.backend.service.auth.JwtService;
+import org.whu.backend.util.JpaUtil;
 
 @Component
 @Slf4j
@@ -16,6 +25,10 @@ public class NotificationEventListener {
 
     @Autowired
     private NotificationService notificationService;
+    @Autowired
+    private TravelPackageRepository travelPackageRepository;
+    @Autowired
+    private JwtService jwtService;
 
     /**
      * 监听“订单创建成功”事件
@@ -70,6 +83,41 @@ public class NotificationEventListener {
                 null,
                 null,
                 order.getTravelDeparture().getTravelPackage().getId()
+        );
+    }
+
+    @Async
+    @EventListener
+    public void handlePackageFavoured(PackageFavouredEvent event) {
+
+        String userName = event.getUser().getUsername();
+        TravelPackage travelPackage = JpaUtil.getOrThrow(travelPackageRepository, event.getPackageId(), "旅行团不存在");
+        String packageTitle = travelPackage.getTitle();
+        String description = String.format("用户 [%s] 收藏了你的旅行团 [%s] ", userName, packageTitle);
+        notificationService.createAndSendNotification(
+                travelPackage.getDealer(),
+                Notification.NotificationType.NEW_PACKAGE_FAVORITE,
+                description,
+                null,
+                event.getUser(),
+                travelPackage.getId()
+        );
+    }
+
+    @Async
+    @EventListener
+    public void handlePostLiked(PostLikedEvent event) {
+
+        String userName = event.getUser().getUsername();
+        String postTitle = event.getPost().getTitle();
+        String description = String.format("用户 [%s] 点赞了你的游记 [%s] ", userName, postTitle);
+        notificationService.createAndSendNotification(
+                event.getPost().getAuthor(),
+                Notification.NotificationType.NEW_POST_LIKE,
+                description,
+                null,
+                event.getUser(),
+                event.getPost().getId()
         );
     }
 }

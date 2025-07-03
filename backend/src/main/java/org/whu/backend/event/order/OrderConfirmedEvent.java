@@ -1,13 +1,13 @@
-package org.whu.backend.event;
+package org.whu.backend.event.order;
 
 import lombok.Getter;
 import org.whu.backend.entity.travelpac.TravelOrder;
 
 @Getter // 使用Lombok
-public class OrderCreatedEvent {
+public class OrderConfirmedEvent {
     private final TravelOrder order;
 
-    public OrderCreatedEvent(TravelOrder order) {
+    public OrderConfirmedEvent(TravelOrder order) {
         this.order = order;
     }
 }

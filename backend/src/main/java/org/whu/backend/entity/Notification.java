@@ -84,9 +84,13 @@ public class Notification {
         NEW_POST_LIKE,          // 游记被点赞
         NEW_POST_FAVORITE,      // 游记被收藏
 
+        NEW_PACKAGE_FAVORITE,   // 旅行团被收藏
+
         // 评论和回复类
         NEW_POST_COMMENT,       // 游记被评论
         NEW_COMMENT_REPLY,      // 你的评论被回复
+
+        NEW_PACKAGE_COMMENT,    // 旅行团被评论
 
         // 系统和订单类
         ORDER_CREATED,          // 订单创建成功

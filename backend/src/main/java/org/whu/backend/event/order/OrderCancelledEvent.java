@@ -1,4 +1,4 @@
-package org.whu.backend.event;
+package org.whu.backend.event.order;
 
 import lombok.Getter;
 import org.whu.backend.entity.travelpac.TravelOrder;

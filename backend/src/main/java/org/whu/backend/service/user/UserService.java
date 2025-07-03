@@ -29,14 +29,15 @@ import org.whu.backend.dto.user.ItemIdentifierDto;
 import org.whu.backend.dto.user.ItemStatusDto;
 import org.whu.backend.entity.*;
 import org.whu.backend.entity.accounts.User;
-import org.whu.backend.entity.Notification;
 import org.whu.backend.entity.travelpac.TravelDeparture;
 import org.whu.backend.entity.travelpac.TravelOrder;
 import org.whu.backend.entity.travelpost.TravelPost;
-import org.whu.backend.event.OrderCancelledEvent;
-import org.whu.backend.event.OrderConfirmedEvent;
-import org.whu.backend.event.OrderCreatedEvent;
+import org.whu.backend.event.order.OrderCancelledEvent;
+import org.whu.backend.event.order.OrderConfirmedEvent;
+import org.whu.backend.event.order.OrderCreatedEvent;
 import org.whu.backend.event.UserInteractionEvent;
+import org.whu.backend.event.post.PostLikedEvent;
+import org.whu.backend.event.travelpac.PackageFavouredEvent;
 import org.whu.backend.repository.FavoriteRepository;
 import org.whu.backend.repository.LikeRepository;
 import org.whu.backend.repository.post.TravelPostRepository;
@@ -283,8 +284,8 @@ public class UserService {
     @Transactional // 必须加上事务注解！！！！！！
     public boolean addFavorite(FavoriteRequestDto favoriteRequestDto) {
 
-        // TODO: 仅允许对旅游团进行
-        if (favoriteRequestDto.getItemType()!=InteractionItemType.PACKAGE){
+        // TODO: 仅允许对旅游团进行收藏
+        if (favoriteRequestDto.getItemType() != InteractionItemType.PACKAGE) {
             throw new BizException("仅允许对旅行团进行收藏");
         }
 
@@ -333,7 +334,8 @@ public class UserService {
         switch (favoriteRequestDto.getItemType()) {
             case PACKAGE:
                 Set<Tag> packageTags = JpaUtil.getOrThrow(travelPackageRepository, favoriteRequestDto.getItemId(), "旅行团不存在").getTags();
-                eventPublisher.publishEvent(new UserInteractionEvent(this,user.getId(), packageTags, favoriteWeight));
+                eventPublisher.publishEvent(new PackageFavouredEvent(favoriteRequestDto.getItemId(), user));
+                eventPublisher.publishEvent(new UserInteractionEvent(this, user.getId(), packageTags, favoriteWeight));
                 break;
             case SPOT:
                 break;
@@ -343,17 +345,19 @@ public class UserService {
                 // 发送游记被收藏的通知
                 log.info("给用户 {} 发送被游记被收藏的通知", user.getUsername());
                 TravelPost post = JpaUtil.getOrThrow(travelPostRepository, favoriteRequestDto.getItemId(), "游记不存在");
-                String description = String.format("%s 收藏了你的游记 %s", user.getUsername(), post.getTitle());
-                notificationService.createAndSendNotification(
-                        post.getAuthor(),
-                        Notification.NotificationType.NEW_POST_FAVORITE,
-                        description,
-                        null,
-                        user,
-                        post.getId()
-                );
+
+
+//                String description = String.format("%s 收藏了你的游记 %s", user.getUsername(), post.getTitle());
+//                notificationService.createAndSendNotification(
+//                        post.getAuthor(),
+//                        Notification.NotificationType.NEW_POST_FAVORITE,
+//                        description,
+//                        null,
+//                        user,
+//                        post.getId()
+//                );
                 Set<Tag> postTags = post.getTags();
-                eventPublisher.publishEvent(new UserInteractionEvent(this,user.getId() , postTags, favoriteWeight));
+                eventPublisher.publishEvent(new UserInteractionEvent(this, user.getId(), postTags, favoriteWeight));
                 break;
             default:
                 throw new BizException("非法参数：未知的收藏类型");
@@ -421,7 +425,7 @@ public class UserService {
     }
 
 
-    // 用户进行点赞操作，目前只能点赞游记
+    // TODO: 用户进行点赞操作，目前只能点赞游记
     @Transactional // 必须加上事务注解！！！！！！
     public boolean addLike(LikeRequestDto likeRequestDto) {
         User user = securityUtil.getCurrentUser();
@@ -447,17 +451,18 @@ public class UserService {
                 // 更新画像
                 TravelPost post = JpaUtil.getOrThrow(travelPostRepository, likeRequestDto.getItemId(), "游记不存在");
                 travelPostRepository.incrementLikeCount(likeRequestDto.getItemId());
-                eventPublisher.publishEvent(new UserInteractionEvent(this,user.getId() , post.getTags(), likeWeight));
+                eventPublisher.publishEvent(new UserInteractionEvent(this, user.getId(), post.getTags(), likeWeight));
                 // 发送游记被点赞的通知
-                String description = String.format("%s 赞了你的游记 %s", user.getUsername(), post.getTitle());
-                notificationService.createAndSendNotification(
-                        post.getAuthor(),
-                        Notification.NotificationType.NEW_POST_LIKE,
-                        description,
-                        null,
-                        user,
-                        post.getId()
-                );
+                eventPublisher.publishEvent(new PostLikedEvent(post, user));
+//                String description = String.format("%s 赞了你的游记 %s", user.getUsername(), post.getTitle());
+//                notificationService.createAndSendNotification(
+//                        post.getAuthor(),
+//                        Notification.NotificationType.NEW_POST_LIKE,
+//                        description,
+//                        null,
+//                        user,
+//                        post.getId()
+//                );
                 break;
             case PACKAGE:
                 break;
