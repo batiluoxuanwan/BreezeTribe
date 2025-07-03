@@ -33,6 +33,7 @@ import org.whu.backend.entity.Notification;
 import org.whu.backend.entity.travelpac.TravelDeparture;
 import org.whu.backend.entity.travelpac.TravelOrder;
 import org.whu.backend.entity.travelpost.TravelPost;
+import org.whu.backend.event.OrderCreatedEvent;
 import org.whu.backend.event.UserInteractionEvent;
 import org.whu.backend.repository.FavoriteRepository;
 import org.whu.backend.repository.LikeRepository;
@@ -134,16 +135,8 @@ public class UserService {
 
 
         // 6. 发送通知 (通知内容可以从团期关联的产品中获取标题)
-        String packageTitle = departure.getTravelPackage().getTitle();
-        String description = String.format("您关于旅行产品 [%s] 的订单已经创建成功，请及时支付", packageTitle);
-        notificationService.createAndSendNotification(
-                user,
-                Notification.NotificationType.ORDER_CREATED,
-                description,
-                null, // 根据需要设置关联ID
-                null,
-                departure.getTravelPackage().getId()
-        );
+        // 不再直接调用 notificationService，而是发布一个事件
+        eventPublisher.publishEvent(new OrderCreatedEvent(savedOrder));
 
         // 7. 更新用户画像
         Set<Tag> tags = savedOrder.getTravelDeparture().getTravelPackage().getTags();
