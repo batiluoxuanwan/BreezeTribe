@@ -149,7 +149,6 @@
 
         <el-tab-pane label="我的旅行团" name="tourManagement">
           <el-table :data="myTours" v-loading="tourLoading" style="width: 100%" class="admin-table">
-            <el-table-column prop="id" label="ID" width="80"></el-table-column>
             <el-table-column prop="title" label="团名"></el-table-column>
             <el-table-column prop="description" label="详细描述"></el-table-column>
             <el-table-column prop="startDate" label="出发日期" width="120"></el-table-column>
@@ -187,7 +186,6 @@
 
         <el-tab-pane label="评价管理" name="reviewManagement">
           <el-table :data="reviews" v-loading="reviewLoading" style="width: 100%" class="admin-table">
-            <el-table-column prop="id" label="ID" width="80"></el-table-column>
             <el-table-column prop="tourTitle" label="旅行团"></el-table-column>
             <el-table-column prop="userName" label="评价用户"></el-table-column>
             <el-table-column prop="rating" label="评分" width="100">

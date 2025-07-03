@@ -64,7 +64,6 @@
           <h3 class="tab-header">用户列表</h3>
           <el-input v-model="userSearchQuery" placeholder="搜索用户ID、用户名或邮箱" clearable @input="debouncedSearchUsers" class="search-input"></el-input>
           <el-table :data="users" v-loading="userLoading" style="width: 100%" class="admin-table">
-            <el-table-column prop="id" label="ID" width="80"></el-table-column>
             <el-table-column prop="username" label="用户名"></el-table-column>
             <el-table-column prop="email" label="邮箱"></el-table-column>
             <el-table-column prop="phone" label="电话"></el-table-column>
@@ -99,7 +98,6 @@
           <h3 class="tab-header">团长列表</h3>
           <el-input v-model="merchantSearchQuery" placeholder="搜索团长ID、用户名或公司名" clearable @input="debouncedSearchMerchants" class="search-input"></el-input>
           <el-table :data="merchants" v-loading="merchantLoading" style="width: 100%" class="admin-table">
-            <el-table-column prop="id" label="ID" width="80"></el-table-column>
             <el-table-column prop="username" label="用户名"></el-table-column>
             <el-table-column prop="companyName" label="公司名称"></el-table-column>
             <el-table-column prop="email" label="联系邮箱"></el-table-column>
@@ -133,7 +131,6 @@
         <el-tab-pane label="旅行团审核" name="tourReview">
           <h3 class="tab-header">待审核旅行团</h3>
           <el-table :data="pendingTours" v-loading="tourReviewLoading" style="width: 100%" class="admin-table">
-            <el-table-column prop="id" label="ID" width="80"></el-table-column>
             <el-table-column prop="title" label="团名"></el-table-column>
             <el-table-column prop="merchantName" label="发布团长"></el-table-column>
             <el-table-column prop="submitDate" label="提交日期"></el-table-column>
@@ -159,7 +156,6 @@
         <el-tab-pane label="游记审核" name="noteReview">
           <h3 class="tab-header">待审核游记</h3>
           <el-table :data="pendingNotes" v-loading="noteReviewLoading" style="width: 100%" class="admin-table">
-            <el-table-column prop="id" label="ID" width="80"></el-table-column>
             <el-table-column prop="title" label="游记标题"></el-table-column>
             <el-table-column prop="authorName" label="作者"></el-table-column>
             <el-table-column prop="submitDate" label="提交日期"></el-table-column>

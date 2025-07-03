@@ -534,7 +534,7 @@ const submitTourPackage = async () => {
     // 构建提交数据对象
   const tourPackageData = {
     title: title.value,
-    travelDays: travelDays.value,
+    durationInDays: travelDays.value,
     dailySchedules: formattedDailySchedules,
     imgIds: uploadedBackendFileIds, 
   };
