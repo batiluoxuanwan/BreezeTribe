@@ -187,6 +187,7 @@ public class DtoConverter {
                 .contactName(order.getContactName())
                 .contactPhone(order.getContactPhone())
                 .userId(order.getUser().getId())
+                .departureTime(order.getTravelDeparture().getDepartureDate())
                 .orderTime(order.getCreatedTime())
                 .build();
     }

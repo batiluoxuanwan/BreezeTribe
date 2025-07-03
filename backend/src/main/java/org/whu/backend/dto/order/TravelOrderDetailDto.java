@@ -22,5 +22,6 @@ public class TravelOrderDetailDto {
     private String contactPhone;
 
     private String userId;
+    private LocalDateTime departureTime;
     private LocalDateTime orderTime;
 }
