@@ -79,7 +79,6 @@ import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { useAuthStore } from '@/stores/auth';
 import {authAxios, publicAxios} from "@/utils/request";
-import axios from "axios";
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -126,15 +125,14 @@ const handleLogout = () => {
     cancelButtonText: '取消', // 取消按钮文本
     type: 'warning', 
   })
-    .then(() => {
+    .then(async () => {
       // 用户点击“确定”后执行的操作
       try {
-        const res = authAxios.post('/auth/logout',null, {
+        const res = await authAxios.post('/auth/logout',null, {
           headers: { Authorization: `Bearer ${authStore.accessToken}` }
         });
         if (res.data.code === 200) {
-          //Object.assign(user, res.data.data);
-          console.log('✅✅✅✅✅✅已登出✅✅✅✅✅✅');
+          console.log('已登出');
         } else {
           ElMessage.error(res.data.message || '获取当前用户失败');
         }
@@ -147,7 +145,6 @@ const handleLogout = () => {
       ElMessage.success('已成功退出登录！'); 
     })
     .catch(() => {
-      // 用户点击“取消”或关闭确认框时执行的操作
       ElMessage.info('已取消退出操作。'); 
     });
 };

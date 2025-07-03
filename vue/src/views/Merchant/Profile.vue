@@ -15,7 +15,6 @@
         <div><strong>{{ merchantOverview.pendingTours }}</strong><p>待审团数</p></div>
         <div><strong>{{ merchantOverview.totalOrders }}</strong><p>累计订单</p></div>
       </div>
-      <el-button @click="editProfileDialog = true" type="primary" plain class="edit-profile-btn">编辑资料</el-button>
 
       <div class="sidebar-menu">
         <div
@@ -673,46 +672,46 @@ const viewReviewDetails = (reviewRow) => {
   reviewDetailsDialog.value = true;
 };
 
-// 获取消息列表
-const fetchMessages = async () => {
-  messageLoading.value = true;
-  try {
-    const response = await authAxios.get('/api/merchant/messages', {
-      params: {
-        pageNum: messagesCurrentPage.value,
-        pageSize: messagesPageSize,
-      }
-    });
-    if (response.data.code === 200 && response.data.data) {
-      messages.value = response.data.data.records;
-      messagesTotal.value = response.data.data.total;
-      merchantOverview.value.unreadMessages = response.data.data.records.filter(m => !m.isRead).length; // 更新未读消息计数
-    } else {
-      ElMessage.error(response.data.message || '获取消息列表失败');
-    }
-  } catch (error) {
-    console.error('获取消息列表时发生错误:', error);
-    ElMessage.error('加载消息列表失败。');
-  } finally {
-    messageLoading.value = false;
-  }
-};
+// // 获取消息列表
+// const fetchMessages = async () => {
+//   messageLoading.value = true;
+//   try {
+//     const response = await authAxios.get('/api/merchant/messages', {
+//       params: {
+//         pageNum: messagesCurrentPage.value,
+//         pageSize: messagesPageSize,
+//       }
+//     });
+//     if (response.data.code === 200 && response.data.data) {
+//       messages.value = response.data.data.records;
+//       messagesTotal.value = response.data.data.total;
+//       merchantOverview.value.unreadMessages = response.data.data.records.filter(m => !m.isRead).length; // 更新未读消息计数
+//     } else {
+//       ElMessage.error(response.data.message || '获取消息列表失败');
+//     }
+//   } catch (error) {
+//     console.error('获取消息列表时发生错误:', error);
+//     ElMessage.error('加载消息列表失败。');
+//   } finally {
+//     messageLoading.value = false;
+//   }
+// };
 
-// 查看消息详情
-const viewMessageDetails = async (messageRow) => {
-  selectedMessage.value = { ...messageRow };
-  messageDetailsDialog.value = true;
-  if (!messageRow.isRead) {
-    // 标记为已读
-    try {
-      await authAxios.post(`/api/merchant/messages/${messageRow.id}/mark-read`); // 假设后端接口
-      messageRow.isRead = true; // 乐观更新
-      fetchMerchantOverview(); // 重新获取概览以更新未读消息数
-    } catch (error) {
-      console.error('标记消息为已读失败:', error);
-    }
-  }
-};
+// // 查看消息详情
+// const viewMessageDetails = async (messageRow) => {
+//   selectedMessage.value = { ...messageRow };
+//   messageDetailsDialog.value = true;
+//   if (!messageRow.isRead) {
+//     // 标记为已读
+//     try {
+//       await authAxios.post(`/api/merchant/messages/${messageRow.id}/mark-read`); // 假设后端接口
+//       messageRow.isRead = true; // 乐观更新
+//       fetchMerchantOverview(); // 重新获取概览以更新未读消息数
+//     } catch (error) {
+//       console.error('标记消息为已读失败:', error);
+//     }
+//   }
+// };
 
 // 查看指定旅行团的订单列表
 const viewOrders = (tourRow) => {
@@ -720,23 +719,6 @@ const viewOrders = (tourRow) => {
   ordersForSelectedPackage.pageNumber = 1; // 重置分页到第一页
   travelPackageOrdersDialog.value = true; // 打开弹窗
   fetchTravelPackageOrders(); // 调用新的函数来获取订单数据
-};
-
-// 保存团长资料
-const saveMerchantProfile = async () => {
-  try {
-    const response = await authAxios.put('/api/merchant/profile', merchantProfile.value); // 假设后端接口
-    if (response.data.code === 200) {
-      ElMessage.success('团长资料保存成功！');
-      editProfileDialog.value = false;
-      fetchMerchantProfile(); // 刷新个人资料
-    } else {
-      ElMessage.error(response.data.message || '保存失败');
-    }
-  } catch (error) {
-    console.error('保存团长资料时发生错误:', error);
-    ElMessage.error('保存失败，请稍后再试。');
-  }
 };
 
 // 跳转发布旅行团页
@@ -924,14 +906,6 @@ onMounted(() => {
   color: rgb(0,100,110);
   margin-bottom: 4px;
   font-weight: 600;
-}
-
-.edit-profile-btn {
-  width: 80%;
-  margin-bottom: 30px;
-  border-radius: 8px;
-  font-weight: 500;
-  letter-spacing: 0.5px;
 }
 
 .sidebar-menu {

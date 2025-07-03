@@ -51,7 +51,7 @@ const routes =[
     },
     {
         path:'/merchant/addschedule',
-        name:'发布新团',
+        name:'管理团期',
         component:() =>import('../views/Merchant/AddSchedule.vue')
     },
     {
