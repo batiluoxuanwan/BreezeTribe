@@ -14,6 +14,7 @@ import org.whu.backend.entity.travelpac.TravelPackage;
 import org.whu.backend.entity.travelpost.TravelPost;
 import org.whu.backend.repository.authRepo.UserRepository;
 import org.whu.backend.repository.post.TravelPostRepository;
+import org.whu.backend.repository.travelRepo.TravelOrderRepository;
 import org.whu.backend.repository.travelRepo.TravelPackageRepository;
 import org.whu.backend.service.DtoConverter;
 
@@ -37,11 +38,14 @@ public class RecommendationService {
     @Autowired
     private TravelPostRepository postRepository;
     @Autowired
+    private TravelOrderRepository travelOrderRepository;
+    @Autowired
     private ObjectMapper objectMapper;
     @Autowired
     private DtoConverter dtoConverter; // 注入通用的DTO转换器
 
-    public static final int MAX_SIZE = 10;
+    public static final int MAX_SIZE = 3;
+    public static final int CANDIDATES_NUM = 8;
 
     /**
      * 【新增】为指定用户推荐【旅游团】
@@ -58,14 +62,32 @@ public class RecommendationService {
             return getGenericPackageRecommendations();
         }
 
-        List<TravelPackage> candidates = packageRepository.findAll();
+        // 1. 获取用户已购买过的产品ID，用于后续排除
+        Set<String> purchasedPackageIds = travelOrderRepository.findPackageIdsByUserId(userId);
+        log.info("服务层：用户 '{}' 已购买过 {} 个产品，将在推荐中排除。", userId, purchasedPackageIds.size());
+
+        // 2. 获取候选内容，并排除已购买的
+        List<TravelPackage> candidates = purchasedPackageIds.isEmpty()
+                ? packageRepository.findAll()
+                : packageRepository.findByIdNotIn(purchasedPackageIds);
+
+        // 3. 计算分数
         Map<TravelPackage, Double> itemScores = new HashMap<>();
         calculateScoresForItems(candidates, userProfile, itemScores, TravelPackage::getTags);
 
-        return itemScores.entrySet().stream()
+        // 4. 【新增】多样性与随机性处理
+        List<TravelPackage> topCandidates = itemScores.entrySet().stream()
                 .sorted(Map.Entry.<TravelPackage, Double>comparingByValue().reversed())
-                .limit(MAX_SIZE) // 推荐旅游团数量
-                .map(entry -> dtoConverter.convertPackageToSummaryDto(entry.getKey())) // 使用DtoConverter转换
+                .limit(CANDIDATES_NUM) // 先取出排名靠前的若干个作为“优质候选池”
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toList());
+
+        Collections.shuffle(topCandidates); // 将优质候选池打乱，增加随机性
+
+        // 5. 取最终结果并转换
+        return topCandidates.stream()
+                .limit(MAX_SIZE) // 从打乱的池中取最终的10个
+                .map(dtoConverter::convertPackageToSummaryDto)
                 .collect(Collectors.toList());
     }
 
@@ -84,14 +106,23 @@ public class RecommendationService {
             return getGenericPostRecommendations();
         }
 
+        // TODO: 游记推荐也可以增加排除逻辑，例如排除用户自己发布的、或已点赞/收藏的
         List<TravelPost> candidates = postRepository.findAll();
         Map<TravelPost, Double> itemScores = new HashMap<>();
         calculateScoresForItems(candidates, userProfile, itemScores, TravelPost::getTags);
 
-        return itemScores.entrySet().stream()
+        // 增加多样性处理
+        List<TravelPost> topCandidates = itemScores.entrySet().stream()
                 .sorted(Map.Entry.<TravelPost, Double>comparingByValue().reversed())
-                .limit(10) // 假设推荐10篇游记
-                .map(entry -> dtoConverter.convertPostToSummaryDto(entry.getKey())) // 使用DtoConverter转换
+                .limit(CANDIDATES_NUM)
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toList());
+
+        Collections.shuffle(topCandidates);
+
+        return topCandidates.stream()
+                .limit(MAX_SIZE)
+                .map(dtoConverter::convertPostToSummaryDto)
                 .collect(Collectors.toList());
     }
 

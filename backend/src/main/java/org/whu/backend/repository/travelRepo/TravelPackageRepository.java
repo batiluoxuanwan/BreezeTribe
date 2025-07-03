@@ -67,4 +67,6 @@ public interface TravelPackageRepository extends JpaRepository<TravelPackage, St
     boolean existsByIdAndStatus(String packageId, TravelPackage.PackageStatus packageStatus);
 
     Collection<TravelPackage> findTop10ByOrderByCreatedTimeDesc();
+
+    List<TravelPackage> findByIdNotIn(Collection<String> ids);
 }
