@@ -19,12 +19,58 @@
               <el-icon><InfoFilled /></el-icon>
             </div>
           </template>
+          <div>
+          <el-button @click="toggleTagSelector">{{ showSelector ? '完成添加' : '添加标签' }}</el-button>
+
+          <div v-if="showSelector" class="tag-selector">
+            <el-input v-model="searchName" placeholder="搜索标签" @input="fetchTags" clearable />
+            <el-select v-model="category" placeholder="选择分类" @change="fetchTags" clearable>
+              <el-option label="主题" value="THEME" />
+              <el-option label="受众" value="TARGET_AUDIENCE" />
+              <el-option label="目的地" value="DESTINATION" />
+              <el-option label="特色" value="FEATURE" />
+            </el-select>
+
+            <div class="tag-list">
+              <el-tag
+                v-for="tag in tagList"
+                :key="tag.id"
+                :type="isSelected(tag) ? 'success' : 'info'"
+                @click="toggleTag(tag)"
+                class="tag-item"
+              >
+                {{ tag.name }}
+              </el-tag>
+            </div>
+
+            <el-pagination
+              layout="prev, pager, next"
+              :total="total"
+              :page-size="size"
+              :current-page="page"
+              @current-change="handlePageChange"
+              small
+            />
+          </div>
+
+          <div v-if="selectedTags.length > 0" class="selected-tags">
+            <h4>已选标签：</h4>
+            <el-tag
+              v-for="tag in selectedTags"
+              :key="tag.id"
+              closable
+              @close="removeTag(tag)"
+            >
+              {{ tag.name }}
+            </el-tag>
+          </div>
+        </div>
           <el-form label-width="100px" label-position="left">
             <el-form-item label="📝 标题">
               <el-input v-model="title" placeholder="请输入旅行团的吸引人的标题，例如：魔都寻宝：上海经典三日游"></el-input>
             </el-form-item>
 
-             <el-form-item label="📅 旅行天数">
+            <el-form-item label="📅 旅行天数">
               <el-input-number
                 v-model="travelDays"
                 :min="1"
@@ -271,14 +317,13 @@ const goToProfile = () => {
 }
 
 // 旅行团整体信息
-const title = ref('')//标题
-const travelDays = ref(1) // 旅行天数，默认为1
-const dailySchedules = ref([]) // 存储每天的行程
-const detailDescription = ref(null) //详细描述
-const activeDayIndex = ref(null) // 当前操作的是哪一天的行程
-const tourImageUrls = reactive([]); // 只存储预览图片的URL字符串
-const uploadedBackendFileIds = reactive([]); // 单独存储后端返回的文件ID，与 tourImageUrls 顺序对应
-
+const title = ref('')
+const travelDays = ref(1) 
+const dailySchedules = ref([]) 
+const detailDescription = ref(null) 
+const activeDayIndex = ref(null) 
+const tourImageUrls = reactive([]);
+const uploadedBackendFileIds = reactive([]); 
 // 景点搜索弹窗相关
 const spotDialogVisible = ref(false)
 const spotKeyword = ref('')
@@ -295,6 +340,60 @@ const loading = ref(false)
 //   dayIndex: null, // 记录当前编辑的景点属于哪一天
 //   spotIndex: null, // 记录当前编辑的景点是当天的第几个
 // })
+
+const showSelector = ref(false)
+const searchName = ref('')
+const category = ref('')
+const page = ref(1)
+const size = 10
+const total = ref(0)
+const tagList = ref([])
+const selectedTags = ref([])
+
+const toggleTagSelector = () => {
+  showSelector.value = !showSelector.value
+  if (showSelector.value) fetchTags()
+}
+
+const fetchTags = async () => {
+  const params = {
+    name: searchName.value,
+    category: category.value,
+    page: page.value,
+    size,
+    sortBy: 'createdTime',
+    sortDirection: 'DESC'
+  }
+
+  const res = await publicAxios.get('/public', { params })
+  if (res.data.code === 200) {
+    tagList.value = res.data.data.content
+    total.value = res.data.data.totalElements
+    console.log('标签数据：', res.data)
+  }
+}
+
+const handlePageChange = (val) => {
+  page.value = val
+  fetchTags()
+}
+
+const toggleTag = (tag) => {
+  const index = selectedTags.value.findIndex(t => t.id === tag.id)
+  if (index >= 0) {
+    selectedTags.value.splice(index, 1)
+  } else {
+    selectedTags.value.push(tag)
+  }
+}
+
+const removeTag = (tag) => {
+  selectedTags.value = selectedTags.value.filter(t => t.id !== tag.id)
+}
+
+const isSelected = (tag) => {
+  return selectedTags.value.some(t => t.id === tag.id)
+}
 
 // --- 图片上传处理 ---
 const handleTourImageUpload = async (file) => {
@@ -1020,5 +1119,20 @@ const submitTourPackage = async () => {
   background-color: red;
   border-color: red;
   transform: scale(1.1);
+}
+
+.tag-list {
+  margin: 10px 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tag-item {
+  cursor: pointer;
+}
+
+.selected-tags {
+  margin-top: 10px;
 }
 </style>
