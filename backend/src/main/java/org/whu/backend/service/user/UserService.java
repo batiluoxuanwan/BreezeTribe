@@ -33,6 +33,8 @@ import org.whu.backend.entity.Notification;
 import org.whu.backend.entity.travelpac.TravelDeparture;
 import org.whu.backend.entity.travelpac.TravelOrder;
 import org.whu.backend.entity.travelpost.TravelPost;
+import org.whu.backend.event.OrderCancelledEvent;
+import org.whu.backend.event.OrderConfirmedEvent;
 import org.whu.backend.event.OrderCreatedEvent;
 import org.whu.backend.event.UserInteractionEvent;
 import org.whu.backend.repository.FavoriteRepository;
@@ -166,16 +168,18 @@ public class UserService {
         log.info("服务层：订单ID '{}' 状态已更新为 PAID", orderId);
 
         // 发送支付成功通知
-        String packageTitle = order.getTravelDeparture().getTravelPackage().getTitle();
-        String description = String.format("您关于旅行产品 [%s] 的订单已成功支付", packageTitle);
-        notificationService.createAndSendNotification(
-                user,
-                Notification.NotificationType.ORDER_PAID,
-                description,
-                null,
-                null,
-                order.getTravelDeparture().getTravelPackage().getId()
-        );
+        eventPublisher.publishEvent(new OrderConfirmedEvent(order));
+
+//        String packageTitle = order.getTravelDeparture().getTravelPackage().getTitle();
+//        String description = String.format("您关于旅行产品 [%s] 的订单已成功支付", packageTitle);
+//        notificationService.createAndSendNotification(
+//                user,
+//                Notification.NotificationType.ORDER_PAID,
+//                description,
+//                null,
+//                null,
+//                order.getTravelDeparture().getTravelPackage().getId()
+//        );
     }
 
     /**
@@ -204,16 +208,18 @@ public class UserService {
         log.info("服务层：订单ID '{}' 状态已更新为 CANCELED", orderId);
 
         // 发送取消成功通知
-        String packageTitle = order.getTravelDeparture().getTravelPackage().getTitle();
-        String description = String.format("您关于旅行产品 [%s] 的订单已经取消成功。", packageTitle);
-        notificationService.createAndSendNotification(
-                user,
-                Notification.NotificationType.ORDER_CANCELED,
-                description,
-                null,
-                null,
-                order.getTravelDeparture().getTravelPackage().getId()
-        );
+        eventPublisher.publishEvent(new OrderCancelledEvent(order));
+
+//        String packageTitle = order.getTravelDeparture().getTravelPackage().getTitle();
+//        String description = String.format("您关于旅行产品 [%s] 的订单已经取消成功。", packageTitle);
+//        notificationService.createAndSendNotification(
+//                user,
+//                Notification.NotificationType.ORDER_CANCELED,
+//                description,
+//                null,
+//                null,
+//                order.getTravelDeparture().getTravelPackage().getId()
+//        );
     }
 
     // 获取当前用户的所有订单列表（分页）

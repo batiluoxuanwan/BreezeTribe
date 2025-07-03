@@ -26,9 +26,7 @@ public class NotificationEventListener {
         TravelOrder order = event.getOrder();
         User user = order.getUser();
         String packageTitle = order.getTravelDeparture().getTravelPackage().getTitle();
-
-        log.info("监听到订单创建事件，准备为用户 '{}' 发送通知。", user.getUsername());
-
+//        log.info("监听到订单创建事件，准备为用户 '{}' 发送通知。", user.getUsername());
         String description = String.format("您关于旅行产品 [%s] 的订单已经创建成功，请及时支付", packageTitle);
         notificationService.createAndSendNotification(
                 user,
@@ -40,16 +38,38 @@ public class NotificationEventListener {
         );
     }
 
-    /**
-     * 在这里可以继续添加监听其他事件的方法
-     * 比如监听“收到点赞”事件
-     */
-    /*
+
     @Async
     @EventListener
-    public void handlePostLiked(PostLikedEvent event) {
-        // ... 获取被点赞的用户和点赞者 ...
-        // ... 调用 notificationService 发送被赞通知 ...
+    public void handleOrderConfirmed(OrderConfirmedEvent event) {
+        TravelOrder order = event.getOrder();
+        User user = order.getUser();
+        String packageTitle = order.getTravelDeparture().getTravelPackage().getTitle();
+        String description = String.format("您关于旅行产品 [%s] 的订单已成功支付", packageTitle);
+        notificationService.createAndSendNotification(
+                user,
+                Notification.NotificationType.ORDER_PAID,
+                description,
+                null,
+                null,
+                order.getTravelDeparture().getTravelPackage().getId()
+        );
     }
-    */
+
+    @Async
+    @EventListener
+    public void handleOrderCancelled(OrderCancelledEvent event) {
+        TravelOrder order = event.getOrder();
+        User user = order.getUser();
+        String packageTitle = order.getTravelDeparture().getTravelPackage().getTitle();
+        String description = String.format("您关于旅行产品 [%s] 的订单已经取消成功。", packageTitle);
+        notificationService.createAndSendNotification(
+                user,
+                Notification.NotificationType.ORDER_CANCELED,
+                description,
+                null,
+                null,
+                order.getTravelDeparture().getTravelPackage().getId()
+        );
+    }
 }

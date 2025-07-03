@@ -19,7 +19,7 @@ public class UserInteractionListener {
     @Autowired
     private UserProfileService userProfileService;
 
-    @Async // 使用 @Async 注解，让更新操作在后台线程执行，不阻塞主流程
+    // @Async // 不使用 @Async 注解，防止懒加载出事
     @EventListener
     public void handleUserInteraction(UserInteractionEvent event) {
         log.info("监听到用户行为事件：用户ID '{}', 权重 '{}'", event.getUserId(), event.getWeight());
