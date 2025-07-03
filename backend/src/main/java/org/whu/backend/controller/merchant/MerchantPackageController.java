@@ -35,7 +35,7 @@ public class MerchantPackageController {
 
     @Operation(summary = "创建一个新旅行团", description = "填写一个新的旅行团的相关信息，创建后状态为待审核，其中有一个id列表，按顺序填写所包含的路线")
     @PostMapping
-    public Result<PackageDetailDto> createPackage(@Valid @RequestBody PackageCreateRequestDto packageCreateRequestDto) {
+    public Result<PackageDetailDto> createPackage(@Valid @RequestBody PackageCreateRequestDto packageCreateRequestDto) throws InterruptedException {
         String currentDealerId = AccountUtil.getCurrentAccountId();
         log.info("经销商ID '{}' 访问创建旅行团接口", currentDealerId);
 

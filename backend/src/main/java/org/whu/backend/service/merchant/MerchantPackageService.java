@@ -66,7 +66,7 @@ public class MerchantPackageService {
     private TagRepository tagRepository;
 
     @Transactional
-    public TravelPackage createPackage(PackageCreateRequestDto dto, String dealerId) {
+    public TravelPackage createPackage(PackageCreateRequestDto dto, String dealerId) throws InterruptedException {
         log.info("经销商ID '{}' 正在创建新旅行团 '{}'...", dealerId, dto.getTitle());
 
         // 1. 查找经销商实体
@@ -131,6 +131,7 @@ public class MerchantPackageService {
                 routeSpot.setSpot(spot);
                 routeSpot.setOrderColumn(i + 1);
                 dailyRoute.getSpots().add(routeSpot);
+                Thread.sleep(500);
             }
 
             // 先保存这个新创建的Route，使其获得一个持久化的ID
