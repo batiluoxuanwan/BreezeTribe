@@ -45,9 +45,6 @@
         <span class="views">
           <el-icon><View /></el-icon>{{ note.viewCount || 0 }} 阅读
         </span>
-        <span class="favorite">
-          <el-icon><Star /></el-icon> {{ note.favoriteCount || 0 }}
-        </span>
         <span class="likes">
           <el-icon><Pointer /></el-icon>{{ note.likeCount || 0 }} 喜欢
         </span>

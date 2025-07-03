@@ -96,6 +96,13 @@
               </div>
               <el-button type="primary" :icon="Plus" circle class="add-tour-btn"></el-button>
             </el-card>
+            <el-card class="stat-card add-schedule-card" @click="goToAddSchedulePage">
+                <div class="card-icon"><el-icon><Calendar /></el-icon></div>
+                <div class="card-info">
+                    <h2>添加团期</h2>
+                </div>
+                <el-button type="primary" :icon="Calendar" circle class="add-schedule-btn"></el-button>
+            </el-card>
           </div>
 
           <el-row :gutter="20" class="overview-sections">
@@ -209,7 +216,8 @@
         </el-tab-pane>
 
         <el-tab-pane label="消息中心" name="messageCenter">
-          <el-table :data="messages" v-loading="messageLoading" style="width: 100%" class="admin-table">
+          <MyNotifications/>
+          <!-- <el-table :data="messages" v-loading="messageLoading" style="width: 100%" class="admin-table">
             <el-table-column prop="title" label="标题"></el-table-column>
             <el-table-column prop="content" label="内容" show-tooltip-when-overflow></el-table-column>
             <el-table-column prop="sender" label="发送者" width="120"></el-table-column>
@@ -233,7 +241,7 @@
             v-model:current-page="messagesCurrentPage"
             @current-change="fetchMessages"
             class="pagination-bottom"
-          />
+          /> -->
         </el-tab-pane>
 
         <el-tab-pane label="账户设置" name="accountSettings">
@@ -326,6 +334,7 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import { authAxios } from '@/utils/request';
 import { useRouter } from 'vue-router';
 import AccountOverview from '@/components/AccountOverview.vue' 
+import MyNotifications from '@/components/profile/MyNotifications.vue';
 
 const router = useRouter();
 
@@ -730,39 +739,13 @@ const saveMerchantProfile = async () => {
   }
 };
 
-// 修改密码
-const changePassword = async () => {
-  if (passwordForm.value.newPassword !== passwordForm.value.confirmNewPassword) {
-    ElMessage.error('两次输入的新密码不一致！');
-    return;
-  }
-  if (!passwordForm.value.oldPassword || !passwordForm.value.newPassword) {
-    ElMessage.error('旧密码和新密码不能为空！');
-    return;
-  }
-  try {
-    const response = await authAxios.post('/api/merchant/change-password', {
-      oldPassword: passwordForm.value.oldPassword,
-      newPassword: passwordForm.value.newPassword
-    }); // 假设后端接口
-    if (response.data.code === 200) {
-      ElMessage.success('密码修改成功，请重新登录！');
-      // 清除 token 并跳转到登录页 (可能需要 authStore.logout())
-      // authStore.logout();
-      // router.push('/login');
-      passwordForm.value = { oldPassword: '', newPassword: '', confirmNewPassword: '' };
-    } else {
-      ElMessage.error(response.data.message || '密码修改失败');
-    }
-  } catch (error) {
-    console.error('修改密码时发生错误:', error);
-    ElMessage.error('修改密码失败，请稍后再试。');
-  }
-};
-
 // 跳转发布旅行团页
 const goToNewGroupPage = () => {
   router.push('/merchant/newgroup');
+};
+//跳转添加团期页
+const goToAddSchedulePage = () => {
+  router.push('/merchant/addschedule');
 };
 
 // 跳转首页
@@ -1079,6 +1062,23 @@ onMounted(() => {
   color: #26a69a;
 }
 
+.stat-card.new-schedule-card {
+  cursor: pointer;
+  background: linear-gradient(45deg, #e0f2f1, #b2dfdb); /* 浅绿渐变 */
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+}
+.stat-card.new-schedule-card .card-icon {
+  color: #00796b; 
+}
+.stat-card.new-schedule-card .card-info h2 {
+  color: #004d40; 
+}
+.stat-card.new-schedule-card .card-info p {
+  color: #26a69a;
+}
+
 .add-tour-btn {
   position: absolute;
   bottom: 15px;
@@ -1089,6 +1089,21 @@ onMounted(() => {
   transition: transform 0.2s ease, background-color 0.2s ease;
 }
 .add-tour-btn:hover {
+  transform: scale(1.1);
+  background-color: #00695c;
+  border-color: #00695c;
+}
+
+.add-schedule-btn {
+  position: absolute;
+  bottom: 15px;
+  right: 15px;
+  background-color: #00796b;
+  border-color: #00796b;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+.add-schedule-btn:hover {
   transform: scale(1.1);
   background-color: #00695c;
   border-color: #00695c;

@@ -27,6 +27,9 @@ public class SecurityConfig {
     @Autowired
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
+    @Autowired
+    private CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -35,10 +38,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         //放行登录接口
                         .requestMatchers(
-                                "/api/auth/**",
+                                "/api/auth/login",
+                                "/api/auth/register",
                                 "/api/captcha/**",
                                 "/api/public/**",
-                                "/auth/refresh",
                                 "/api/hello/world").permitAll()
                         //放行swagger
                         .requestMatchers(
@@ -50,8 +53,15 @@ public class SecurityConfig {
                                 ).permitAll()
                         // 放行 WebSocket 端点
                         .requestMatchers("/ws/**").permitAll()
+                        //刷新token
+                        .requestMatchers("/api/auth/refresh").permitAll()
+
                         .anyRequest().authenticated()
                 )
+                // 👇👇 添加认证失败处理器 👇👇
+                // 很好的security把我的所有token过期全部判定为403 wcnmd
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(customAuthenticationEntryPoint))
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 // 禁用默认登录页面
                 .formLogin(form -> form.disable());
