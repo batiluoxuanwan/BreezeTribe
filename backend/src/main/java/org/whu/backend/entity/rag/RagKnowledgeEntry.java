@@ -18,7 +18,7 @@ public class RagKnowledgeEntry {
     private String name; // 标题
 
     @Column(nullable = false)
-    private BigDecimal price; // 价格
+    private BigDecimal startingPrice; // 起步价
 
     private Integer durationInDays; // 持续天数
 

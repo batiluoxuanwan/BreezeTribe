@@ -1,4 +1,4 @@
-package org.whu.backend.entity;
+package org.whu.backend.entity.travelpac;
 
 import jakarta.persistence.*;
 import lombok.Data;
@@ -6,15 +6,15 @@ import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.SoftDelete;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.whu.backend.entity.MediaFile;
+import org.whu.backend.entity.Tag;
 import org.whu.backend.entity.accounts.Merchant;
 import org.whu.backend.entity.association.PackageImage;
 import org.whu.backend.entity.association.PackageRoute;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * 单个旅游团实体，一个旅游团实体可以有很多个路线
@@ -36,28 +36,38 @@ public class TravelPackage {
     @Lob
     private String detailedDescription; // 旅行团描述
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private BigDecimal price; // 价格
 
     private Integer capacity; // 总容量
 
+    // TODO: 这个东西可能要被废弃！！！！下放到Departure类
     private Integer participants; // 参与人数
 
+    // TODO: 这个东西可能要被废弃！！！！下放到Departure类
     private LocalDateTime departureDate; // 出发日期
 
     private Integer durationInDays; // 持续天数
 
 
-    // ------- 统计数据 -----------
+    // ------- 统计数据，属于产品模板 -----------
 
     @ColumnDefault("0")
-    private Integer favoriteCount; // 收藏量
+    private Integer favoriteCount = 0; // 收藏量
 
     @ColumnDefault("0")
-    private Integer commentCount; // 评论数量
+    private Integer commentCount = 0; // 评论数量
 
     @ColumnDefault("0")
-    private Integer viewCount; // 浏览量
+    private Integer viewCount = 0; // 浏览量
+
+    @ColumnDefault("0")
+    private Integer salesCount = 0; // 销售量
+
+
+    // 【新增关联】一个产品模板，可以有多个具体的出发团期
+    @OneToMany(mappedBy = "travelPackage", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<TravelDeparture> departures = new ArrayList<>();
 
 
     @Enumerated(EnumType.STRING)
@@ -92,6 +102,14 @@ public class TravelPackage {
     @OneToMany(mappedBy = "travelPackage", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("dayNumber ASC") // 正确地按照关联实体中的字段排序
     private List<PackageRoute> routes = new ArrayList<>();
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "package_tags", // 这是JPA会自动创建的中间关联表
+            joinColumns = @JoinColumn(name = "package_id"),
+            inverseJoinColumns = @JoinColumn(name = "tag_id")
+    )
+    private Set<Tag> tags = new HashSet<>();
 
     @PrePersist
     protected void onPrePersist() {

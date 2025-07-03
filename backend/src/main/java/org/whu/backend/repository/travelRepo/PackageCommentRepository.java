@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
-import org.whu.backend.entity.PackageComment;
+import org.whu.backend.entity.travelpac.PackageComment;
 
 import java.util.List;
 import java.util.Set;

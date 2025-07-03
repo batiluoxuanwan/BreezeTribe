@@ -1,6 +1,7 @@
 package org.whu.backend.service;
 
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 import org.whu.backend.dto.PageResponseDto;
@@ -12,6 +13,7 @@ import org.whu.backend.dto.notification.NotificationDto;
 import org.whu.backend.dto.order.OrderDetailDto;
 import org.whu.backend.dto.order.OrderForReviewDto;
 import org.whu.backend.dto.order.OrderSummaryForDealerDto;
+import org.whu.backend.dto.order.TravelOrderDetailDto;
 import org.whu.backend.dto.packagecomment.PackageCommentDto;
 import org.whu.backend.dto.post.PostDetailDto;
 import org.whu.backend.dto.post.PostDetailToOwnerDto;
@@ -21,17 +23,24 @@ import org.whu.backend.dto.postcomment.PostCommentWithRepliesDto;
 import org.whu.backend.dto.route.RouteDetailDto;
 import org.whu.backend.dto.route.RouteSummaryDto;
 import org.whu.backend.dto.spot.SpotDetailDto;
+import org.whu.backend.dto.tag.TagDto;
+import org.whu.backend.dto.travelpack.DepartureSummaryDto;
 import org.whu.backend.dto.travelpack.PackageDetailDto;
+import org.whu.backend.dto.travelpack.PackageDetailForMerchantDto;
 import org.whu.backend.dto.travelpack.PackageSummaryDto;
 import org.whu.backend.entity.*;
 import org.whu.backend.entity.accounts.User;
+import org.whu.backend.entity.travelpac.*;
 import org.whu.backend.entity.travelpost.Comment;
 import org.whu.backend.entity.Notification;
 import org.whu.backend.entity.travelpost.TravelPost;
 import org.whu.backend.util.AliyunOssUtil;
 
+import java.math.BigDecimal;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -40,6 +49,7 @@ import java.util.stream.Collectors;
  * 这是一个独立的、无状态的组件，专门负责将实体(Entity)转换为数据传输对象(DTO)。
  * 所有的Service都应该注入这个组件来执行转换，从而避免Service之间的循环依赖。
  */
+@Slf4j
 @Component
 public class DtoConverter {
 
@@ -159,6 +169,29 @@ public class DtoConverter {
     }
 
     /**
+     * 将Order实体转换为详细的OrderDetailDto
+     */
+    public TravelOrderDetailDto convertTravelOrderToDetailDto(TravelOrder order) {
+        return TravelOrderDetailDto.builder()
+                .id(order.getId())
+                .departureId(order.getTravelDeparture().getId())
+                .packageId(order.getTravelDeparture().getTravelPackage().getId())
+                .packageTitle(order.getTravelDeparture().getTravelPackage().getTitle())
+                .packageCoverImageUrl(AliyunOssUtil.generatePresignedGetUrl(
+                        order.getTravelDeparture().getTravelPackage().getCoverImageUrl(),
+                        EXPIRE_TIME,
+                        IMAGE_PROCESS))
+                .travelerCount(order.getTravelerCount())
+                .totalPrice(order.getTotalPrice())
+                .status(order.getStatus().toString())
+                .contactName(order.getContactName())
+                .contactPhone(order.getContactPhone())
+                .userId(order.getUser().getId())
+                .orderTime(order.getCreatedTime())
+                .build();
+    }
+
+    /**
      * 将订单实体转换为给用户查看的DTO
      */
     public OrderForReviewDto convertOrderToReviewDto(Order order) {
@@ -171,6 +204,7 @@ public class DtoConverter {
                 .totalPrice(order.getTotalPrice().toString())
                 .build();
     }
+
 
     /**
      * 将PackageComment实体转换为带少量预览回复的DTO
@@ -309,6 +343,11 @@ public class DtoConverter {
                 })
                 .collect(Collectors.toList());
 
+        // 转换Tags列表
+        List<TagDto> tagDtos = post.getTags().stream()
+                .map(this::convertTagToDto) // 调用已有的Tag到TagDto的转换方法
+                .toList();
+
         // 构建最终的DTO
         return PostDetailDto.builder()
                 .id(post.getId())
@@ -321,6 +360,7 @@ public class DtoConverter {
                 .favoriteCount(post.getFavoriteCount())
                 .commentCount(post.getCommentCount())
                 .viewCount(post.getViewCount())
+                .tags(tagDtos)
                 .createdTime(post.getCreatedTime())
                 .build();
     }
@@ -349,6 +389,11 @@ public class DtoConverter {
                         )
                 ));
 
+        // 转换Tags列表
+        List<TagDto> tagDtos = post.getTags().stream()
+                .map(this::convertTagToDto) // 调用已有的Tag到TagDto的转换方法
+                .toList();
+
         // 构建最终的DTO
         return PostDetailToOwnerDto.builder()
                 .id(post.getId())
@@ -361,6 +406,7 @@ public class DtoConverter {
                 .favoriteCount(post.getFavoriteCount())
                 .commentCount(post.getCommentCount())
                 .viewCount(post.getViewCount())
+                .tags(tagDtos)
                 .createdTime(post.getCreatedTime())
                 .build();
     }
@@ -417,18 +463,28 @@ public class DtoConverter {
                 .build();
     }
 
-    // 把旅游团实体TravelPackage转化为简略的信息PackageSummaryDto
+    // 把旅游团实体TravelPackage转化为简略的信息PackageSummaryDto TODO: 可能需要处理一下旅游团没有团期的情况
     public PackageSummaryDto convertPackageToSummaryDto(TravelPackage entity) {
         String coverImageUrl = null;
         if (entity.getCoverImageUrl() != null) {
             coverImageUrl = AliyunOssUtil.generatePresignedGetUrl(entity.getCoverImageUrl(), EXPIRE_TIME, IMAGE_PROCESS);
         }
 
+        Optional<BigDecimal> minPriceOpt = entity.getDepartures().stream()
+                .filter(d -> d.getStatus() == TravelDeparture.DepartureStatus.OPEN) // 只考虑可报名的团期
+                .map(TravelDeparture::getPrice)
+                .min(Comparator.naturalOrder());
+        BigDecimal minPrice = BigDecimal.valueOf(0);
+        if (minPriceOpt.isPresent()) {
+            log.warn("产品ID '{}' 没有找到任何可报名的团期，无法获取起步价。", entity.getId());
+            minPrice = minPriceOpt.get();
+        }
+
         return PackageSummaryDto.builder()
                 .id(entity.getId())
                 .title(entity.getTitle())
                 .coverImageUrl(coverImageUrl)
-                .price(entity.getPrice())
+                .price(minPrice)
                 .description(entity.getDetailedDescription())
                 .durationInDays(entity.getDurationInDays())
                 .favouriteCount(entity.getFavoriteCount())
@@ -454,19 +510,94 @@ public class DtoConverter {
                 })
                 .collect(Collectors.toList());
 
+        // 2.a 转换Tags列表
+        List<TagDto> tagDtos = entity.getTags().stream()
+                .map(this::convertTagToDto) // 调用已有的Tag到TagDto的转换方法
+                .toList();
+
+        // 2.b 拿到最小价格
+        Optional<BigDecimal> minPriceOpt = entity.getDepartures().stream()
+                .filter(d -> d.getStatus() == TravelDeparture.DepartureStatus.OPEN) // 只考虑可报名的团期
+                .map(TravelDeparture::getPrice)
+                .min(Comparator.naturalOrder());
+        BigDecimal minPrice = BigDecimal.valueOf(0);
+        if (minPriceOpt.isPresent()) {
+            log.warn("产品ID '{}' 没有找到任何可报名的团期，无法获取起步价。", entity.getId());
+            minPrice = minPriceOpt.get();
+        }
+
         // 3. 构建最外层的PackageDetailDto
         return PackageDetailDto.builder()
                 .id(entity.getId())
                 .title(entity.getTitle())
                 .coverImageUrls(signedImageUrls)
-                .price(entity.getPrice())
                 .durationInDays(entity.getDurationInDays())
                 .detailedDescription(entity.getDetailedDescription())
                 .favouriteCount(entity.getFavoriteCount())
                 .commentCount(entity.getCommentCount())
                 .viewCount(entity.getViewCount())
                 .status(entity.getStatus().name())
+                .price(minPrice)
+                .tags(tagDtos)
                 .routes(routeDtos)
+                .build();
+    }
+
+    /**
+     * 将TravelPackage实体转换为商家视角的详情DTO
+     * @param entity 旅游产品实体
+     * @return 包含所有团期信息的详情DTO
+     */
+    public PackageDetailForMerchantDto convertPackageToDetailForMerchantDto(TravelPackage entity) {
+        // 1. 转换所有团期列表
+        List<DepartureSummaryDto> departureDtos = entity.getDepartures().stream()
+                .map(departure -> DepartureSummaryDto.builder()
+                        .id(departure.getId())
+                        .departureDate(departure.getDepartureDate())
+                        .price(departure.getPrice())
+                        .capacity(departure.getCapacity())
+                        .participants(departure.getParticipants())
+                        .status(departure.getStatus().name())
+                        .build())
+                .collect(Collectors.toList());
+
+        // 2. 转换其他公共信息（可以复用之前的逻辑）
+        List<RouteDetailDto> routeDtos = entity.getRoutes().stream()
+                .map(packageRoute -> convertRouteToDetailDto(packageRoute.getRoute()))
+                .collect(Collectors.toList());
+
+        List<String> signedImageUrls = entity.getImages().stream()
+                .map(packageImage -> AliyunOssUtil.generatePresignedGetUrl(packageImage.getMediaFile().getObjectKey(), EXPIRE_TIME, IMAGE_PROCESS))
+                .collect(Collectors.toList());
+
+        List<TagDto> tagDtos = entity.getTags().stream()
+                .map(this::convertTagToDto)
+                .collect(Collectors.toList());
+
+        // 3. 使用 @SuperBuilder 构建最终的DTO
+        return PackageDetailForMerchantDto.builder()
+                // 填充父类字段
+                .id(entity.getId())
+                .title(entity.getTitle())
+                .coverImageUrls(signedImageUrls)
+                .durationInDays(entity.getDurationInDays())
+                .detailedDescription(entity.getDetailedDescription())
+                .favouriteCount(entity.getFavoriteCount())
+                .commentCount(entity.getCommentCount())
+                .viewCount(entity.getViewCount())
+                .status(entity.getStatus().name())
+                .tags(tagDtos)
+                .routes(routeDtos)
+                // 填充子类特有字段
+                .departures(departureDtos)
+                .build();
+    }
+
+    public TagDto convertTagToDto(Tag savedTag) {
+        return TagDto.builder()
+                .id(savedTag.getId())
+                .category(savedTag.getCategory().toString())
+                .name(savedTag.getName())
                 .build();
     }
 
@@ -492,5 +623,20 @@ public class DtoConverter {
     private String maskPhone(String phone) {
         if (phone == null || phone.length() != 11) return "手机号格式错误";
         return phone.substring(0, 3) + "****" + phone.substring(7);
+    }
+
+    public DepartureSummaryDto convertDepartureToSummaryDto(TravelDeparture departure) {
+        DepartureSummaryDto.DepartureSummaryDtoBuilder builder = DepartureSummaryDto.builder()
+                .id(departure.getId())
+                .departureDate(departure.getDepartureDate())
+                .price(departure.getPrice())
+                .capacity(departure.getCapacity())
+                .participants(departure.getParticipants())
+                .status(departure.getStatus().name());
+        if (departure.getTravelPackage() != null) {
+            builder.packageId(departure.getTravelPackage().getId())
+                    .packageTitle(departure.getTravelPackage().getTitle());
+        }
+        return builder.build();
     }
 }

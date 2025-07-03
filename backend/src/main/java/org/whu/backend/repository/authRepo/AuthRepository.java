@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.whu.backend.entity.accounts.Account;
 import org.whu.backend.entity.accounts.Role;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -35,5 +36,11 @@ public interface AuthRepository extends JpaRepository<Account, String> {
 
     boolean existsByEmailAndRoleAndIdNot(String email,Role role,String Id);
     boolean existsByPhoneAndRoleAndIdNot(String phone,Role role,String Id);
+
+    Optional<Account> findByPhone(String phone);
+
+    Optional<Account> findByEmail(String email);
+
+    List<Account> findByUsernameContaining(String username); // 模糊查询
 }
 

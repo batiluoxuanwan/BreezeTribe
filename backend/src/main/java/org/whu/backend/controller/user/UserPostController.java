@@ -1,6 +1,7 @@
 package org.whu.backend.controller.user;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +17,8 @@ import org.whu.backend.entity.travelpost.TravelPost;
 import org.whu.backend.service.DtoConverter;
 import org.whu.backend.service.user.UserPostService;
 import org.whu.backend.util.AccountUtil;
+
+import java.util.List;
 
 @Tag(name = "用户-游记管理", description = "用户发布和管理自己的游记")
 @RestController
@@ -40,6 +43,19 @@ public class UserPostController {
         PostDetailDto dto = dtoConverter.convertPostToDetailDto(createdPost);
 
         return Result.success(dto);
+    }
+
+    @Operation(summary = "更新一个游记的标签", description = "用新的标签列表完全替换旧的标签列表。传一个空列表则为清空所有标签。")
+    @PutMapping("/{postId}/tags")
+    public Result<?> updatePackageTags(
+            @Parameter(description = "要更新标签的游记ID") @PathVariable String postId,
+            @RequestBody List<String> tagIds) {
+        String currentDealerId = AccountUtil.getCurrentAccountId();
+        log.info("请求日志：用户ID '{}' 正在更新游记ID '{}' 的标签", currentDealerId, postId);
+
+        userPostService.updatePackageTags(postId, tagIds, currentDealerId);
+
+        return Result.success("游记标签更新成功");
     }
 
 

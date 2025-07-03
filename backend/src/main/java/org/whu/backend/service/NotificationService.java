@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -30,6 +31,9 @@ public class NotificationService {
     private NotificationRepository notificationRepository;
     @Autowired
     private DtoConverter dtoConverter;
+
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate; // WebSocket 消息发送核心类
 
     /**
      * [核心] 创建并发送一条新通知的统一方法
@@ -143,5 +147,27 @@ public class NotificationService {
             return;
         }
         notificationRepository.markAsReadByRecipientIdAndTypes(currentUserId, request.getTypes());
+    }
+
+    public void sendNotification(Account recipient, Notification.NotificationType type,
+                                 String description, String content, Account triggerUser, String relatedItemId) {
+
+        // 1. 创建通知实体并持久化
+        Notification notification = new Notification();
+        notification.setRecipient(recipient);
+        notification.setType(type);
+        notification.setDescription(description);
+        notification.setContent(content);
+        notification.setTriggerUser(triggerUser);
+        notification.setRelatedItemId(relatedItemId);
+
+        notificationRepository.save(notification);
+
+        // 2. 推送通知给用户（前端监听/user/queue/notify）
+        messagingTemplate.convertAndSendToUser(
+                recipient.getId(),      // 用户 ID
+                "/queue/notify",        // 目标地址
+                notification            // 推送内容
+        );
     }
 }

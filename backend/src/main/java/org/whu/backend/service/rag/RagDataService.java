@@ -8,9 +8,11 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.whu.backend.entity.Route;
+import org.whu.backend.entity.Tag;
+import org.whu.backend.entity.travelpac.Route;
 import org.whu.backend.entity.Spot;
-import org.whu.backend.entity.TravelPackage;
+import org.whu.backend.entity.travelpac.TravelDeparture;
+import org.whu.backend.entity.travelpac.TravelPackage;
 import org.whu.backend.entity.association.PackageRoute;
 import org.whu.backend.entity.association.RouteSpot;
 import org.whu.backend.entity.rag.RagKnowledgeEntry;
@@ -19,9 +21,12 @@ import org.whu.backend.repository.travelRepo.TravelPackageRepository;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -46,12 +51,25 @@ public class RagDataService {
         log.info("发现 {} 个已发布的旅行团需要同步。", packages.size());
 
         for (TravelPackage pkg : packages) {
-            String content = buildContentForPackage(pkg);
+
+            // 1. 计算该产品所有团期中的最低价作为“起价”
+            Optional<BigDecimal> minPriceOpt = pkg.getDepartures().stream()
+                    .filter(d -> d.getStatus() == TravelDeparture.DepartureStatus.OPEN) // 只考虑可报名的团期
+                    .map(TravelDeparture::getPrice)
+                    .min(Comparator.naturalOrder());
+
+            // 如果没有可报名的团期，可以跳过或设置一个默认行为
+            if (minPriceOpt.isEmpty()) {
+                log.warn("产品ID '{}' 没有找到任何可报名的团期，跳过同步。", pkg.getId());
+                continue;
+            }
+
+            String content = buildContentForPackage(pkg,minPriceOpt.get());
             RagKnowledgeEntry entry = new RagKnowledgeEntry();
             entry.setId(pkg.getId());
             entry.setContent(content);
             entry.setName(pkg.getTitle());
-            entry.setPrice(pkg.getPrice());
+            entry.setStartingPrice(minPriceOpt.get());
             entry.setDurationInDays(pkg.getDurationInDays());
             ragKnowledgeEntryRepository.save(entry);
         }
@@ -93,7 +111,7 @@ public class RagDataService {
             XSSFSheet sheet = workbook.createSheet("旅游团信息");
 
             // 1. 创建表头 (必须与你在百炼平台创建的“数据表”列名完全对应)
-            String[] headers = {"ID", "名称", "内容", "价格", "天数"};
+            String[] headers = {"ID", "名称", "内容", "起步价", "天数"};
             Row headerRow = sheet.createRow(0);
             for (int i = 0; i < headers.length; i++) {
                 Cell cell = headerRow.createCell(i);
@@ -103,13 +121,25 @@ public class RagDataService {
             // 2. 填充数据行
             int rowNum = 1;
             for (TravelPackage pkg : packages) {
+                // 1. 【新增】计算该产品所有团期中的最低价作为“起价”
+                Optional<BigDecimal> minPriceOpt = pkg.getDepartures().stream()
+                        .filter(d -> d.getStatus() == TravelDeparture.DepartureStatus.OPEN) // 只考虑可报名的团期
+                        .map(TravelDeparture::getPrice)
+                        .min(Comparator.naturalOrder());
+
+                // 如果没有可报名的团期，可以跳过或设置一个默认行为
+                if (minPriceOpt.isEmpty()) {
+                    log.warn("产品ID '{}' 没有找到任何可报名的团期，跳过同步。", pkg.getId());
+                    continue;
+                }
+
                 Row row = sheet.createRow(rowNum++);
 
                 // 注意：这里的顺序必须和表头顺序一致
                 row.createCell(0).setCellValue(pkg.getId());
                 row.createCell(1).setCellValue(pkg.getTitle());
                 // “内容”列，我们依然使用之前写好的 buildContentForPackage 方法来生成详细描述
-                row.createCell(2).setCellValue(buildContentForPackage(pkg));
+                row.createCell(2).setCellValue(buildContentForPackage(pkg,minPriceOpt.get()));
                 //价格需要转为double类型，Excel才能识别为数字
                 row.createCell(3).setCellValue(pkg.getPrice().doubleValue());
                 row.createCell(4).setCellValue(pkg.getDurationInDays());
@@ -128,7 +158,7 @@ public class RagDataService {
      * @param travelPackage 从数据库中查询出的，包含完整关联信息的TravelPackage实体。
      * @return 一段为AI大模型精心准备的、结构化的长文本知识。
      */
-    private String buildContentForPackage(TravelPackage travelPackage) {
+    private String buildContentForPackage(TravelPackage travelPackage,BigDecimal startingPrice) {
         // 防御性编程，避免传入null导致空指针异常
         if (travelPackage == null) {
             return "";
@@ -143,10 +173,19 @@ public class RagDataService {
         if (travelPackage.getDealer() != null && travelPackage.getDealer().getUsername() != null) {
             contentBuilder.append("旅游服务提供商: ").append(travelPackage.getDealer().getUsername()).append("\n");
         }
-        contentBuilder.append("价格: ").append(travelPackage.getPrice().toPlainString()).append("元/人\n");
+
+        // 使用“起价”，并移除具体的出发日期
+        contentBuilder.append("价格从: ").append(startingPrice.toPlainString()).append("元/人起\n");
         contentBuilder.append("行程总天数: ").append(travelPackage.getDurationInDays()).append("天\n");
-        if (travelPackage.getDepartureDate() != null) {
-            contentBuilder.append("具体出发日期: ").append(travelPackage.getDepartureDate().format(dateFormatter)).append("\n");
+        contentBuilder.append("\n");
+
+        // --- Part 2: 【新增】产品特色标签 ---
+        if (travelPackage.getTags() != null && !travelPackage.getTags().isEmpty()) {
+            String tagString = travelPackage.getTags().stream()
+                    .map(Tag::getName)
+                    .collect(Collectors.joining(", "));
+            contentBuilder.append("## 产品特色标签 ##\n")
+                    .append("这个产品包含以下特色：").append(tagString).append("。\n\n");
         }
         contentBuilder.append("\n"); // 空一行，让结构更清晰
         // --- Part 2: 拼接产品的详细文字描述 ---

@@ -16,18 +16,21 @@ import org.whu.backend.dto.post.*;
 import org.whu.backend.entity.InteractionItemType;
 import org.whu.backend.entity.MediaFile;
 import org.whu.backend.entity.Spot;
+import org.whu.backend.entity.Tag;
 import org.whu.backend.entity.accounts.User;
 import org.whu.backend.entity.travelpost.PostImage;
 import org.whu.backend.entity.travelpost.TravelPost;
 import org.whu.backend.repository.FavoriteRepository;
 import org.whu.backend.repository.LikeRepository;
 import org.whu.backend.repository.MediaFileRepository;
+import org.whu.backend.repository.TagRepository;
 import org.whu.backend.repository.post.PostCommentRepository;
 import org.whu.backend.repository.post.TravelPostRepository;
 import org.whu.backend.repository.authRepo.UserRepository;
 import org.whu.backend.service.DtoConverter;
 import org.whu.backend.service.merchant.MerchantPackageService;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -50,6 +53,10 @@ public class UserPostService {
     private LikeRepository likeRepository;
     @Autowired
     private FavoriteRepository favoriteRepository;
+    @Autowired
+    private TagRepository tagRepository;
+    @Autowired
+    private TravelPostRepository travelPostRepository;
 
     @Transactional
     public TravelPost createPost(PostCreateRequestDto dto, String currentUserId) {
@@ -92,10 +99,49 @@ public class UserPostService {
             newPost.getImages().add(postImage);
         }
 
+        // 4.1 处理并关联标签
+        if (dto.getTagIds() != null && !dto.getTagIds().isEmpty()) {
+            List<Tag> tags = tagRepository.findAllById(dto.getTagIds());
+            if (tags.size() != dto.getTagIds().size()) {
+                throw new BizException("部分标签ID无效，请检查后重试");
+            }
+            newPost.setTags(new HashSet<>(tags));
+            log.info("服务层：为新游记关联了 {} 个标签", tags.size());
+        }
+
         // 5. 保存游记
         TravelPost savedPost = postRepository.save(newPost);
         log.info("新游记 '{}' (ID: {}) 已成功创建。", savedPost.getTitle(), savedPost.getId());
         return savedPost;
+    }
+
+    /**
+     *  更新一个游记的标签
+     */
+    @Transactional
+    public void updatePackageTags(String packageId, List<String> tagIds, String currentDealerId) {
+        log.info("服务层：开始为游记ID '{}' 更新标签", packageId);
+
+        // 1. 验证产品是否存在且属于当前经销商
+        TravelPost travelPost = travelPostRepository.findById(packageId)
+                .orElseThrow(() -> new BizException("找不到对应的用户"));
+
+        if (!travelPost.getAuthor().getId().equals(currentDealerId)) {
+            throw new BizException("无权操作不属于自己的游记");
+        }
+
+        // 2. 查找新的标签实体列表
+        List<Tag> newTags = tagRepository.findAllById(tagIds);
+        if (newTags.size() != tagIds.size()) {
+            throw new BizException("部分标签ID无效，请检查后重试");
+        }
+
+        // 3. 替换标签集合
+        travelPost.setTags(new HashSet<>(newTags));
+
+        // 4. 保存更新
+        travelPostRepository.save(travelPost);
+        log.info("服务层：成功将游记ID '{}' 的标签更新为 {} 个", packageId, newTags.size());
     }
 
     // 获取当前用户发布的游记列表（分页）

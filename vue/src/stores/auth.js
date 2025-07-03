@@ -1,10 +1,12 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { jwtDecode } from 'jwt-decode';
+import {statsBuffer as accessToken} from "motion-dom";
 
 export const useAuthStore = defineStore('auth', () => {
   const isLoggedIn = ref(false)
-  const token = ref('')
+  const accessToken = ref('')
+  const refreshToken = ref('')
   const role = ref(null) 
   const userId = ref(null);
 
@@ -23,57 +25,67 @@ export const useAuthStore = defineStore('auth', () => {
   };
 
   // 登录，接受一个包含 token 和 role 的对象
-  function login(authToken,Role) {
-    token.value = authToken
+  function login(tokens,Role) {
+    accessToken.value = tokens.accessToken
+    refreshToken.value = tokens.refreshToken
     role.value = Role   
-    userId.value = parseUserIdFromToken(authToken); 
+    userId.value = parseUserIdFromToken(tokens.accessToken);
     isLoggedIn.value = true
     console.log('userID',userId.value)
 
     // 将 token 和 role 存储到 localStorage
-    localStorage.setItem('token', authToken)
+    localStorage.setItem('accessToken', tokens.accessToken)
+    localStorage.setItem('refreshToken', tokens.refreshToken)
     localStorage.setItem('role', Role )
     localStorage.setItem('userId', userId )
   }
-
+  function updateAccessToken(newToken) {
+    accessToken.value = newToken
+    localStorage.setItem('accessToken', newToken)
+  }
   // 登出
   function logout() {
-    token.value = ''
+    accessToken.value = ''
+    refreshToken.value = ''
     role.value = null 
     isLoggedIn.value = false
 
     // 删除 localStorage 中的 token 和 role
-    localStorage.removeItem('token')
+    localStorage.removeItem('accessToken')
+    localStorage.removeItem('refreshToken')
     localStorage.removeItem('role') 
   }
 
   // checkAuth 函数仅用于初始化时从 localStorage 恢复状态
   function checkAuth() {
-    const storedToken = localStorage.getItem('token')
+    const storedAccessToken = localStorage.getItem('accessToken')
+    const storedRefreshToken = localStorage.getItem('refreshToken')
     const storedRole = localStorage.getItem('role')
 
-    if (storedToken && storedRole) { 
-      token.value = storedToken
-      role.value = storedRole 
+    if (storedAccessToken && storedRefreshToken && storedRole) {
+      accessToken.value = storedAccessToken
+      refreshToken.value = storedRefreshToken
+      role.value = storedRole
+      userId.value = parseUserIdFromToken(storedAccessToken)
       isLoggedIn.value = true
     } else {
-      token.value = ''
-      role.value = null 
-      isLoggedIn.value = false
+      logout()
     }
   }
 
   return {
     isLoggedIn,
-    token,
+    accessToken,
+    refreshToken,
     role,
     login,
     logout,
     checkAuth,
+    updateAccessToken,
     userId
   }
 }, {
   persist: {
-    paths: ['isLoggedIn', 'token', 'role','userId']
+    paths: ['isLoggedIn',  'accessToken', 'refreshToken', 'role','userId']
   }
 })
