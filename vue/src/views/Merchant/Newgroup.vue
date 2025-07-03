@@ -20,51 +20,61 @@
             </div>
           </template>
           <div>
-          <el-button @click="toggleTagSelector">{{ showSelector ? '完成添加' : '添加标签' }}</el-button>
-
-          <div v-if="showSelector" class="tag-selector">
-            <el-input v-model="searchName" placeholder="搜索标签" @input="fetchTags" clearable />
-            <el-select v-model="category" placeholder="选择分类" @change="fetchTags" clearable>
-              <el-option label="主题" value="THEME" />
-              <el-option label="受众" value="TARGET_AUDIENCE" />
-              <el-option label="目的地" value="DESTINATION" />
-              <el-option label="特色" value="FEATURE" />
-            </el-select>
-
-            <div class="tag-list">
-              <el-tag
-                v-for="tag in tagList"
-                :key="tag.id"
-                :type="isSelected(tag) ? 'success' : 'info'"
-                @click="toggleTag(tag)"
-                class="tag-item"
-              >
-                {{ tag.name }}
-              </el-tag>
+            <div class="tag-button-wrapper">
+            <el-button type = text @click="toggleTagSelector">{{ showSelector ? '完成添加' : '快来为你的旅行团添加标签吧！' }}</el-button>
             </div>
 
-            <el-pagination
-              layout="prev, pager, next"
-              :total="total"
-              :page-size="size"
-              :current-page="page"
-              @current-change="handlePageChange"
-              small
-            />
+            <div v-if="showSelector" class="tag-selector">
+              <div class="search-and-category-row"> <el-input v-model="searchName" placeholder="搜索标签" @input="fetchTags" clearable class="search-input">
+                <template #prefix> <el-icon><Search /></el-icon>
+                </template>
+              </el-input>
+              <el-select v-model="category" placeholder="选择分类" @change="fetchTags" clearable class="category-select">
+                <el-option label="主题" value="THEME" />
+                <el-option label="受众" value="TARGET_AUDIENCE" />
+                <el-option label="目的地" value="DESTINATION" />
+                <el-option label="特色" value="FEATURE" />
+              </el-select>
+              </div>
+
+              <div class="tag-list">
+                <el-tag
+                  v-for="tag in tagList"
+                  :key="tag.id"
+                  :type="isSelected(tag) ? '' : 'info'"
+                  @click="toggleTag(tag)"
+                  class="tag-item"
+                >
+                  {{ tag.name }}
+                </el-tag>
+              </div>
+              
+              <div class="pagination-wrapper">
+                <el-pagination
+                  layout="prev, pager, next"
+                  :total="total"
+                  :page-size="size"
+                  :current-page="page"
+                  @current-change="handlePageChange"
+                  small
+                />
+              </div>
+            </div>
+
+            <div v-if="selectedTags.length > 0" class="selected-tags">
+              <div class="selected-tags-content"> <span class="selected-tags-label">已选标签：</span> 
+                <el-tag
+                  v-for="tag in selectedTags"
+                  :key="tag.id"
+                  closable
+                  @close="removeTag(tag)"
+                  class="selected-tag-item" >
+                  {{ tag.name }}
+                </el-tag>
+              </div>
+            </div>
           </div>
 
-          <div v-if="selectedTags.length > 0" class="selected-tags">
-            <h4>已选标签：</h4>
-            <el-tag
-              v-for="tag in selectedTags"
-              :key="tag.id"
-              closable
-              @close="removeTag(tag)"
-            >
-              {{ tag.name }}
-            </el-tag>
-          </div>
-        </div>
           <el-form label-width="100px" label-position="left">
             <el-form-item label="📝 标题">
               <el-input v-model="title" placeholder="请输入旅行团的吸引人的标题，例如：魔都寻宝：上海经典三日游"></el-input>
@@ -622,6 +632,9 @@ const submitTourPackage = async () => {
   if (dailySchedules.value.length === 0) { ElMessage.error('请生成行程框架并添加行程。'); return; }
   if (uploadedBackendFileIds.length === 0) { ElMessage.error('请上传至少一张团主图。'); return; }
 
+  // 获取选中的标签ID列表 (即使为空数组也会正常提交)
+  const selectedTagIds = selectedTags.value.map(tag => tag.id);
+
   // 构建要提交的 dailySchedules 数组
   const formattedDailySchedules = dailySchedules.value.map((day, index) => ({
     dayNumber: index + 1,
@@ -636,6 +649,7 @@ const submitTourPackage = async () => {
     durationInDays: travelDays.value,
     dailySchedules: formattedDailySchedules,
     imgIds: uploadedBackendFileIds, 
+    tagIds: selectedTagIds,
   };
 
   console.log('即将提交的旅行团数据:', JSON.stringify(tourPackageData, null, 2));
@@ -690,7 +704,7 @@ const submitTourPackage = async () => {
   padding-bottom: 20px;
   border-bottom: 1px solid #e0e0e0; /* 分隔线 */
 }
-
+/*发布新的旅行团*/
 .page-title {
   font-size: 2.2rem;
   font-weight: 700;
@@ -700,19 +714,18 @@ const submitTourPackage = async () => {
   align-items: center;
   justify-content: center;
 }
-
 .page-title .el-icon {
   font-size: 2.2rem;
   margin-right: 10px;
   color: #00796b; 
 }
-
+/* 在这里创建您独一无二的旅行团行程，让更多人发现精彩！*/
 .page-subtitle {
   font-size: 1.1rem;
   color: #666;
   font-weight: 400;
 }
-
+/* 返回按钮 */
 .back-to-profile-btn{
   position:absolute;
   top:10px;
@@ -744,7 +757,6 @@ const submitTourPackage = async () => {
   justify-content: space-between;
   align-items: center;
   padding-bottom: 15px;
-  border-bottom: 1px solid #f0f0f0;
   margin-bottom: 20px;
 }
 
@@ -758,6 +770,63 @@ const submitTourPackage = async () => {
 .card-header .el-icon {
   font-size: 1.5rem;
   color: #909399; /* 标题图标颜色 */
+}
+
+/* --添加标签相关-- */
+.tag-button-wrapper {
+  text-align: center; /* 使内部行内元素居中 */
+  margin-bottom: 20px; /* 给按钮下方留点空间 */
+}
+.tag-selector {
+  margin-top: 20px; /* 调整与上方按钮的间距 */
+  margin-bottom: 20px; /* 调整与下方标签列表的间距 */
+}
+.search-and-category-row {
+  display: flex; 
+  gap: 20px; /* 搜索框与分类之间的间距 */
+  margin-bottom: 15px; /* 与下方标签列表的间距 */
+}
+.search-input {
+  flex-grow: 1; /* 让搜索框占据剩余的所有可用空间 */
+}
+.category-select {
+  width: 150px; /* 设置选择分类的固定宽度 */
+}
+.pagination-wrapper { 
+  display: flex;
+  justify-content: center; /* 水平居中 */
+  margin-top: 15px; /* 分页组件顶部间距 */
+}
+.selected-tags-label{
+  font-size: 14px;      
+  color: #606266;       
+  font-weight: bold;    
+  white-space: nowrap; 
+}
+.tag-list {
+  margin: 10px 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.tag-item {
+  cursor: pointer;
+}
+.selected-tags {
+  margin-top: 10px;/* 与上方标签选择器间距 */
+  margin-bottom: 30px;/* 已选标签区域下方间距** */
+}
+.selected-tags-content{
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.selected-tags-label {
+  font-weight: 500; 
+  color: #555;     
+  font-size: 14px;  
+  white-space: nowrap; /* 防止文本换行 */
 }
 
 /* 基本信息卡片 */
@@ -1121,18 +1190,5 @@ const submitTourPackage = async () => {
   transform: scale(1.1);
 }
 
-.tag-list {
-  margin: 10px 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
 
-.tag-item {
-  cursor: pointer;
-}
-
-.selected-tags {
-  margin-top: 10px;
-}
 </style>
