@@ -65,6 +65,12 @@ dashscope:
   api-key: sk-98e1d9b45e064da1a03e214f7c0ff468
   app-id: a3a0b11cce024d7b8325632b2cab6924
 
+recommendation:
+  weights:
+    order: 10
+    favorite: 5
+    like: 3
+    view: 1
 
 baidu:
   map:
@@ -82,6 +88,6 @@ sms:
   smsSignId: 2e65b1bb3d054466b82f0c9d125465e2
   templateId: 908e94ccf08b4476ba6c876d13f084ad
 
-devtools:
-  restart:
-    enabled: false
+#devtools:
+#  restart:
+#    enabled: false
