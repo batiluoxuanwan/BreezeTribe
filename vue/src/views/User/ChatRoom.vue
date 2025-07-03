@@ -63,7 +63,7 @@ import { connectWebSocket, sendMessage } from '@/utils/websocket.js';
 import {authAxios} from "@/utils/request.js";
 import {ElMessage} from "element-plus";
 import defaultAvatar from '@/assets/NotFoundsonailong.jpg';
-
+import { useChatStore } from '@/stores/chatStore'
 
 import ChatHeader from '@/components/chat/ChatHeader.vue'
 import ChatMessage from '@/components/chat/ChatMessage.vue'
@@ -71,6 +71,7 @@ import ChatMessage from '@/components/chat/ChatMessage.vue'
 
 
 const authStore = useAuthStore();
+const chatStore = useChatStore();
 const currentUserId = computed(() => authStore.userId);
 // 在 setup() 里定义响应式对象
 const user = reactive({
@@ -97,7 +98,8 @@ const token = authStore.token;
 console.log('当前用户ID:', currentUserId.value);
 console.log('聊天对象ID:', friendId);
 
-const messages = ref([]);
+//const messages = ref([]);
+const messages = computed(() => chatStore.getMessages(friendId))
 const newMessage = ref('');
 const messagesBox = ref(null);
 
@@ -147,47 +149,34 @@ onMounted(async () => {
   isLoading.value = false;
 
   // 1. 拉取历史消息
-  const res = await authAxios.get('/messages/' + friendId, {
-    headers: { Authorization: `Bearer ${token}` }
-  });
-  console.log('token:', token);
+  const res = await authAxios.get('/messages/' + friendId)
+  //console.log('token:', token);
   console.log(res.data);
-  messages.value = res.data.map(m => ({
+  const history = res.data.map(m => ({
     from: m.fromAccountId,
     to: m.toAccountId,
     content: m.content,
     timestamp: m.timestamp
   }));
 
-  // 2. 启动 WebSocket
-  connectWebSocket(token,(msg) => {
-    // 只接收当前聊天对象相关的消息
-    console.log('🚀 收到消息:', msg);
-    if (
-        (msg.from === currentUserId.value && msg.to === friendId) ||
-        (msg.from === friendId && msg.to === currentUserId.value)
-    ) {
-      messages.value.push(msg);
-      scrollToBottom();
-    }
-  });
+  chatStore.setHistory(friendId, history)
 });
-
 function send() {
-  if (newMessage.value.trim() === '') return;
+  if (!newMessage.value.trim()) return
 
   const msg = {
-    from: currentUserId.value,   // 注意这里要加 .value，获取原始数据
+    from: currentUserId.value,
     to: friendId,
     content: newMessage.value.trim(),
     timestamp: new Date().toISOString()
-  };
+  }
 
-  sendMessage(msg);
-  messages.value.push(msg);
-  newMessage.value = '';
-  scrollToBottom();
+  sendMessage(msg)
+  chatStore.addMessage(msg)
+  newMessage.value = ''
+  scrollToBottom()
 }
+
 
 function scrollToBottom() {
   nextTick(() => {
