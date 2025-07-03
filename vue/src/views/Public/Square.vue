@@ -11,9 +11,6 @@
       <!-- 搜索排序栏 -->
       <el-card class="filter-card">
         <el-form :inline="true" :model="searchForm" class="search-form">
-          <el-form-item label="目的地">
-            <el-input v-model="searchForm.destination" placeholder="输入目的地" clearable></el-input>
-          </el-form-item>
           <el-form-item label="关键词">
             <el-input v-model="searchForm.keyword" placeholder="搜索标题/内容" clearable></el-input>
           </el-form-item>

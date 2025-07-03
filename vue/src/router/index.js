@@ -50,6 +50,11 @@ const routes =[
         component:() =>import('../views/Merchant/Newgroup.vue')
     },
     {
+        path:'/merchant/addschedule',
+        name:'发布新团',
+        component:() =>import('../views/Merchant/AddSchedule.vue')
+    },
+    {
         path:'/administrator/me',
         name:'管理员个人主页',
         component:() =>import('../views/Administrator/Profile.vue')
@@ -75,16 +80,15 @@ const routes =[
     {
         path: '/chat/:friendId',
         name: 'ChatRoom',
-        component: () => import('../views/User/ChatRoom.vue'),
-        props: true // 开启 props 传参
+        component: () => import('../components/chat/ChatRoom.vue'),
+        props: true 
     },
     {
-        path: '/user/friends',
-        name: 'FriendList',
-        component: () => import('../views/User/FriendList.vue'),
-        //props: true // 开启 props 传参
-    },
-
+        path: '/user/addfriend',
+        name: 'AddFriend',
+        component: () => import('../components/chat/AddFriend.vue'),
+        props: true 
+    }
 ];
 
 const router = createRouter({

@@ -50,6 +50,13 @@
           <el-badge v-if="unreadNotifications > 0" :value="unreadNotifications" class="notification-badge" />
         </div>
         <div
+          :class="{ 'menu-item': true, 'active': activeTab === 'friends' }"
+          @click="activeTab = 'friends'"
+        >
+          <el-icon><User /></el-icon>
+          <span>我的好友</span>
+        </div>
+        <div
           :class="{ 'menu-item': true, 'active': activeTab === 'systemSettings' }"
           @click="activeTab = 'systemSettings'"
         >
@@ -61,7 +68,7 @@
 
     <main class="main-content">
       <el-tabs v-model="activeTab" class="hidden-tabs-header">
-          <el-tab-pane label="我的收藏" name="collected">
+        <el-tab-pane label="我的收藏" name="collected">
             <MyFavorites/>
         </el-tab-pane>
 
@@ -96,6 +103,10 @@
         <MyNotifications/>
       </el-tab-pane>
 
+        <el-tab-pane label="我的好友" name="friends">
+          <MyFriends/>
+        </el-tab-pane>
+
         <el-tab-pane label="系统设置" name="systemSettings">
           <div style="margin-bottom: 32px;">
             <AccountOverview @userUpdated="handleUserUpdated"/>
@@ -108,18 +119,19 @@
 
 <script setup>
 import { onMounted, ref,computed,reactive,watch } from 'vue'
-import { Star, Tickets, EditPen, Comment, Bell, ArrowLeft, Plus } from '@element-plus/icons-vue' 
+import { User,Star, Tickets, EditPen, Comment, Bell, ArrowLeft, Plus } from '@element-plus/icons-vue' 
 import { ElMessageBox,ElTabs, ElTabPane, ElCard, ElForm, ElFormItem, ElInput, ElSelect, ElOption, ElButton, ElPagination, ElEmpty, ElMessage } from 'element-plus';
 
 
 import { useRoute,useRouter } from 'vue-router';
 import { authAxios,publicAxios } from '@/utils/request';
 
-import MyNotes from '@/components/profile_user/MyNotes.vue' 
-import MyFavorites from '@/components/profile_user/MyFavorites.vue' 
-import MyJoinedTours from '@/components/profile_user/MyJoinedTours.vue' 
+import MyNotes from '@/components/profile/MyNotes.vue' 
+import MyFavorites from '@/components/profile/MyFavorites.vue' 
+import MyJoinedTours from '@/components/profile/MyJoinedTours.vue' 
+import MyNotifications from '@/components/profile/MyNotifications.vue';
+import MyFriends from '@/components/profile/MyFriends.vue' 
 import AccountOverview from '@/components/AccountOverview.vue' 
-import MyNotifications from '@/components/profile_user/MyNotifications.vue';
 const router = useRouter();
 const route = useRoute();
 const user = reactive({

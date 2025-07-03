@@ -519,9 +519,10 @@ const handleBindSubmit = async () => {
 
       const res = await authAxios.put('/auth/rebind', requestPayload); 
 
-      if (res.data.code === 0) { 
+      if (res.data.code === 200) { 
         ElMessage.success(`绑定${currentBindType.value === 'phone' ? '手机' : '邮箱'}成功！`);
         bindNewDialogVisible.value = false;
+        fetchUserInfo();
         emit('userUpdated');
         await fetchUserInfo(); 
       } else {
