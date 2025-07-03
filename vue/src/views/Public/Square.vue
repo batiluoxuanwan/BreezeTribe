@@ -11,9 +11,6 @@
       <!-- 搜索排序栏 -->
       <el-card class="filter-card">
         <el-form :inline="true" :model="searchForm" class="search-form">
-          <el-form-item label="目的地">
-            <el-input v-model="searchForm.destination" placeholder="输入目的地" clearable></el-input>
-          </el-form-item>
           <el-form-item label="关键词">
             <el-input v-model="searchForm.keyword" placeholder="搜索标题/内容" clearable></el-input>
           </el-form-item>
@@ -243,10 +240,6 @@ const resetFilters = () => {
 watch(
   [activeTab, searchKeyword], // 监听 activeTab 和 keyword
   ([newTab, newKeyword], [oldTab, oldKeyword]) => {
-    // 只有当 activeTab 改变或者 keyword 改变时才触发刷新
-    // 避免不必要的重复加载，可以根据需求更精细地控制
-
-    // 如果是 activeTab 改变，根据新的 tab 加载数据
     if (newTab !== oldTab) {
       if (newTab === 'groups') {
         console.log('Tab switched to groups, fetching travel groups...');
@@ -257,9 +250,7 @@ watch(
       }
     } 
     
-    // 如果是 keyword 改变，并且当前 tab 匹配，也加载数据
-    // 注意：这里需要确保 newTab 是你想要加载数据的 tab
-    if (newKeyword !== oldKeyword && newKeyword.trim() !== '') { // 确保 keyword 不为空
+    if (newKeyword !== oldKeyword && newKeyword.trim() !== '') {
         if (newTab === 'groups') {
             console.log('Keyword changed in groups tab, fetching travel groups...');
             fetchTravelGroups();

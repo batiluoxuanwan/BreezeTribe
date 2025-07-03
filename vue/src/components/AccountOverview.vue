@@ -170,7 +170,7 @@
 import { ref, onMounted ,reactive,computed,onUnmounted} from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { publicAxios,authAxios } from '@/utils/request'
+import { authAxios } from '@/utils/request'
 import { Iphone, Message, ArrowRight,Key,EditPen } from '@element-plus/icons-vue'
 import { watch } from 'vue'
 import ChangePassword from '@/components/ChangePassword.vue';
@@ -246,13 +246,15 @@ const customUpload = async ({ file }) => {
         if (response.data.code === 200) {
             ElMessage.success('头像上传成功')
             console.log(response.data.data)
-            user.avatarUrl = response.data.data.url || ''
+            user.avatarUrl = response.data.data.url 
+            fetchUserInfo();
             emit('userUpdated');
-            console.log(user.value.avatarUrl)
+            console.log(user.avatarUrl)
         } else {
             ElMessage.error(response.data.message || '上传失败')
         }
     } catch (error) {
+      console.error('上传异常', error)
         ElMessage.error('上传失败，请稍后重试')
     }
 }
@@ -517,9 +519,10 @@ const handleBindSubmit = async () => {
 
       const res = await authAxios.put('/auth/rebind', requestPayload); 
 
-      if (res.data.code === 0) { 
+      if (res.data.code === 200) { 
         ElMessage.success(`绑定${currentBindType.value === 'phone' ? '手机' : '邮箱'}成功！`);
         bindNewDialogVisible.value = false;
+        fetchUserInfo();
         emit('userUpdated');
         await fetchUserInfo(); 
       } else {
