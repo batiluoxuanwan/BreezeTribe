@@ -43,7 +43,6 @@ import org.whu.backend.repository.LikeRepository;
 import org.whu.backend.repository.post.TravelPostRepository;
 import org.whu.backend.repository.travelRepo.*;
 import org.whu.backend.service.DtoConverter;
-import org.whu.backend.service.NotificationService;
 import org.whu.backend.util.AccountUtil;
 import org.whu.backend.util.JpaUtil;
 
@@ -77,8 +76,6 @@ public class UserService {
     private DtoConverter dtoConverter;
     @Autowired
     private PackageCommentRepository packageCommentRepository;
-    @Autowired
-    private NotificationService notificationService;
     @Autowired
     private ApplicationEventPublisher eventPublisher;
 

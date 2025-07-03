@@ -12,7 +12,9 @@ import org.whu.backend.entity.travelpac.TravelPackage;
 import org.whu.backend.event.order.OrderCancelledEvent;
 import org.whu.backend.event.order.OrderConfirmedEvent;
 import org.whu.backend.event.order.OrderCreatedEvent;
+import org.whu.backend.event.post.PostCommentedEvent;
 import org.whu.backend.event.post.PostLikedEvent;
+import org.whu.backend.event.travelpac.PackageCommentedEvent;
 import org.whu.backend.event.travelpac.PackageFavouredEvent;
 import org.whu.backend.repository.travelRepo.TravelPackageRepository;
 import org.whu.backend.service.NotificationService;
@@ -75,7 +77,7 @@ public class NotificationEventListener {
         TravelOrder order = event.getOrder();
         User user = order.getUser();
         String packageTitle = order.getTravelDeparture().getTravelPackage().getTitle();
-        String description = String.format("您关于旅行产品 [%s] 的订单已经取消成功。", packageTitle);
+        String description = String.format("您关于旅行产品 [%s] 的订单已经取消成功", packageTitle);
         notificationService.createAndSendNotification(
                 user,
                 Notification.NotificationType.ORDER_CANCELED,
@@ -93,7 +95,7 @@ public class NotificationEventListener {
         String userName = event.getUser().getUsername();
         TravelPackage travelPackage = JpaUtil.getOrThrow(travelPackageRepository, event.getPackageId(), "旅行团不存在");
         String packageTitle = travelPackage.getTitle();
-        String description = String.format("用户 [%s] 收藏了你的旅行团 [%s] ", userName, packageTitle);
+        String description = String.format("用户 [%s] 收藏了你的旅行团 [%s]", userName, packageTitle);
         notificationService.createAndSendNotification(
                 travelPackage.getDealer(),
                 Notification.NotificationType.NEW_PACKAGE_FAVORITE,
@@ -110,7 +112,7 @@ public class NotificationEventListener {
 
         String userName = event.getUser().getUsername();
         String postTitle = event.getPost().getTitle();
-        String description = String.format("用户 [%s] 点赞了你的游记 [%s] ", userName, postTitle);
+        String description = String.format("用户 [%s] 点赞了你的游记 [%s]", userName, postTitle);
         notificationService.createAndSendNotification(
                 event.getPost().getAuthor(),
                 Notification.NotificationType.NEW_POST_LIKE,
@@ -118,6 +120,40 @@ public class NotificationEventListener {
                 null,
                 event.getUser(),
                 event.getPost().getId()
+        );
+    }
+
+    @Async
+    @EventListener
+    public void handlePostCommented(PostCommentedEvent event) {
+        String userName = event.getCommentSender().getUsername();
+        String postTitle = event.getPost().getTitle();
+        String content = event.getContent();
+        String description = String.format("用户 [%s] 在游记 [%s] 中回复了你：[%s]", userName, postTitle, content);
+        notificationService.createAndSendNotification(
+                event.getCommentReceiver(),
+                Notification.NotificationType.NEW_POST_COMMENT,
+                description,
+                content,
+                event.getCommentSender(),
+                event.getPost().getId()
+        );
+    }
+
+    @Async
+    @EventListener
+    public void handlePackageCommented(PackageCommentedEvent event){
+        String userName = event.getCommentSender().getUsername();
+        String packageTitle = event.getTravelPackage().getTitle();
+        String content = event.getContent();
+        String description = String.format("用户 [%s] 在旅行团评价 [%s] 中回复了你：[%s]", userName, packageTitle, content);
+        notificationService.createAndSendNotification(
+                event.getCommentReceiver(),
+                Notification.NotificationType.NEW_PACKAGE_COMMENT,
+                description,
+                content,
+                event.getCommentSender(),
+                event.getTravelPackage().getId()
         );
     }
 }
