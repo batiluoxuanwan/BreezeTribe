@@ -4,6 +4,8 @@ import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -20,7 +22,6 @@ import org.whu.backend.dto.like.LikeDetailDto;
 import org.whu.backend.dto.like.LikePageRequestDto;
 import org.whu.backend.dto.like.LikeRequestDto;
 import org.whu.backend.dto.order.OrderCreateRequestDto;
-import org.whu.backend.dto.order.OrderDetailDto;
 import org.whu.backend.dto.order.TravelOrderDetailDto;
 import org.whu.backend.dto.user.InteractionStatusRequestDto;
 import org.whu.backend.dto.user.InteractionStatusResponseDto;
@@ -32,6 +33,7 @@ import org.whu.backend.entity.Notification;
 import org.whu.backend.entity.travelpac.TravelDeparture;
 import org.whu.backend.entity.travelpac.TravelOrder;
 import org.whu.backend.entity.travelpost.TravelPost;
+import org.whu.backend.event.UserInteractionEvent;
 import org.whu.backend.repository.FavoriteRepository;
 import org.whu.backend.repository.LikeRepository;
 import org.whu.backend.repository.post.TravelPostRepository;
@@ -49,8 +51,6 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 public class UserService {
-    @Autowired
-    private OrderRepository orderRepository;
     @Autowired
     private TravelOrderRepository travelOrderRepository;
     @Autowired
@@ -75,6 +75,15 @@ public class UserService {
     private PackageCommentRepository packageCommentRepository;
     @Autowired
     private NotificationService notificationService;
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
+
+    @Value("${recommendation.weights.order}")
+    private int orderWeight;
+    @Value("${recommendation.weights.favorite}")
+    private int favoriteWeight;
+    @Value("${recommendation.weights.like}")
+    private int likeWeight;
 
     /**
      * 【核心重构】创建一个订单
@@ -135,6 +144,10 @@ public class UserService {
                 null,
                 departure.getTravelPackage().getId()
         );
+
+        // 7. 更新用户画像
+        Set<Tag> tags = savedOrder.getTravelDeparture().getTravelPackage().getTags();
+        eventPublisher.publishEvent(new UserInteractionEvent(this, savedOrder.getUser().getId(), tags, orderWeight)); // 权重10分！
 
         return dtoConverter.convertTravelOrderToDetailDto(savedOrder);
     }
@@ -290,7 +303,6 @@ public class UserService {
             throw new BizException("已经收藏过该对象");
         }
 
-        TravelPost post = null;
         // 根据类型增加对应的统计数据
         switch (favoriteRequestDto.getItemType()) {
             case PACKAGE:
@@ -305,7 +317,6 @@ public class UserService {
                 JpaUtil.getOrThrow(routeRepository, favoriteRequestDto.getItemId(), "路线不存在");
                 break;
             case POST:
-                post = JpaUtil.getOrThrow(travelPostRepository, favoriteRequestDto.getItemId(), "游记不存在");
                 travelPostRepository.incrementFavoriteCount(favoriteRequestDto.getItemId());
                 break;
             default:
@@ -319,9 +330,11 @@ public class UserService {
 
         favoriteRepository.save(favorite);
 
-        // 根据对应类型发送对应的通知
+        // 根据对应类型发送对应的通知，触发对应的用户标签权重
         switch (favoriteRequestDto.getItemType()) {
             case PACKAGE:
+                Set<Tag> packageTags = JpaUtil.getOrThrow(travelPackageRepository, favoriteRequestDto.getItemId(), "旅行团不存在").getTags();
+                eventPublisher.publishEvent(new UserInteractionEvent(this,user.getId(), packageTags, favoriteWeight));
                 break;
             case SPOT:
                 break;
@@ -330,6 +343,7 @@ public class UserService {
             case POST:
                 // 发送游记被收藏的通知
                 log.info("给用户 {} 发送被游记被收藏的通知", user.getUsername());
+                TravelPost post = JpaUtil.getOrThrow(travelPostRepository, favoriteRequestDto.getItemId(), "游记不存在");
                 String description = String.format("%s 收藏了你的游记 %s", user.getUsername(), post.getTitle());
                 notificationService.createAndSendNotification(
                         post.getAuthor(),
@@ -339,11 +353,12 @@ public class UserService {
                         user,
                         post.getId()
                 );
+                Set<Tag> postTags = post.getTags();
+                eventPublisher.publishEvent(new UserInteractionEvent(this,user.getId() , postTags, favoriteWeight));
                 break;
             default:
                 throw new BizException("非法参数：未知的收藏类型");
         }
-
 
         return true;
     }
@@ -427,12 +442,25 @@ public class UserService {
             throw new BizException("不能重复点赞");
         }
 
-        TravelPost post = null;
-
+        // 发送通知与更新画像
         switch (likeRequestDto.getItemType()) {
             case POST:
-                post = JpaUtil.getOrThrow(travelPostRepository, likeRequestDto.getItemId(), "游记不存在");
+                // 更新画像
+                TravelPost post = JpaUtil.getOrThrow(travelPostRepository, likeRequestDto.getItemId(), "游记不存在");
                 travelPostRepository.incrementLikeCount(likeRequestDto.getItemId());
+                eventPublisher.publishEvent(new UserInteractionEvent(this,user.getId() , post.getTags(), likeWeight));
+                // 发送游记被点赞的通知
+                String description = String.format("%s 赞了你的游记 %s", user.getUsername(), post.getTitle());
+                notificationService.createAndSendNotification(
+                        post.getAuthor(),
+                        Notification.NotificationType.NEW_POST_LIKE,
+                        description,
+                        null,
+                        user,
+                        post.getId()
+                );
+                break;
+            case PACKAGE:
                 break;
             default:
                 throw new BizException("非法参数：未知的点赞类型");
@@ -444,19 +472,6 @@ public class UserService {
         like.setItemType(likeRequestDto.getItemType());
 
         likeRepository.save(like);
-
-        // 发送游记被点赞的通知
-        String description = String.format("%s 赞了你的游记 %s", user.getUsername(), post.getTitle());
-
-        notificationService.createAndSendNotification(
-                post.getAuthor(),
-                Notification.NotificationType.NEW_POST_LIKE,
-                description,
-                null,
-                user,
-                post.getId()
-        );
-
         return true;
     }
 
@@ -474,6 +489,10 @@ public class UserService {
             case POST:
                 travelPostRepository.decrementLikeCount(likeRequestDto.getItemId());
                 break;
+            case PACKAGE:
+                break;
+            default:
+                throw new BizException("非法参数：未知的点赞类型");
         }
         likeRepository.delete(existing.get());
         return true;
@@ -560,25 +579,25 @@ public class UserService {
     }
 
     // 准备废弃
-    public PageResponseDto<OrderDetailDto> getMyOrders(@Valid FavoritePageReqDto pageRequestDto) {
-        User user = securityUtil.getCurrentUser();
-
-        // 构造分页与排序对象
-        Sort.Direction direction = Sort.Direction.fromString(pageRequestDto.getSortDirection());
-        Pageable pageable = PageRequest.of(
-                pageRequestDto.getPage() - 1,
-                pageRequestDto.getSize(),
-                Sort.by(direction, pageRequestDto.getSortBy())
-        );
-
-        // 查询订单数据
-        Page<Order> orderPage = orderRepository.findByUser(user, pageable);
-
-        // 构造返回 DTO 列表
-        List<OrderDetailDto> content = orderPage.getContent().stream()
-                .map(dtoConverter::convertOrderToDetailDto).toList();
-
-        // 返回分页响应结果
-        return dtoConverter.convertPageToDto(orderPage, content);
-    }
+//    public PageResponseDto<OrderDetailDto> getMyOrders(@Valid FavoritePageReqDto pageRequestDto) {
+//        User user = securityUtil.getCurrentUser();
+//
+//        // 构造分页与排序对象
+//        Sort.Direction direction = Sort.Direction.fromString(pageRequestDto.getSortDirection());
+//        Pageable pageable = PageRequest.of(
+//                pageRequestDto.getPage() - 1,
+//                pageRequestDto.getSize(),
+//                Sort.by(direction, pageRequestDto.getSortBy())
+//        );
+//
+//        // 查询订单数据
+//        Page<Order> orderPage = orderRepository.findByUser(user, pageable);
+//
+//        // 构造返回 DTO 列表
+//        List<OrderDetailDto> content = orderPage.getContent().stream()
+//                .map(dtoConverter::convertOrderToDetailDto).toList();
+//
+//        // 返回分页响应结果
+//        return dtoConverter.convertPageToDto(orderPage, content);
+//    }
 }
