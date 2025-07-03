@@ -48,7 +48,7 @@ public class JwtService {
         String refreshToken = generateToken(account, 7 * 24 * 60 * 60 * 1000); // 7天
 
         redisTemplate.opsForValue().set("refresh:" + account.getId(), refreshToken, 7, TimeUnit.DAYS);
-
+        System.out.println(refreshToken);
         return Map.of("accessToken", accessToken, "refreshToken", refreshToken);
     }
 

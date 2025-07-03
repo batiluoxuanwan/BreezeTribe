@@ -1,5 +1,6 @@
 package org.whu.backend.filter;
 
+import io.jsonwebtoken.ExpiredJwtException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
@@ -67,8 +68,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        String identifier = jwtService.extractAccountIdentifier(token);
-        Role role = jwtService.extractAccountRole(token);
+        try {
+            // 你的token解析逻辑
+            String identifier = jwtService.extractAccountIdentifier(token);
+            Role role = jwtService.extractAccountRole(token);
 
         if (identifier == null || role == null || SecurityContextHolder.getContext().getAuthentication() != null) {
             filterChain.doFilter(request, response);
@@ -95,7 +98,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
         }
-
+        } catch (ExpiredJwtException e) {
+            // 这里直接构造401响应，终止filterChain
+            //过滤器里面打爆出的错误不会被全局异常处理器捕捉
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json;charset=UTF-8");
+            response.getWriter().write("{\"code\":401,\"msg\":\"访问令牌已过期，请重新登录\"}");
+            return;
+        }
         filterChain.doFilter(request, response);
     }
 }

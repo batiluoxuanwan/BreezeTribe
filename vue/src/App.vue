@@ -2,10 +2,11 @@
   import { useAuthStore } from './stores/auth'
   import { onMounted } from 'vue'
 
-  const authStore = useAuthStore()
+  const authStore = useAuthStore();
 
-  onMounted(() => {
-    authStore.checkAuth()
+  onMounted(async () => {
+    await authStore.checkAuth();
+    const token = authStore.accessToken;
   })
 
 </script>

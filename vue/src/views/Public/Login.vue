@@ -80,6 +80,10 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 import { publicAxios } from "@/utils/request"
+import {connectWebSocket,onMessageCallback} from "@/utils/websocket.js";
+import { useChatStore } from '@/stores/chatStore'
+import { ElNotification } from 'element-plus'
+import { useRoute } from 'vue-router'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -98,6 +102,7 @@ const loginForm = reactive({
   password: '',
   role: '',
 })
+
 
 // 监听 mode 变化，清空不相关的字段值和校验状态
 watch(mode, (newMode) => {
@@ -188,6 +193,12 @@ const handleLogin = () => {
                     authStore.login(response.data.data.tokens,loginForm.role);
                     console.log(response.data.data,loginForm.role);
                     await router.push('/');
+                    //connectWebSocket(token, handleMessageCallback);
+                    //登录成功后
+                    const token = response.data.data.tokens.accessToken;
+                    // 2. 建立 WebSocket 连接，传入消息回调
+                    await connectWebSocket(token, onMessageCallback);
+
                 } else {
                     ElMessage.error(response.data.message || '登录失败');
                 }
@@ -263,7 +274,7 @@ const goRegister = () => {
 }
 
 .login-left {
-  width: 340px;
+  width: 330px;
   background: white;
   border-radius: 50px;
   padding: 40px;
@@ -279,10 +290,10 @@ const goRegister = () => {
 
 .login-right {
   position: absolute;
-  right: 60px;  
+  right: 50px;  
   top: 50%;
   transform: translateY(-50%);
-  width: 400px;
+  width: 395px;
   height:550px;
   padding: 50px 30px;
   background: #6fc3b06f;

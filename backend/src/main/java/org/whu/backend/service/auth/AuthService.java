@@ -206,12 +206,13 @@ public class AuthService {
         System.out.println("-------------------logout-------------------");
         return Result.success("");
     }
+
+    //TODO:
     public Result<Map<String, String>> refreshAccessToken(String refreshToken) {
         // 1. 校验 refreshToken 存在性
         if (!StringUtils.hasText(refreshToken)) {
             throw new BizException("RefreshToken 缺失");
         }
-
         // 2. 解析 userId（即 JWT 中 subject）
         String userId;
         try {
@@ -228,6 +229,7 @@ public class AuthService {
         // 4. 校验 Redis 中是否存在此 refreshToken
         String redisKey = "refresh:" + userId;
         String storedToken = redisTemplate.opsForValue().get(redisKey);
+        System.out.println(storedToken);
         if (storedToken == null || !storedToken.equals(refreshToken)) {
             throw new BizException("非法的 RefreshToken");
         }
@@ -236,7 +238,7 @@ public class AuthService {
         Account account = authRepository.findById(userId).orElseThrow(() -> new BizException("账户不存在"));
 //        if(!userId.equals(AccountUtil.getCurrentAccountId()))
 //            throw new BizException("非也");
-        String newAccessToken = jwtService.generateToken(account, 15 * 60 * 1000);
+        String newAccessToken = jwtService.generateToken(account);
 
         // （可选）refreshToken 快过期时，也重新颁发新的 refreshToken（建议提升安全性）
         // 此处我们不做更新，只返回新的 accessToken
