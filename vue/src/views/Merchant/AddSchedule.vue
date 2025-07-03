@@ -168,7 +168,7 @@ import { ref, reactive, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { authAxios } from '@/utils/request';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Suitcase, Sunrise, Calendar, Plus, List, Delete, Edit, ArrowLeft, ArrowDown, ArrowUp, UploadFilled } from '@element-plus/icons-vue';
+import { Sunrise, Calendar, Plus, List, Delete, Edit, ArrowLeft, ArrowDown, ArrowUp, UploadFilled } from '@element-plus/icons-vue';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc'; 
 
@@ -240,7 +240,7 @@ const departuresLoading = ref(false); // 团期列表的加载状态
 
 const departurePagination = reactive({
   pageNumber: 1,
-  pageSize: 5, // 团期列表每页显示数量可以少一点
+  pageSize: 100, // 团期列表每页显示数量
   totalElements: 0,
   totalPages: 0,
 });
@@ -274,13 +274,11 @@ const fetchDepartures = async (pkgId) => {
 
   departuresLoading.value = true;
   try {
-    // 请确认这个接口路径，GET /api/merchant/packages/{packageId}/departures
     const response = await authAxios.get(`/merchant/packages/${pkgId}/departures`, {
       params: {
         page: departurePagination.pageNumber,
         size: departurePagination.pageSize,
-        // 团期列表通常会按出发日期排序
-        sortBy: 'departureDate',
+        sortBy: 'departureDate',// 按出发日期排序
         sortDirection: 'ASC',
       },
     });
@@ -339,7 +337,6 @@ const addDepartures = async (pkgId) => {
       capacity: newDeparturesForm.capacity,
     };
   });
-  //console.log('即将发送的请求体:', departuresToAdd); 
 
   addLoading.value = true;
   try {
@@ -553,29 +550,34 @@ watch(activePackageId, (newVal, oldVal) => {
   gap: 0px; /* 紧贴在一起 */
 }
 
-/* --- 旅行团卡片样式 (主要修改部分) --- */
+/* --- 旅行团卡片样式 --- */
 .package-card {
-  display: flex; /* **关键：使卡片内部子元素横向排列** */
-  align-items: center; /* 垂直居中对齐子元素 */
-  justify-content: space-between; /* **关键：在子元素之间创建空间，使按钮靠右** */
   border-radius: 14px;
   overflow: hidden;
-  padding: 16px;
   background-color: #fdfdfd;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
   border: 1px solid #ebebeb;
-  cursor: pointer; /* 鼠标悬停显示手型，表示可点击 */
+  cursor: pointer; 
+}
+
+/* **关键修改：使用深度选择器作用于 el-card__body ** */
+/* 默认大屏幕样式 */
+.package-card :deep(.el-card__body) {
+  display: flex; /* 让内部子元素横向排列 */
+  align-items: center; /* 垂直居中对齐所有子项（图片、信息、按钮） */
+  justify-content: space-between; /* 在主轴上均匀分布，两端对齐 */
+  padding: 16px; /* Element Plus 的 el-card__body 默认有 padding，这里可以覆盖或保留 */
 }
 
 .package-card:hover {
-  transform: translateY(-3px); /* 略微上浮 */
+  transform: translateY(-3px); 
   box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
-  border-color: #409EFF; /* 鼠标悬停时边框颜色变化 */
+  border-color: #26a69a;
 }
 
 .package-card.is-active {
-  border-color: #409EFF; /* 选中状态的边框颜色 */
+  border-color: #26a69a; /* 选中状态的边框颜色 */
   box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
@@ -583,20 +585,20 @@ watch(activePackageId, (newVal, oldVal) => {
 }
 
 .package-cover-image {
-  width: 80px; /* **调整图片宽度，以适应横向空间** */
-  height: 60px; /* **相应调整高度** */
+  width: 80px; /* 调整图片宽度，以适应横向空间 */
+  height: 60px; /* 相应调整高度 */
   object-fit: cover;
   border-radius: 8px; /* 缩略图圆角 */
-  margin-right: 15px; /* **减少图片和文字之间的间距** */
+  margin-right: 15px; /* 图片和文字之间的间距 */
   flex-shrink: 0; /* 不缩小 */
 }
 
 .package-info {
-  flex-grow: 1; /* **关键：让信息区域占据尽可能多的剩余空间** */
+  flex-grow: 1; /* 关键：让信息区域占据尽可能多的剩余空间 */
   text-align: left;
-  display: flex; /* **关键：使标题和天数在信息区域内横向排列** */
+  display: flex; /* 关键：使标题和天数在信息区域内横向排列 */
   align-items: center; /* 垂直居中对齐标题和天数 */
-  min-width: 0; /* **允许内部元素在空间不足时缩小** */
+  min-width: 0; /* 允许内部元素在空间不足时缩小 */
 }
 
 .package-title {
@@ -604,14 +606,14 @@ watch(activePackageId, (newVal, oldVal) => {
   font-size: 1.1rem; /* 标题字号 */
   color: #333;
   font-weight: 600;
-  white-space: nowrap;
+  white-space: nowrap; /* 防止标题换行 */
   overflow: hidden;
   text-overflow: ellipsis;
   flex-grow: 1; /* 标题尽可能占据空间 */
 }
 
 .package-meta {
-  margin-left: 10px; /* **天数和标题之间的间距** */
+  margin-left: 10px; /* 天数和标题之间的间距 */
   color: #777;
   font-size: 0.9rem;
   display: flex;
@@ -623,7 +625,7 @@ watch(activePackageId, (newVal, oldVal) => {
   display: flex;
   align-items: center;
   background-color: #e6f7ff;
-  color: #1890ff;
+  color: #26a69a;
   padding: 3px 8px;
   border-radius: 4px;
 }
@@ -635,7 +637,7 @@ watch(activePackageId, (newVal, oldVal) => {
 
 .package-actions {
   flex-shrink: 0; /* 不缩小 */
-  margin-left: 15px; /* **按钮和信息区域之间的间距** */
+  margin-left: 15px; /* 按钮和信息区域之间的间距 */
 }
 
 .package-actions .manage-btn {
@@ -647,7 +649,7 @@ watch(activePackageId, (newVal, oldVal) => {
 /* 团期管理展开区域 */
 .departure-management-area {
   background-color: #ffffff;
-  border: 1px solid #409EFF; /* 边框颜色与激活卡片一致 */
+  border: 1px solid #26a69a; /* 边框颜色与激活卡片一致 */
   border-top: none; /* 上边框取消，与卡片连接 */
   border-bottom-left-radius: 14px; /* 底部圆角 */
   border-bottom-right-radius: 14px;
@@ -667,7 +669,7 @@ watch(activePackageId, (newVal, oldVal) => {
 }
 
 .current-package-title strong {
-  color: #409EFF;
+  color: #26a69a;
 }
 
 .form-card, .data-card {
@@ -704,14 +706,14 @@ watch(activePackageId, (newVal, oldVal) => {
   font-size: 1rem;
   letter-spacing: 1px;
   border-radius: 8px;
-  background-color: #409eff;
-  border-color: #409eff;
+  background-color: #26a69a;
+  border-color: #26a69a;
   transition: all 0.3s ease;
 }
 
 .add-departure-card .el-button:hover {
-  background-color: #337ecc;
-  border-color: #337ecc;
+  background-color: #26a69a;
+  border-color: #26a69a;
   transform: translateY(-2px);
 }
 
@@ -748,35 +750,74 @@ watch(activePackageId, (newVal, oldVal) => {
     margin-top: 20px;
     width: 100%;
   }
-  .package-card {
-    flex-direction: column; /* 小屏幕上垂直堆叠 */
-    align-items: flex-start;
+
+  /* **关键修改：在小屏幕上，也要使用深度选择器，并保持 flex-wrap ** */
+  .package-card :deep(.el-card__body) {
+    flex-direction: row; /* 确保在小屏幕下也是横向排列 */
+    align-items: center; /* 垂直居中对齐 */
+    flex-wrap: wrap; /* 允许在空间不足时换行 */
+    justify-content: space-between; /* 保持内容两端对齐 */
+    padding: 16px; /* 确保 padding 存在 */
   }
+
   .package-cover-image {
-    width: 100%;
-    height: 150px;
-    margin-right: 0;
-    margin-bottom: 15px;
+    width: 80px; /* 保持固定宽度，防止图片拉伸 */
+    height: 60px; /* 保持固定高度 */
+    margin-right: 15px;
+    margin-bottom: 0; /* 移除底部间距 */
+    flex-shrink: 0; /* 防止图片缩小 */
   }
+
   .package-info {
-    width: 100%;
-    flex-direction: column; /* 小屏幕上信息区域内部垂直堆叠 */
-    align-items: flex-start;
+    flex-direction: row; /* 确保标题和天数横向排列 */
+    align-items: center; /* 垂直居中对齐 */
+    flex-grow: 1; /* 占据尽可能多的空间 */
+    min-width: 100px; /* 给信息区域一个最小宽度，防止被过度挤压 */
+    margin-bottom: 0; /* 移除底部间距 */
+    flex-wrap: wrap; /* 允许标题和天数换行 */
   }
+
   .package-title {
-    max-width: 100%;
-    margin-bottom: 5px; /* 标题和天数之间增加间距 */
+    white-space: nowrap; /* 防止标题换行 */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-right: 10px; /* 标题和天数之间的间距 */
+    flex-shrink: 1; /* 允许标题在空间不足时收缩 */
+    min-width: 0; /* 允许标题内容在溢出时被裁剪 */
   }
+
   .package-meta {
-    margin-left: 0; /* 移除横向间距 */
+    margin-left: 0; /* 移除额外左边距 */
+    flex-shrink: 0; /* 天数不收缩 */
   }
+
   .package-actions {
-    margin-left: 0;
-    margin-top: 15px;
-    width: 100%;
+    margin-left: auto; /* 将按钮推到最右侧，如果空间足够 */
+    margin-top: 0; /* 移除顶部间距 */
+    flex-shrink: 0; /* 防止按钮收缩 */
+    width: auto; /* 按钮宽度自适应 */
   }
-  .package-actions .manage-btn {
-    width: 100%;
+
+  /* 针对极小屏幕的进一步优化：如果一行放不下，让按钮换行 */
+  @media (max-width: 480px) {
+    .package-card :deep(.el-card__body) {
+      flex-wrap: wrap; /* 确保换行 */
+      align-items: flex-start; /* 换行后左对齐 */
+    }
+    .package-info {
+      flex-basis: calc(100% - 95px); /* 100% 减去图片宽度和右边距 */
+      margin-bottom: 10px; /* 信息区域下方增加间距 */
+    }
+    .package-actions {
+      width: 100%; /* 按钮独占一行 */
+      margin-left: 0;
+      margin-top: 10px;
+      text-align: right; /* 按钮靠右对齐 */
+    }
+    .package-actions .manage-btn {
+        width: auto; /* 按钮宽度自适应内容 */
+        min-width: unset; /* 移除最小宽度限制 */
+    }
   }
 }
 </style>

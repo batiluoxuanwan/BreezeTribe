@@ -1034,20 +1034,20 @@ onMounted(() => {
   color: #26a69a;
 }
 
-.stat-card.new-schedule-card {
+.stat-card.add-schedule-card {
   cursor: pointer;
   background: linear-gradient(45deg, #e0f2f1, #b2dfdb); /* 浅绿渐变 */
   position: relative;
   overflow: hidden;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
 }
-.stat-card.new-schedule-card .card-icon {
+.stat-card.add-schedule-card .card-icon {
   color: #00796b; 
 }
-.stat-card.new-schedule-card .card-info h2 {
-  color: #004d40; 
+.stat-card.add-schedule-card .card-info h2 {
+  color: #004d40;  
 }
-.stat-card.new-schedule-card .card-info p {
+.stat-card.add-schedule-card .card-info p {
   color: #26a69a;
 }
 
