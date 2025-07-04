@@ -8,7 +8,7 @@ import {connectWebSocket, onMessageCallback} from "@/utils/websocket.js";
 export const publicAxios = axios.create({
     baseURL: 'https://121.43.136.251:8080/api',
     // baseURL: 'http://localhost:8081/api',
-    //baseURL: 'https://frp-dad.com:36680/api',
+    // baseURL: 'https://frp-dad.com:36680/api',
   headers: {
     'Content-Type': 'application/json'
   }
@@ -23,7 +23,7 @@ publicAxios.interceptors.request.use(config => {
 export const authAxios = axios.create({
     baseURL: 'https://121.43.136.251:8080/api',
     // baseURL: 'http://localhost:8081/api',
-    //baseURL: 'https://frp-dad.com:36680/api',
+    // baseURL: 'https://frp-dad.com:36680/api',
   headers: {
     'Content-Type': 'application/json'
   }

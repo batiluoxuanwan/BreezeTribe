@@ -102,7 +102,7 @@ public class UserActionController {
         return Result.success("收藏成功");
     }
 
-    @Operation(summary = "取消收藏一个项目")
+    @Operation(summary = "取消收藏一个项目（只能收藏旅行团）")
     @DeleteMapping("/favorites")
     public Result<?> removeFavorite(@Valid @RequestBody FavoriteRequestDto favoriteRequestDto) {
         if(!userService.removeFavorite(favoriteRequestDto))
