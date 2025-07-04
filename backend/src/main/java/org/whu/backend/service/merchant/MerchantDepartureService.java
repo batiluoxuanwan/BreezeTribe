@@ -40,6 +40,7 @@ public class MerchantDepartureService {
     @Transactional
     public List<TravelDeparture> createDepartures(String packageId, List<DepartureCreateDto> createDTOs, String currentDealerId) {
         // 1. 验证产品是否存在且属于当前经销商
+//        log.error(createDTOs.get(0).getDepartureDate().toString());
         TravelPackage travelPackage = packageRepository.findById(packageId)
                 .orElseThrow(() -> new BizException("找不到对应的旅游产品"));
 
