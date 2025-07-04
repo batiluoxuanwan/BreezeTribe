@@ -321,7 +321,7 @@ public class MerchantPackageService {
     public PageResponseDto<TravelOrderDetailDto> getPackageOrders(String packageId, String currentDealerId, PageRequestDto pageRequestDto) {
         log.info("服务层：经销商ID '{}' 正在获取产品ID '{}'的订单列表, 分页参数: {}", currentDealerId, packageId, pageRequestDto);
 
-        // 1. 验证该产品模板是否属于当前经销商，这步依然重要
+        // 1. 验证该产品模板是否属于当前经销商
         if (!travelPackageRepository.existsByIdAndDealerId(packageId, currentDealerId)) {
             throw new BizException("找不到对应的旅游产品或无权访问");
         }

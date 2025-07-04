@@ -33,6 +33,7 @@ public interface TravelOrderRepository extends JpaRepository<TravelOrder, String
 
     /**
      * 【新增】检查一个产品模板下是否存在任何活跃的订单（待支付或已支付）
+     *
      * @param packageId 产品模板的ID
      * @return 如果存在则返回true，否则返回false
      */
@@ -53,6 +54,7 @@ public interface TravelOrderRepository extends JpaRepository<TravelOrder, String
 
     /**
      * 【新增】将已支付(PAID)且已到出发日期的订单，状态更新为进行中(ONGOING)
+     *
      * @param now 当前时间
      * @return 更新的记录数
      */
@@ -65,6 +67,7 @@ public interface TravelOrderRepository extends JpaRepository<TravelOrder, String
     /**
      * 【新增】将进行中(ONGOING)且行程已结束的订单，状态更新为已完成(COMPLETED)
      * 由于JPQL标准不支持直接进行日期运算（如日期+天数），我们使用原生SQL查询以获得最佳的数据库兼容性和性能。
+     *
      * @param now 当前时间
      * @return 更新的记录数
      */
@@ -82,4 +85,9 @@ public interface TravelOrderRepository extends JpaRepository<TravelOrder, String
      */
     @Query("SELECT o FROM TravelOrder o WHERE o.status = 'PAID' AND o.travelDeparture.departureDate BETWEEN :start AND :end")
     List<TravelOrder> findPaidOrdersBetween(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+    /**
+     * 【新增】根据团期ID和订单状态，分页查询订单
+     */
+    Page<TravelOrder> findByTravelDeparture_IdAndStatus(String departureId, TravelOrder.OrderStatus status, Pageable pageable);
 }

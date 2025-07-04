@@ -1,5 +1,6 @@
 package org.whu.backend.service.merchant;
 
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -11,12 +12,16 @@ import org.springframework.transaction.annotation.Transactional;
 import org.whu.backend.common.exception.BizException;
 import org.whu.backend.dto.PageRequestDto;
 import org.whu.backend.dto.PageResponseDto;
+import org.whu.backend.dto.order.OrderSummaryForDealerDto;
+import org.whu.backend.dto.order.TravelOrderDetailDto;
 import org.whu.backend.dto.travelpack.DepartureCreateDto;
 import org.whu.backend.dto.travelpack.DepartureSummaryDto;
 import org.whu.backend.dto.travelpack.DepartureUpdateDto;
 import org.whu.backend.entity.travelpac.TravelDeparture;
+import org.whu.backend.entity.travelpac.TravelOrder;
 import org.whu.backend.entity.travelpac.TravelPackage;
 import org.whu.backend.repository.travelRepo.TravelDepartureRepository;
+import org.whu.backend.repository.travelRepo.TravelOrderRepository;
 import org.whu.backend.repository.travelRepo.TravelPackageRepository;
 import org.whu.backend.service.DtoConverter;
 
@@ -36,6 +41,8 @@ public class MerchantDepartureService {
     private TravelDepartureRepository departureRepository;
     @Autowired
     private DtoConverter dtoConverter;
+    @Autowired
+    private TravelOrderRepository travelOrderRepository;
 
     @Transactional
     public List<TravelDeparture> createDepartures(String packageId, List<DepartureCreateDto> createDTOs, String currentDealerId) {
@@ -145,5 +152,49 @@ public class MerchantDepartureService {
 
         // 5. 封装并返回分页DTO
         return dtoConverter.convertPageToDto(departurePage, summaryDtos);
+    }
+
+    /**
+     * 获取指定团期的已支付订单列表（分页）
+     */
+    @Transactional(readOnly = true)
+    public PageResponseDto<TravelOrderDetailDto> getOrdersForDeparture(String departureId, String currentDealerId, PageRequestDto pageRequestDto) {
+        log.info("服务层：经销商ID '{}' 正在获取团期ID '{}'的订单列表, 分页参数: {}", currentDealerId, departureId, pageRequestDto);
+
+        // 1. 验证团期是否存在且属于当前经销商
+        TravelDeparture departure = findDepartureByIdAndVerifyOwnership(departureId, currentDealerId);
+
+        // 2. 创建分页和排序对象
+        Sort sort = Sort.by(Sort.Direction.fromString(pageRequestDto.getSortDirection()), pageRequestDto.getSortBy());
+        Pageable pageable = PageRequest.of(pageRequestDto.getPage() - 1, pageRequestDto.getSize(), sort);
+
+        // 3. 【重大改变】查询逻辑变更
+        // 现在我们精确地查询关联到这个departureId的、已支付的订单
+        Page<TravelOrder> orderPage = travelOrderRepository.findByTravelDeparture_IdAndStatus(
+                departureId,
+                TravelOrder.OrderStatus.PAID, // 只查询已支付的订单
+                pageable
+        );
+        log.info("服务层：为团期ID '{}' 查询到 {} 条已支付订单", departureId, orderPage.getTotalElements());
+
+        // 4. 将实体列表转换为对经销商安全的DTO列表
+        List<TravelOrderDetailDto> dtos = orderPage.getContent().stream()
+                .map(dtoConverter::convertTravelOrderToDetailDto) // 使用新的转换方法
+                .collect(Collectors.toList());
+
+        // 5. 封装并返回分页结果
+        return dtoConverter.convertPageToDto(orderPage, dtos);
+    }
+
+    // 一个私有辅助方法，用于查找旅行团并验证所有权
+    private TravelDeparture findDepartureByIdAndVerifyOwnership(String departureId, String currentDealerId) {
+
+        TravelDeparture departure = departureRepository.findById(departureId)
+                .orElseThrow(() -> new BizException("找不到对应的团期"));
+
+        if (!departure.getTravelPackage().getDealer().getId().equals(currentDealerId)) {
+            throw new BizException("无权操作不属于自己的团期");
+        }
+        return departure;
     }
 }
