@@ -55,7 +55,7 @@
             <el-col :span="10">
               <div class="detail-info">
                 <p class="price-display">
-                  <strong>价格:</strong> <span class="price-value">¥{{ travelGroupDetail.price }}</span>
+                  <strong>价格:</strong> <span class="price-value">¥{{ travelGroupDetail.price }}</span><strong>起</strong>
                 </p>
                 <p><strong>行程时长:</strong> <span class="info-value">{{ travelGroupDetail.durationInDays }} 天</span></p>
                 <p v-if="travelGroupDetail.destination"><strong>目的地:</strong> <span class="info-value">{{ travelGroupDetail.destination }}</span></p>
@@ -67,6 +67,22 @@
                 </p>
 
                 <div class="enroll-button-section">
+                  <div v-if="travelGroupDetail.departures && travelGroupDetail.departures.length > 0" class="departure-cards-container">
+                    <div
+                        v-for="(departure, index) in travelGroupDetail.departures"
+                        :key="departure.id || index"
+                        class="departure-card"
+                        :class="{ 'is-selected': selectedDeparture && selectedDeparture.id === departure.id }"
+                        @click="selectDeparture(departure)"
+                    >
+                        <div class="departure-date-price">
+                            <div class="date">{{ formatDate(departure.departureDate) }}</div>
+                            <div class="price">¥{{ departure.price }}</div>
+                        </div>
+                    </div>
+                    </div>
+                <p v-else class="placeholder-text small-text">暂无可用团期。</p>
+
                   <el-button
                     type="success"
                     size="large"
@@ -89,6 +105,19 @@
           <h3 class="section-title">旅行团介绍</h3>
           <p class="detailed-description-text" v-html="formatDescription(travelGroupDetail.detailedDescription)"></p>
           <p v-if="!travelGroupDetail.detailedDescription" class="placeholder-text">暂无详细介绍。</p>
+
+          <div v-if="travelGroupDetail.tags && travelGroupDetail.tags.length > 0" class="tags-display-section">
+            <el-tag
+              v-for="tag in travelGroupDetail.tags"
+              :key="tag.id"
+              size="small"
+              type=""
+              effect="plain"
+              class="display-tag-item"
+            >
+              {{ tag.name }}
+            </el-tag>
+          </div>
 
           <el-divider class="section-divider"></el-divider>
 
@@ -173,6 +202,8 @@ const loading = ref(true);
 const isFavorite = ref(false); 
 const favoriteLoading = ref(false); 
 
+
+const selectedDeparture = ref(null);// 存储当前选中的团期对象 
 const enrollDialogVisible = ref(false); // 控制报名弹窗的显示与隐藏
 const enrollFormRef = ref(null); // 用于获取表单实例，进行表单校验
 
@@ -212,6 +243,7 @@ const fetchTravelGroupDetail = async (id) => {
 
     if (response.data.code === 200) {
       travelGroupDetail.value = response.data.data;
+      travelGroupDetail.value.departures = await fetchTravelGroupDepartures(id);
       if (authStore.isLoggedIn) {
         await checkFavoriteStatus(id);
       }
@@ -229,6 +261,34 @@ const fetchTravelGroupDetail = async (id) => {
     travelGroupDetail.value = null;
   } finally {
     loading.value = false;
+  }
+};
+
+//获取特定旅行团的团期
+const fetchTravelGroupDepartures = async (packageId, page = 1, size = 10, sortBy = 'departureDate', sortDirection = 'ASC') => {
+  try {
+    const response = await publicAxios.get(`/public/travel-packages/${packageId}/departures`, {
+      params: {
+        page: page,
+        size: size,
+        sortBy: sortBy,
+        sortDirection: sortDirection
+      }
+    });
+
+    if (response.data.code === 200) {
+      console.log('团期列表:', response.data.data.content);
+      return response.data.data.content; // 返回团期数组
+    } else {
+      console.error('获取团期列表失败:', response.data.message);
+      return [];
+    }
+  } catch (error) {
+    console.error('请求团期列表出错:', error);
+    if (error.response && error.response.data && error.response.data.message) {
+      console.error('后端错误消息:', error.response.data.message);
+    }
+    return [];
   }
 };
 
@@ -385,6 +445,13 @@ const formatDate = (dateString) => {
   return moment(dateString).format('YYYY年MM月DD日');
 };
 
+// 处理团期卡片点击事件 
+const selectDeparture = (departure) => {
+  selectedDeparture.value = departure;
+  ElMessage.success(`已选中团期：${formatDate(departure.departureDate)} - ¥${departure.price}`);
+};
+
+
 // --- 处理报名按钮点击 ---
 const handleEnrollClick = async () => {
   // 检查登录状态
@@ -413,6 +480,12 @@ const handleEnrollClick = async () => {
     return;
   }
 
+  // 检查是否选中了团期 
+  if (!selectedDeparture.value) {
+    ElMessage.warning('请先选择一个团期才能报名！');
+    return;
+  }
+
   // 用户已登录且是 'USER' 角色，显示报名弹窗
   enrollForm.numberOfParticipants = 1;
   enrollForm.contactName = '';
@@ -430,9 +503,15 @@ const submitEnrollForm = async () => {
     // 表单校验
     await enrollFormRef.value.validate();
 
+    if (!selectedDeparture.value || !selectedDeparture.value.id) {
+        ElMessage.error('未选择有效的团期，无法提交报名。');
+        return;
+    }
+
     // 发送报名请求
     const response = await authAxios.post('/user/orders', {
       packageId: travelGroupDetail.value.id,
+      departureId: selectedDeparture.value.id, 
       travelerCount: enrollForm.numberOfParticipants,
       contactName: enrollForm.contactName,
       contactPhone: enrollForm.contactPhone,
@@ -665,6 +744,121 @@ watch(
   vertical-align: middle;
 }
 
+/* --- 团期小卡片容器样式 --- */
+.departure-cards-container {
+    /* display: flex; */ /* 这一行移除，或确保是 flex */
+    /* flex-wrap: wrap; */ /* 这一行移除，禁止换行 */
+    
+    /* *** 新增/修改的关键样式 *** */
+    display: flex; /* 使用 Flexbox 进行横向布局 */
+    flex-wrap: nowrap; /* 不换行，所有卡片保持在同一行 */
+    overflow-x: auto; /* 允许横向滚动 */
+    -webkit-overflow-scrolling: touch; /* 针对 iOS 设备的平滑滚动 */
+    gap: 15px; /* 卡片之间的间距 */
+    padding: 10px; /* 内部留白，防止内容贴边 */
+    border: 1px dashed #e4e7ed;
+    border-radius: 8px;
+    background-color: #fcfcfc;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+    margin-top: 20px;
+    margin-bottom: 25px;
+    
+    /* 隐藏滚动条 (可选，根据设计需求) */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+}
+.departure-cards-container::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+}
+
+
+/* --- 单个团期卡片样式 --- */
+.departure-card {
+    flex-shrink: 0; /* 防止卡片被挤压 */
+    width: 150px; /* 固定卡片宽度，你可以根据需要调整 */
+    /* height: 80px; */ /* 可选：如果你希望卡片高度也固定，可以设置 */
+    
+    background-color: #ffffff;
+    border: 1px solid #dcdfe6;
+    border-radius: 8px;
+    padding: 10px 15px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+    text-align: center;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.departure-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-color: #4cb1a3;
+}
+
+.departure-card.is-selected {
+    border-color: #409EFF; /* Element Plus primary color */
+    box-shadow: 0 4px 12px rgba(64, 158, 255, 0.2); /* 更明显的选中阴影 */
+    transform: translateY(-3px); /* 选中时也稍微抬高 */
+}
+
+/* 可以在选中卡片右上角添加一个小的“√”标记 */
+.departure-card.is-selected::after {
+    content: '✓'; /* Unicode checkmark */
+    position: absolute;
+    top: -8px; /* 调整位置 */
+    right: -8px; /* 调整位置 */
+    background-color: #409EFF;
+    color: white;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 16px;
+    font-weight: bold;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* 包含日期和价格的容器 */
+.departure-date-price {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%; /* 确保日期价格容器填满卡片宽度 */
+}
+
+.departure-date-price .date {
+    font-size: 1.1em;
+    font-weight: bold;
+    color: #303133;
+    margin-bottom: 5px;
+    white-space: nowrap; /* 防止日期文本换行 */
+}
+
+.departure-date-price .price {
+    font-size: 1.5em;
+    font-weight: 800;
+    color: #e6a23c;
+    white-space: nowrap; /* 防止价格文本换行 */
+}
+
+/* 占位符文本的样式调整 */
+.placeholder-text.small-text {
+    font-size: 0.9em;
+    margin-top: 15px;
+    padding: 10px;
+    color: #909399;
+    font-style: italic;
+    text-align: center;
+    border: none;
+    background: none;
+}
+
 /* 报名按钮部分 */
 .enroll-button-section {
   margin-top: 30px;
@@ -774,6 +968,15 @@ watch(
   border-radius: 4px;
   height: 32px;
   line-height: 30px;
+}
+
+.tags-display-section {
+  margin-top: 20px;   /* 与上方的描述文本之间留出间距 */
+  margin-bottom: 20px; /* 与下方的分割线之间留出间距 */
+  display: flex;      /* 使用 Flexbox 布局 */
+  flex-wrap: wrap;    /* 允许标签换行 */
+  align-items: center; /* 垂直居中对齐标签和文本 */
+  gap: 10px;          /* 标签和文本之间的间距 */
 }
 
 /* 响应式调整 */

@@ -2,8 +2,8 @@ package org.whu.backend.entity.association;
 
 import jakarta.persistence.*;
 import lombok.Data;
-import org.whu.backend.entity.Route;
-import org.whu.backend.entity.TravelPackage;
+import org.whu.backend.entity.travelpac.Route;
+import org.whu.backend.entity.travelpac.TravelPackage;
 
 @Data
 @Entity

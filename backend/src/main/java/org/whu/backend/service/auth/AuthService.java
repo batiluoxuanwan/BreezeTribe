@@ -1,11 +1,14 @@
 package org.whu.backend.service.auth;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.apache.commons.validator.routines.EmailValidator;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 import org.whu.backend.common.Result;
 import org.whu.backend.common.exception.BizException;
@@ -18,8 +21,11 @@ import org.whu.backend.util.AliyunOssUtil;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Date;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 import static org.whu.backend.entity.accounts.Merchant.status.PENDING;
 
@@ -30,17 +36,21 @@ public class AuthService {
     private final CaptchaService captchaService;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final RedisTemplate<String,String> redisTemplate;
     @Autowired
     private AccountUtil accountUtil;
 
     public AuthService(AuthRepository authRepository,
                        CaptchaService captchaService,
                        PasswordEncoder passwordEncoder,
-                       JwtService jwtService) {
+                       JwtService jwtService,
+                       RedisTemplate<String,String> redisTemplate
+    ) {
         this.authRepository = authRepository;
         this.captchaService = captchaService;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.redisTemplate=redisTemplate;
     }
 
     // 生成名字后缀
@@ -116,8 +126,11 @@ public class AuthService {
         account.setAvatarUrl("avatar/public/nailong.gif");
         authRepository.save(account);
 
-        String token = jwtService.generateToken(account);
-        return Result.success(new LoginResponse(token));
+        // 创建 JWT
+        //String token = jwtService.generateToken(account);
+        Map<String, String> tokens = jwtService.generateTokens(account); // ⬅️ 在这里调用！
+        authRepository.save(account);
+        return Result.success(new LoginResponse(tokens));
     }
 
     // 登录
@@ -165,8 +178,71 @@ public class AuthService {
         }
 
         // 创建 JWT
-        String token = jwtService.generateToken(account);
-        return Result.success(new LoginResponse(token));
+        //String token = jwtService.generateToken(account);
+        Map<String, String> tokens = jwtService.generateTokens(account); // ⬅️ 在这里调用！
+        account.setActive(true);
+        authRepository.save(account);
+        return Result.success(new LoginResponse(tokens));
+    }
+    // 登出
+    public Result<?> logout(HttpServletRequest request) {
+        Account account =accountUtil.getCurrentAccount();
+        account.setActive(false);
+        authRepository.save(account);
+        //拉黑token
+        String tokenHeader = request.getHeader("Authorization");
+        String tokenPrefix = "Bearer ";
+        if (StringUtils.hasText(tokenHeader) && tokenHeader.startsWith(tokenPrefix)) {
+            String token = tokenHeader.substring(tokenPrefix.length());
+
+            // 获取 token 剩余时间，设置 Redis 过期时间一致
+            Date expiration = jwtService.extractExpiration(token);
+            long ttl = expiration.getTime() - System.currentTimeMillis();
+
+            if (ttl > 0) {
+                redisTemplate.opsForValue().set("blacklist:" + token, "1", ttl, TimeUnit.MILLISECONDS);
+            }
+        }
+        System.out.println("-------------------logout-------------------");
+        return Result.success("");
+    }
+
+    //TODO:
+    public Result<Map<String, String>> refreshAccessToken(String refreshToken) {
+        // 1. 校验 refreshToken 存在性
+        if (!StringUtils.hasText(refreshToken)) {
+            throw new BizException("RefreshToken 缺失");
+        }
+        // 2. 解析 userId（即 JWT 中 subject）
+        String userId;
+        try {
+            userId = jwtService.extractAccountId(refreshToken);
+        } catch (Exception e) {
+            throw new BizException("RefreshToken 非法");
+        }
+
+        // 3. 检查是否已过期
+        if (jwtService.isTokenExpired(refreshToken)) {
+            throw new BizException("RefreshToken 已过期");
+        }
+
+        // 4. 校验 Redis 中是否存在此 refreshToken
+        String redisKey = "refresh:" + userId;
+        String storedToken = redisTemplate.opsForValue().get(redisKey);
+        System.out.println(storedToken);
+        if (storedToken == null || !storedToken.equals(refreshToken)) {
+            throw new BizException("非法的 RefreshToken");
+        }
+
+        // 5. 生成新的 accessToken
+        Account account = authRepository.findById(userId).orElseThrow(() -> new BizException("账户不存在"));
+//        if(!userId.equals(AccountUtil.getCurrentAccountId()))
+//            throw new BizException("非也");
+        String newAccessToken = jwtService.generateToken(account);
+
+        // （可选）refreshToken 快过期时，也重新颁发新的 refreshToken（建议提升安全性）
+        // 此处我们不做更新，只返回新的 accessToken
+        return Result.success(Map.of("accessToken", newAccessToken));
     }
 
     //重置密码
@@ -198,8 +274,12 @@ public class AuthService {
         }
         exists.get().setPassword(passwordEncoder.encode(request.getNewpassword()));
         authRepository.save(exists.get());
-        String token = jwtService.generateToken(exists.get());
-        return Result.success(new LoginResponse(token));
+        // 创建 JWT
+        //String token = jwtService.generateToken(account);
+        Account account =accountUtil.getCurrentAccount();
+        Map<String, String> tokens = jwtService.generateTokens(account); // ⬅️ 在这里调用！
+        authRepository.save(account);
+        return Result.success(new LoginResponse(tokens));
     }
     public Result<?> updateUsername(UpdateUsernameRequest request)  {
         Account account =accountUtil.getCurrentAccount();

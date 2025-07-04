@@ -6,13 +6,17 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
-import org.whu.backend.entity.TravelPackage;
+import org.whu.backend.entity.travelpac.TravelPackage;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 public interface TravelPackageRepository extends JpaRepository<TravelPackage, String> {
     // 根据状态查询旅行团（分页）
     Page<TravelPackage> findByStatus(TravelPackage.PackageStatus status, Pageable pageable);
+
+    List<TravelPackage> findByStatus(TravelPackage.PackageStatus status);
 
     // 根据ID和状态查询单个旅行团
     Optional<TravelPackage> findByIdAndStatus(String id, TravelPackage.PackageStatus status);
@@ -57,4 +61,12 @@ public interface TravelPackageRepository extends JpaRepository<TravelPackage, St
     @Query("UPDATE TravelPackage p SET p.participants = GREATEST(p.participants - :num, 0) WHERE p.id = :packageId")
     void subParticipantCount(String packageId, Integer num);
 
+    // 查询某个团是否属于某个经销商
+    boolean existsByIdAndDealerId(String packageId, String currentDealerId);
+
+    boolean existsByIdAndStatus(String packageId, TravelPackage.PackageStatus packageStatus);
+
+    Collection<TravelPackage> findTop10ByOrderByCreatedTimeDesc();
+
+    List<TravelPackage> findByIdNotIn(Collection<String> ids);
 }

@@ -1,4 +1,4 @@
-package org.whu.backend.entity;
+package org.whu.backend.entity.travelpac;
 
 import jakarta.persistence.*;
 import lombok.Data;
@@ -29,6 +29,7 @@ public class Route {
     private String name; // 路线名字
 
     @Lob
+    @Column(columnDefinition = "TEXT")
     private String description; // 路线描述
 
     @CreationTimestamp

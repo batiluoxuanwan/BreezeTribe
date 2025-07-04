@@ -2,6 +2,7 @@ package org.whu.backend.service.user;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -16,8 +17,9 @@ import org.whu.backend.dto.postcomment.PostCommentDto;
 import org.whu.backend.dto.postcomment.PostCommentWithRepliesDto;
 import org.whu.backend.entity.accounts.User;
 import org.whu.backend.entity.travelpost.Comment;
-import org.whu.backend.entity.travelpost.Notification;
+import org.whu.backend.entity.Notification;
 import org.whu.backend.entity.travelpost.TravelPost;
+import org.whu.backend.event.post.PostCommentedEvent;
 import org.whu.backend.repository.authRepo.UserRepository;
 import org.whu.backend.repository.post.PostCommentRepository;
 import org.whu.backend.repository.post.TravelPostRepository;
@@ -43,6 +45,8 @@ public class UserPostCommentService {
     private DtoConverter dtoConverter;
     @Autowired
     private NotificationService notificationService;
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
 
     public static final int MAX_NOTIFICATION_CONTENT_LENGTH = 50;
 
@@ -89,17 +93,18 @@ public class UserPostCommentService {
 
         } else {
             // --- 发送“一级评论”通知 ---
-            String description = String.format("%s 评论了你的游记 %s", author.getUsername(), post.getTitle());
-            String content = truncateContent(dto.getContent());
-
-            notificationService.createAndSendNotification(
-                    post.getAuthor(),                    // 接收者：游记的作者
-                    Notification.NotificationType.NEW_POST_COMMENT,   // 类型：新的评论
-                    description,
-                    content,
-                    author,                              // 触发者：当前用户
-                    post.getId()                         // 关联项目：这篇游记的ID
-            );
+            eventPublisher.publishEvent(new PostCommentedEvent(post, author, post.getAuthor(), truncateContent(dto.getContent())));
+//            String description = String.format("%s 评论了你的游记 %s", author.getUsername(), post.getTitle());
+//            String content = truncateContent(dto.getContent());
+//
+//            notificationService.createAndSendNotification(
+//                    post.getAuthor(),                    // 接收者：游记的作者
+//                    Notification.NotificationType.NEW_POST_COMMENT,   // 类型：新的评论
+//                    description,
+//                    content,
+//                    author,                              // 触发者：当前用户
+//                    post.getId()                         // 关联项目：这篇游记的ID
+//            );
         }
 
         Comment savedComment = commentRepository.save(newComment);

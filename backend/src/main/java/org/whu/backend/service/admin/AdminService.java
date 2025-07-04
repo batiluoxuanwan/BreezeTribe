@@ -22,9 +22,9 @@ import org.whu.backend.dto.spot.SpotSummaryDto;
 import org.whu.backend.dto.spot.SpotUpdateRequestDto;
 import org.whu.backend.dto.travelpack.PackageSummaryDto;
 import org.whu.backend.entity.Spot;
-import org.whu.backend.entity.TravelPackage;
+import org.whu.backend.entity.travelpac.TravelPackage;
 import org.whu.backend.entity.accounts.*;
-import org.whu.backend.entity.travelpost.Notification;
+import org.whu.backend.entity.Notification;
 import org.whu.backend.repository.authRepo.MerchantRepository;
 import org.whu.backend.repository.authRepo.UserRepository;
 import org.whu.backend.repository.travelRepo.SpotRepository;
@@ -36,10 +36,12 @@ import org.whu.backend.util.JpaUtil;
 import org.whu.backend.repository.authRepo.AuthRepository;
 
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
-import static org.whu.backend.entity.TravelPackage.PackageStatus.*;
+import static org.whu.backend.entity.travelpac.TravelPackage.PackageStatus.*;
 import static org.whu.backend.entity.accounts.Merchant.status.APPROVED;
 import static org.whu.backend.entity.accounts.Merchant.status.PENDING;
 
@@ -429,4 +431,57 @@ public class AdminService {
         dto.setCreatedAt(account.getCreatedAt());
         return dto;
     }
+
+    //--------data
+
+//    public Map<String, Object> getUserGrowthData(String period) {
+//        Map<String, Object> result = new LinkedHashMap<>();
+//        List<Object[]> rawData = accountRepository.getUserGrowthGroupedByPeriod(period);
+//        for (Object[] row : rawData) {
+//            result.put((String) row[0], row[1]);
+//        }
+//        return result;
+//    }
+//
+//    public List<TripRankDTO> getPopularTrips(int topN) {
+//        return tripRepository.findTopTripsByOrderCount(topN).stream()
+//                .map(obj -> new TripRankDTO((String) obj[0], (String) obj[1], ((Number) obj[2]).intValue()))
+//                .collect(Collectors.toList());
+//    }
+//
+//    public Map<String, Object> getTripGrowthData(String period) {
+//        Map<String, Object> result = new LinkedHashMap<>();
+//        List<Object[]> rawData = tripRepository.getTripGrowthGroupedByPeriod(period);
+//        for (Object[] row : rawData) {
+//            result.put((String) row[0], row[1]);
+//        }
+//        return result;
+//    }
+//
+//    public Map<String, Object> getOrderStats(String period) {
+//        Map<String, Object> result = new LinkedHashMap<>();
+//        List<Object[]> rawData = orderRepository.getOrderStatsGroupedByPeriod(period);
+//        for (Object[] row : rawData) {
+//            Map<String, Object> item = new HashMap<>();
+//            item.put("count", row[1]);
+//            item.put("revenue", row[2]);
+//            result.put((String) row[0], item);
+//        }
+//        return result;
+//    }
+//
+//    public List<TripRatingRankDTO> getTripRatingRank(int topN) {
+//        return ratingRepository.findTopTripsByAvgRating(topN).stream()
+//                .map(obj -> new TripRatingRankDTO((String) obj[0], (String) obj[1], ((Number) obj[2]).doubleValue()))
+//                .collect(Collectors.toList());
+//    }
+//
+//    public Map<String, Object> getMerchantRatingStats() {
+//        Map<String, Object> result = new LinkedHashMap<>();
+//        List<Object[]> rawData = ratingRepository.findAvgRatingByMerchant();
+//        for (Object[] row : rawData) {
+//            result.put((String) row[0], row[1]);
+//        }
+//        return result;
+//    }
 }

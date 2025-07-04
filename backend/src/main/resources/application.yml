@@ -24,7 +24,8 @@ spring:
 
   jwt:
     secret: ThereisnofuturethereisnopastThankGodthismomentisnotthelast
-    expiration: 72000000 # 20h，单位毫秒
+    expiration: 3600000 # 1h，单位毫秒
+#    expiration: 20000 # 20s，单位毫秒
 
   mail:
     host: smtp.qq.com
@@ -61,10 +62,23 @@ ai:
     model:
       name: DeepSeek-R1-Distill-Llama-8B-F16
 
+dashscope:
+  api-key: sk-98e1d9b45e064da1a03e214f7c0ff468
+  app-id: a3a0b11cce024d7b8325632b2cab6924
+
+recommendation:
+  weights:
+    order: 10
+    favorite: 5
+    like: 3
+#    view: 1
 
 baidu:
   map:
     ak: cX3Lu6F9cEcRr7M2K80G0Di49wvz4hY0
+#    ak: r49IueXKnldrFS4IWoqnlW0iM1GD77KE
+
+
 
 #Sms
 sms:
@@ -74,3 +88,7 @@ sms:
   appcode: aae61b6883c6461a8a50da193577b818
   smsSignId: 2e65b1bb3d054466b82f0c9d125465e2
   templateId: 908e94ccf08b4476ba6c876d13f084ad
+
+#devtools:
+#  restart:
+#    enabled: false

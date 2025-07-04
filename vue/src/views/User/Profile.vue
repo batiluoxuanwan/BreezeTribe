@@ -50,6 +50,13 @@
           <el-badge v-if="unreadNotifications > 0" :value="unreadNotifications" class="notification-badge" />
         </div>
         <div
+          :class="{ 'menu-item': true, 'active': activeTab === 'friends' }"
+          @click="activeTab = 'friends'"
+        >
+          <el-icon><User /></el-icon>
+          <span>我的好友</span>
+        </div>
+        <div
           :class="{ 'menu-item': true, 'active': activeTab === 'systemSettings' }"
           @click="activeTab = 'systemSettings'"
         >
@@ -61,87 +68,16 @@
 
     <main class="main-content">
       <el-tabs v-model="activeTab" class="hidden-tabs-header">
-          <el-tab-pane label="我的收藏" name="collected">
-          <div v-if="collectedTours.length > 0" class="card-grid">
-            <el-card
-              v-for="tour in collectedTours"
-              :key="tour.itemid"
-              class="tour-card hover-card"
-              @click="goToTourDetail(tour.itemid)"
-            >
-              <img :src="tour.coverImageUrls[0]" class="card-img" alt="收藏图片" />
-              <div class="card-info">
-                <h3>{{ tour.title || '未知旅行团名称' }}</h3>
-              </div>
-            </el-card>
-          </div>
-          <el-empty v-else description="暂无收藏"></el-empty>
+        <el-tab-pane label="我的收藏" name="collected">
+            <MyFavorites/>
         </el-tab-pane>
 
         <el-tab-pane label="我的报名" name="joined">
-          <div v-if="joinedTours.length > 0" class="card-grid">
-            <el-card
-              v-for="tour in joinedTours"
-              :key="tour.id"
-              class="tour-card hover-card"
-            >
-              <img :src="tour.image" class="card-img" />
-              <div class="card-info">
-                <h3>{{ tour.title }}</h3>
-                <p>出发日期：{{ tour.date }}</p>
-                <div class="progress-row">
-                  <p class="progress-text">当前状态：{{ tour.progressText }}</p>
-                  <div v-if="tour.showPayButton" class="payment-actions">
-                    <el-button
-                      type="primary"
-                      size="small"
-                      @click.stop="confirmPayment(tour.orderId)">
-                      去支付
-                    </el-button>
-                  </div>
-                </div>
-              </div>
-            </el-card>
-          </div>
-          <el-empty v-else description="暂无报名"></el-empty>
+          <MyJoinedTours/>
         </el-tab-pane>
 
         <el-tab-pane label="我的游记" name="notes">
-          <div class="notes-header">
-            <h3 class="notes-section-title">我的游记</h3>
-            <el-button type="primary" :icon="Plus" @click="goToPublishTravelNote">发布新游记</el-button>
-          </div>
-          <div v-loading="noteLoading">
-            <div v-if="notes.length > 0" class="card-grid">
-              <el-card
-                v-for="note in notes"
-                :key="note.id"
-                class="note-card hover-card"
-                @click.stop="goToDetail(note.id)"
-              >
-                <img v-if="note.coverImageUrl" :src="note.coverImageUrl" class="note-img" />
-                <div class="card-info">
-                  <h3>{{ note.title }}</h3>
-                </div>
-              </el-card>
-            </div>
-            <el-empty v-else description="暂无游记"></el-empty>
-          </div>
-
-          <div class="load-more-container">
-            <el-button
-              v-if="hasMoreNotes"
-              type="primary"
-              :loading="noteLoading"
-              @click="fetchNotes(false)"
-              class="load-more-btn"
-            >
-              {{ noteLoading ? '加载中...' : '加载更多游记' }}
-            </el-button>
-            <p v-else-if="notes.length > 0 && noMoreNotes" class="no-more-text">
-              已加载全部游记
-            </p>
-          </div>
+          <MyNotes/>
         </el-tab-pane>
 
         <el-tab-pane label="我的评价" name="reviews">
@@ -162,22 +98,15 @@
           <el-empty v-else description="暂无评价"></el-empty>
         </el-tab-pane>
 
-        <el-tab-pane label="我的通知" name="notifications">
-          <div v-if="notifications.length > 0" class="notification-list">
-            <el-card
-              v-for="notification in notifications"
-              :key="notification.id"
-              class="notification-item hover-card"
-            >
-              <div class="notification-content">
-                <p class="notification-title">{{ notification.title }}</p>
-                <p class="notification-text">{{ notification.message }}</p>
-                <p class="notification-date">{{ notification.date }}</p>
-              </div>
-            </el-card>
-          </div>
-          <el-empty v-else description="暂无通知"></el-empty>
+       <!-- [修改] 我的通知模块，增加了加载状态和加载更多按钮 -->
+       <el-tab-pane label="我的通知" name="notifications">
+        <MyNotifications/>
+      </el-tab-pane>
+
+        <el-tab-pane label="我的好友" name="friends">
+          <MyFriends/>
         </el-tab-pane>
+
         <el-tab-pane label="系统设置" name="systemSettings">
           <div style="margin-bottom: 32px;">
             <AccountOverview @userUpdated="handleUserUpdated"/>
@@ -190,13 +119,19 @@
 
 <script setup>
 import { onMounted, ref,computed,reactive,watch } from 'vue'
-import { Star, Tickets, EditPen, Comment, Bell, ArrowLeft, Plus } from '@element-plus/icons-vue' 
-import { ElTabs, ElTabPane, ElCard, ElForm, ElFormItem, ElInput, ElSelect, ElOption, ElButton, ElPagination, ElEmpty, ElMessage } from 'element-plus';
-import AccountOverview from '@/components/AccountOverview.vue' 
+import { User,Star, Tickets, EditPen, Comment, Bell, ArrowLeft, Plus } from '@element-plus/icons-vue' 
+import { ElMessageBox,ElTabs, ElTabPane, ElCard, ElForm, ElFormItem, ElInput, ElSelect, ElOption, ElButton, ElPagination, ElEmpty, ElMessage } from 'element-plus';
+
 
 import { useRoute,useRouter } from 'vue-router';
 import { authAxios,publicAxios } from '@/utils/request';
 
+import MyNotes from '@/components/profile/MyNotes.vue' 
+import MyFavorites from '@/components/profile/MyFavorites.vue' 
+import MyJoinedTours from '@/components/profile/MyJoinedTours.vue' 
+import MyNotifications from '@/components/profile/MyNotifications.vue';
+import MyFriends from '@/components/profile/MyFriends.vue' 
+import AccountOverview from '@/components/AccountOverview.vue' 
 const router = useRouter();
 const route = useRoute();
 const user = reactive({
@@ -210,29 +145,6 @@ const user = reactive({
   updatedAt: '',
 });
 
-const collectedTours = ref([]);
-
-const pagination = reactive({
-  pageNumber: 0,
-  pageSize: 10,
-  totalElements: 0,
-  totalPages: 0,
-});
-
-const searchParams = reactive({
-  keyword: '',
-  page: 1,
-  size: 10,
-  sortBy: 'createdTime',
-  sortDirection: 'DESC',
-});
-
-const joinedTours = ref([]); // 存储我的报名旅行团列表
-const joinedTotal = ref(0); // 我的报名总数
-const joinedPageSize = 6; // 每页显示数量，你可以根据需要调整
-const joinedCurrentPage = ref(1); // 当前页码
-
-const loadingJoinedTours = ref(false); // 专门用于“我的报名”Tab 的加载状态
 
 // 示例评价数据
 const reviews = ref([
@@ -240,11 +152,6 @@ const reviews = ref([
   { id: 2, tourTitle: '成都美食团', rating: 5, comment: '火锅太棒了！', date: '2025-06-15' },
 ])
 
-// 示例通知数据
-const notifications = ref([
-  { id: 1, title: '报名成功', message: '您已成功报名成都美食团，祝您旅途愉快！', date: '2025-06-10' },
-  { id: 2, title: '游记审核通过', message: '您的游记“稻城亚丁旅行记”已通过审核。', date: '2025-06-05' },
-])
 
 const activeTab = ref('collected')
 
@@ -282,191 +189,101 @@ const fetchUserProfile = async () => {
   }
 };
 
-//获得单个旅行团详情
-const fetchTravelPackageDetail = async (id) => {
-  try {
-    const response = await publicAxios.get(`/public/travel-packages/${id}`);
-    if (response.data.code === 200 && response.data.data) {
-      return response.data.data;
-    } else {
-      console.warn(`获取旅行团ID ${id} 详情失败:`, response.data.message);
-      return null;
-    }
-  } catch (error) {
-    console.error(`获取旅行团ID ${id} 详情时发生错误:`, error);
-    return null;
+
+// --- [新增] 通知模块的所有逻辑 ---
+
+// 当前激活的通知分类标签页
+const activeNotificationTab = ref('all') 
+
+// 存放通知列表的数组
+const notifications = ref([])
+
+// 分页信息
+const currentNotificationPage = ref(0) 
+const pageNotificationSize = ref(10)
+const totalNotifications = ref(0)
+
+// 状态标记
+const notificationLoading = ref(false)
+const noMoreNotifications = ref(false)
+
+// 计算属性，判断是否还有更多通知
+const hasMoreNotifications = computed(() => {
+  return notifications.value.length < totalNotifications.value && !noMoreNotifications.value;
+});
+
+/**
+ * 获取通知列表的核心函数
+ * @param {string} category - 通知的类别
+ * @param {boolean} reset - 是否是重置操作
+ */
+const fetchNotifications = async (category, reset = false) => {
+  if (notificationLoading.value) return
+  if (noMoreNotifications.value && !reset) {
+    ElMessage.info('没有更多通知了。')
+    return
   }
-};
 
-//获取用户收藏列表
-const fetchCollectedTours = async () => {
+  notificationLoading.value = true
+  if (reset) {
+    currentNotificationPage.value = 0
+    notifications.value = []
+    noMoreNotifications.value = false
+  }
+
+  const nextPage = currentNotificationPage.value + 1
+
   try {
-    const response = await authAxios.get('/user/favorites', {
-      params: {
-        page: searchParams.page,
-        size: searchParams.size,
-      },
-    });
+    const params = {
+      page: nextPage,
+      size: pageNotificationSize.value,
+      category: category === 'all' ? undefined : category,
+    }
+
+    const response = await authAxios.get('/notifications', { params })
 
     if (response.data.code === 200 && response.data.data) {
-      const basicCollectedItems = response.data.data.content;
-      pagination.pageNumber = response.data.data.pageNumber;
-      pagination.pageSize = response.data.data.pageSize;
-      pagination.totalElements = response.data.data.totalElements;
-      pagination.totalPages = response.data.data.totalPages;
+      const newNotificationsRaw = response.data.data.content
+      totalNotifications.value = response.data.data.totalElements
 
-      const detailedItemsPromises = basicCollectedItems.map(async (item) => {
-        if (!item || !item.itemid || !item.itemType) {
-          console.warn('发现无效的收藏项，跳过处理:', item);
-          return {
-            itemid: `invalid-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`, 
-            itemType: item?.itemType || 'UNKNOWN',
-            title: '无效收藏项',
-            coverImageUrls: [],
+      // 数据转换
+      const formattedNewNotifications = newNotificationsRaw.map(item => ({
+        id: item.id,
+        isRead: item.isRead,
+        title: item.description, 
+        message: item.content, 
+        date: new Date(item.createdTime).toLocaleString(), 
+        triggerUsername: item.triggerUsername,
+        relatedItemId: item.relatedItemId,
+        type: item.type,
+      }))
 
-          };
-        }
-        if (item.itemType === 'PACKAGE') {
-          const packageDetail = await fetchTravelPackageDetail(item.itemid);
-          if (packageDetail) {
-            return {
-              ...item, 
-              title: packageDetail.title,
-              coverImageUrls: packageDetail.coverImageUrls,
-            };
-          } else {
-            return {
-              ...item,
-              title: `[${item.itemType}] ${item.itemid} (详情加载失败)`,
-              location: '详情获取失败',
-              coverImageUrls: [],
-              price: 0,
-              durationInDays: 0,
-            };
-          }
-        } else {
-          return {
-            ...item,
-            title: `[${item.itemType}] ${item.itemid} (非旅行团)`,
-            location: '非旅行团类型',
-            coverImageUrls: [],
-            price: 0,
-            durationInDays: 0,
-          };
-        }
-      });
-      collectedTours.value = await Promise.all(detailedItemsPromises);
+      if (reset) {
+        notifications.value = formattedNewNotifications
+      } else {
+        notifications.value = [...notifications.value, ...formattedNewNotifications]
+      }
+
+      currentNotificationPage.value = nextPage
+
+      if (notifications.value.length >= totalNotifications.value) {
+        noMoreNotifications.value = true
+      }
     } else {
-      ElMessage.error(response.data.message || '获取收藏列表失败。');
+      ElMessage.warning('未能获取通知数据，请稍后再试。')
+      noMoreNotifications.value = true
     }
   } catch (error) {
-    console.error('获取收藏列表或详情时发生错误:', error);
-    ElMessage.error('获取收藏列表时发生网络或服务器错误。');
-  }
-};
-
-const goToTourDetail = (id) => {
-  router.push({ name: 'TravelGroupDetail', params: { id } });
-};
-
-// --- 获取我的报名（订单） ---
-const fetchJoinedTours = async () => {
-  loadingJoinedTours.value = true;
-  try {
-    const response = await authAxios.get('/user/orders', {
-      params: {
-        page: joinedCurrentPage.value,
-        size: joinedPageSize,
-      },
-    });
-
-    if (response.data.code === 200) {
-      joinedTours.value = response.data.data.content.map(order => {
-        let progress = 0;
-        let tourDate = ''; 
-        let progressText = ''; 
-        let showPayButton = false; // 支付按钮
-
-        // 设置进度和状态文字
-        switch (order.status) {
-          case 'PENDING_PAYMENT': // 待支付
-            progress = 20;
-            progressText = '待支付';
-            showPayButton = true; // 待支付时显示支付按钮
-            tourDate = new Date(order.orderTime).toLocaleDateString(); 
-            break;
-          case 'PAID': // 已支付（可以认为是已确认，即将出发）
-            progress = 50;
-            progressText = '已支付 (即将出发)';
-            tourDate = new Date(order.orderTime).toLocaleDateString();
-            break;
-          case 'ONGOING': // 正在进行
-            progress = 75; // 可以调整进度条值
-            progressText = '旅行中';
-            tourDate = new Date(order.orderTime).toLocaleDateString();
-            break;
-          case 'COMPLETED': // 已完成
-            progress = 100;
-            progressText = '已完成';
-            tourDate = new Date(order.orderTime).toLocaleDateString();
-            break;
-          case 'CANCELED': // 已取消
-            progress = 0; // 或者一个表示取消的特定值
-            progressText = '已取消';
-            tourDate = new Date(order.orderTime).toLocaleDateString();
-            break;
-          default:
-            progress = 0;
-            progressText = '未知状态';
-            tourDate = new Date(order.orderTime).toLocaleDateString();
-        }
-
-        return {
-          orderId: order.orderId,
-          image: order.packageCoverImageUrl,
-          title: order.packageTitle,
-          date: tourDate,
-          progress: progress,
-          progressText: progressText, 
-          packageId: order.packageId,
-          status: order.status,
-          travelerCount: order.travelerCount,
-          totalPrice: order.totalPrice,
-          orderTime: order.orderTime,
-          showPayButton: showPayButton
-        };
-      });
-
-      joinedTotal.value = response.data.data.totalElements || 0;
-    } else {
-      ElMessage.error(response.data.message || '获取我的报名数据失败！');
-      joinedTours.value = [];
-      joinedTotal.value = 0;
-    }
-  } catch (error) {
-    console.error('获取我的报名失败:', error);
-    ElMessage.error('网络请求失败，请检查您的网络或稍后再试！');
-    joinedTours.value = [];
-    joinedTotal.value = 0;
+    console.error("获取通知失败:", error)
+    ElMessage.error('获取通知列表失败，请检查网络或稍后再试。')
+    noMoreNotifications.value = true
   } finally {
-    loadingJoinedTours.value = false;
+    notificationLoading.value = false
   }
-};
+}
 
-const confirmPayment = async (orderId) => {
-  try {
-    const response = await authAxios.post(`/user/orders/${orderId}/confirm-payment`);
-    if (response.data.code === 200) {
-      ElMessage.success('支付成功！');
-      fetchJoinedTours(); 
-    } else {
-      ElMessage.error(response.data.message || '支付失败');
-    }
-  } catch (error) {
-    console.error('支付接口调用失败:', error);
-    ElMessage.error('网络错误，请稍后再试');
-  }
-};
+// --- [结束] 通知模块的所有逻辑 ---
+
 
 // 跳转首页
 const goToHome = () => {
@@ -475,7 +292,7 @@ const goToHome = () => {
 
 // 跳转到发布游记页面
 const goToPublishTravelNote = () => {
-  router.push('/user/publish-travel-note'); 
+  router.push('/user/publish-travel-note');
 };
 
 const notes = ref([]);
@@ -556,8 +373,6 @@ const handleUserUpdated = () => {
 onMounted(() => {
   fetchNotes(true);
   fetchUserProfile();
-  fetchJoinedTours();
-  fetchCollectedTours();
 })
 
 // 跳转详情页并传递游记id
@@ -576,6 +391,20 @@ watch(
   },
   { immediate: true } 
 );
+
+// [新增] 监听主标签页的变化
+watch(activeTab, (newTab) => {
+  if (newTab === 'notifications') {
+    // 当切换到“我的通知”时，触发一次重置加载
+    fetchNotifications(activeNotificationTab.value, true);
+  }
+});
+
+// [新增] 监听通知分类标签页的变化
+watch(activeNotificationTab, (newCategory) => {
+  // 当用户在通知内部切换分类时，也触发重置加载
+  fetchNotifications(newCategory, true);
+});
 
 
 </script>
@@ -737,23 +566,6 @@ watch(
 
 .hidden-tabs-header .el-tabs__content {
   padding: 0;
-}
-
-/* 我的游记部分的标题和按钮容器 */
-.notes-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px; 
-  padding-bottom: 10px; 
-  border-bottom: 1px solid #eee; 
-}
-
-.notes-section-title {
-  font-size: 1.5rem; 
-  font-weight: 600;
-  color: #333;
-  margin: 0; 
 }
 
 /* 内容卡片网格布局 */
@@ -926,6 +738,11 @@ watch(
 }
 .progress-text {
   margin: 0;
+}
+
+.payment-actions {
+  display: flex;
+  gap: 8px;
 }
 
 </style>

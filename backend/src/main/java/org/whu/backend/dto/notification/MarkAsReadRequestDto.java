@@ -1,14 +1,12 @@
 package org.whu.backend.dto.notification;
 
-import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
-import org.whu.backend.entity.travelpost.Notification;
 
-import java.util.List;
 
 @Data
 public class MarkAsReadRequestDto {
-    @NotEmpty
-    private List<Notification.NotificationType> types;
+    @NotBlank(message = "通知类别不能为空")
+    private String category; // "likes", "comments", or "system"
 }
 

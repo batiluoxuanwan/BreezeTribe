@@ -7,6 +7,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.SoftDelete;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.whu.backend.entity.Spot;
+import org.whu.backend.entity.Tag;
 import org.whu.backend.entity.accounts.User;
 
 import java.time.LocalDateTime;
@@ -29,7 +30,7 @@ public class TravelPost {
 
     // 游记的正文内容，使用@Lob来存储长文本
     @Lob
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
     // 作者：这篇游记是谁写的 (多对一关联到User实体)

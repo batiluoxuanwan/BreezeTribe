@@ -167,7 +167,7 @@ const sendPhoneCode = async () => {
       // 3. 调用发送短信验证码接口
       // 使用 publicAxios 发送 POST 请求到 /captcha/sendSms
       // 将手机号作为 params 发送
-      const response = await publicAxios.post('/captcha/sendSms', null, {
+      const response = await publicAxios.post('/captcha/resetBySms', null, {
         params: { phone: form.value.phone }
       });
 
@@ -217,7 +217,7 @@ const sendEmailCode = async () => {
         const boundEmail = res.data.data.email
         if (form.value.email !== boundEmail) return ElMessage.warning('请输入当前绑定的邮箱')
 
-        const response = await publicAxios.post('/captcha/sendEmail', null, {
+        const response = await publicAxios.post('/captcha/resetByEmail', null, {
             params: { email: form.value.email }
         })
 

@@ -51,7 +51,9 @@ public class NotificationController {
 
     @Operation(summary = "将指定类型的通知标记为已读")
     @PostMapping("/mark-as-read")
-    public Result<?> markAsRead(@Valid @RequestBody MarkAsReadRequestDto request) {
+    public Result<?> markAsRead(
+            @Parameter(description = "通知类别: likes (点赞与收藏), comments (评论与回复), system (系统与订单)。留空则标记所有为已读。")
+            @Valid @RequestBody MarkAsReadRequestDto request) {
         String currentUserId = AccountUtil.getCurrentAccountId();
         notificationService.markAsRead(currentUserId, request);
         return Result.success("操作成功");

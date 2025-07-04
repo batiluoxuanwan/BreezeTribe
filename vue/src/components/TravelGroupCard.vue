@@ -7,11 +7,10 @@
     </div>
     <div class="card-content">
       <h3 class="card-title">{{ group.title }}</h3>
-      <p class="card-meta">目的地: {{ group.destination }}</p>
       <p class="card-price">¥{{ group.price }} 起</p>
       <div class="card-info">
         <span>时长: {{ group.durationInDays }}天</span>
-        <span>人数: {{ group.members }}人</span>
+        <!-- <span>人数: {{ group.members }}人</span> -->
         <span>评分: {{ group.rating }}</span>
       </div>
       <el-button type="primary" size="small" class="detail-button" @click.stop="goToDetail">查看详情</el-button>

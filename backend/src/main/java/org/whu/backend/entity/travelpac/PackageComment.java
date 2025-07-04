@@ -1,4 +1,4 @@
-package org.whu.backend.entity;
+package org.whu.backend.entity.travelpac;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Max;
@@ -32,7 +32,7 @@ public class PackageComment {
     private Integer rating;
 
     @Lob
-    @Column(nullable = false)
+    @Column(nullable = false,columnDefinition = "TEXT")
     private String content;
 
     @ManyToOne(fetch = FetchType.EAGER)

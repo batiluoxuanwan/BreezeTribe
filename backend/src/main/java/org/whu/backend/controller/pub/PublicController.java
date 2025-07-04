@@ -1,6 +1,7 @@
 package org.whu.backend.controller.pub;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import org.whu.backend.common.Result;
 import org.whu.backend.dto.PageRequestDto;
 import org.whu.backend.dto.PageResponseDto;
+import org.whu.backend.dto.accounts.ShareDto;
 import org.whu.backend.dto.accounts.UserProfileDto;
 import org.whu.backend.dto.baidumap.BaiduSuggestionResponseDto;
 import org.whu.backend.dto.packagecomment.PackageCommentDto;
@@ -19,6 +21,8 @@ import org.whu.backend.dto.post.PostSearchRequestDto;
 import org.whu.backend.dto.post.PostSummaryDto;
 import org.whu.backend.dto.postcomment.PostCommentDto;
 import org.whu.backend.dto.postcomment.PostCommentWithRepliesDto;
+import org.whu.backend.dto.tag.TagDto;
+import org.whu.backend.dto.travelpack.DepartureSummaryDto;
 import org.whu.backend.dto.travelpack.PackageDetailDto;
 import org.whu.backend.dto.travelpack.PackageSearchRequestDto;
 import org.whu.backend.dto.travelpack.PackageSummaryDto;
@@ -45,6 +49,20 @@ public class PublicController {
     @Autowired
     private UserPackageCommentService userPackageCommentService;
 
+    @Operation(summary = "获取所有标签列表（分页）", description = "【已修改】现在支持按分类筛选和按名称模糊搜索。")
+    @GetMapping
+    public Result<PageResponseDto<TagDto>> getAllTags(
+            @Parameter(description = "按分类筛选（可选），如 THEME, TARGET_AUDIENCE 等")
+            @RequestParam(required = false) org.whu.backend.entity.Tag.TagCategory category,
+            @Parameter(description = "按标签名称模糊搜索（可选）")
+            @RequestParam(required = false) String name,
+            @Valid @ParameterObject PageRequestDto pageRequestDto) {
+        log.info("请求日志：管理员正在查询标签列表（分页），筛选分类: {}, 模糊搜索名称: '{}', 分页参数: {}", category, name, pageRequestDto);
+        // 将新的查询参数传递给Service层
+        PageResponseDto<TagDto> resultPage = publicService.getAllTags(category, name, pageRequestDto);
+        return Result.success("查询成功", resultPage);
+    }
+
     // TODO: 分页查询要对排序字段进行检查
     @Operation(summary = "获取已发布的旅行团列表（分页）", description = "供所有用户浏览")
     @GetMapping("/travel-packages")
@@ -58,7 +76,7 @@ public class PublicController {
     @Operation(summary = "搜索旅行团（复杂条件）", description = "根据多种条件组合搜索旅行团")
     @GetMapping("/travel-packages/search")
     public Result<PageResponseDto<PackageSummaryDto>> searchPackages(@Valid @ParameterObject PackageSearchRequestDto searchRequestDto) {
-        log.info("访问搜索公共游记列表接口,关键词: {}，城市: {}", searchRequestDto.getKeyword(), searchRequestDto.getCity());
+        log.info("访问搜索公开旅行团列表接口,关键词: {}，城市: {}", searchRequestDto.getKeyword(), searchRequestDto.getCity());
         PageResponseDto<PackageSummaryDto> resultPage = publicService.searchPackages(searchRequestDto);
         return Result.success(resultPage);
     }
@@ -70,6 +88,16 @@ public class PublicController {
         String ipAddress = IpUtil.getRealIp(request);
         PackageDetailDto packageDetails = publicService.getPackageDetails(id, ipAddress);
         return Result.success(packageDetails);
+    }
+
+    @Operation(summary = "获取指定产品的可报名团期列表（分页）", description = "查询一个产品下所有可供用户选择报名的出发团期。")
+    @GetMapping("/travel-packages/{packageId}/departures")
+    public Result<PageResponseDto<DepartureSummaryDto>> getAvailableDepartures(
+            @Parameter(description = "产品模板的ID") @PathVariable String packageId,
+            @Valid @ParameterObject PageRequestDto pageRequestDto) {
+        log.info("请求日志：收到查询产品ID '{}' 的可报名团期列表请求, 分页参数: {}", packageId, pageRequestDto);
+        PageResponseDto<DepartureSummaryDto> resultPage = publicService.getAvailableDeparturesForPackage(packageId, pageRequestDto);
+        return Result.success("团期列表查询成功", resultPage);
     }
 
     @Operation(summary = "获取地点输入提示", description = "用于前端搜索框的实时输入提示，后端转发百度地图API请求")
@@ -93,7 +121,7 @@ public class PublicController {
     }
 
     @Operation(summary = "获取已发布的游记列表（分页）")
-    @GetMapping("posts")
+    @GetMapping("/posts")
     public Result<PageResponseDto<PostSummaryDto>> getPublishedPosts(@Valid @ParameterObject PageRequestDto pageRequestDto) {
         log.info("访问获取公共游记列表接口, 分页参数: {}", pageRequestDto);
         PageResponseDto<PostSummaryDto> resultPage = publicService.getPublishedPosts(pageRequestDto);
@@ -173,5 +201,21 @@ public class PublicController {
         PageResponseDto<PostSummaryDto> resultPage = publicService.getUserPosts(userId, pageRequestDto);
         return Result.success(resultPage);
     }
-
+    @Operation(summary = "获取指定用户发的基础信息")
+    @GetMapping("/users/{userId}/info")
+    public Result<ShareDto> getUserInfos(
+            @PathVariable String userId) {
+        log.info("访问获取用户 '{}' 的信息接口", userId);
+        ShareDto dto = publicService.getUserInfos(userId);
+        System.out.println("YES/n");
+        return Result.success("喜报",dto);
+    }
+    @Operation(summary = "根据用户id，phone,email精确查询或者用户名模糊查询")
+    @GetMapping("/users/search")
+    public Result<List<ShareDto>> searchUsers(
+            @RequestParam String keyword)
+    {
+        List<ShareDto> dto = publicService.searchUsers(keyword);
+        return Result.success(dto);
+    }
 }

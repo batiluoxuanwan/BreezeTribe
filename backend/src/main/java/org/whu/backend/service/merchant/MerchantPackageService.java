@@ -13,26 +13,24 @@ import org.whu.backend.common.exception.BizException;
 import org.whu.backend.dto.PageRequestDto;
 import org.whu.backend.dto.PageResponseDto;
 import org.whu.backend.dto.baidumap.BaiduPlaceDetailResponseDto;
-import org.whu.backend.dto.order.OrderSummaryForDealerDto;
-import org.whu.backend.dto.travelpack.DayScheduleDto;
-import org.whu.backend.dto.travelpack.PackageCreateRequestDto;
-import org.whu.backend.dto.travelpack.PackageSummaryDto;
-import org.whu.backend.dto.travelpack.PackageUpdateRequestDto;
+import org.whu.backend.dto.order.TravelOrderDetailDto;
+import org.whu.backend.dto.travelpack.*;
 import org.whu.backend.entity.*;
 import org.whu.backend.entity.accounts.Merchant;
 import org.whu.backend.entity.association.PackageImage;
 import org.whu.backend.entity.association.PackageRoute;
 import org.whu.backend.entity.association.RouteSpot;
+import org.whu.backend.entity.travelpac.Route;
+import org.whu.backend.entity.travelpac.TravelOrder;
+import org.whu.backend.entity.travelpac.TravelPackage;
 import org.whu.backend.repository.MediaFileRepository;
+import org.whu.backend.repository.TagRepository;
 import org.whu.backend.repository.authRepo.MerchantRepository;
-import org.whu.backend.repository.travelRepo.OrderRepository;
-import org.whu.backend.repository.travelRepo.RouteRepository;
-import org.whu.backend.repository.travelRepo.SpotRepository;
-import org.whu.backend.repository.travelRepo.TravelPackageRepository;
+import org.whu.backend.repository.travelRepo.*;
 import org.whu.backend.service.BaiduMapService;
 import org.whu.backend.service.DtoConverter;
 
-import java.time.temporal.ChronoUnit;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -51,30 +49,36 @@ public class MerchantPackageService {
     @Autowired
     private MediaFileRepository mediaFileRepository;
     @Autowired
-    private OrderRepository orderRepository;
-    @Autowired
     private SpotRepository spotRepository;
     @Autowired
     private BaiduMapService baiduMapService;
     @Autowired
     private DtoConverter dtoConverter;
+    @Autowired
+    private TravelPackageRepository travelPackageRepository;
+    @Autowired
+    private TravelOrderRepository travelOrderRepository;
+    @Autowired
+    private TravelDepartureRepository travelDepartureRepository;
+    @Autowired
+    private TagRepository tagRepository;
 
     @Transactional
-    public TravelPackage createPackage(PackageCreateRequestDto dto, String dealerId) {
+    public TravelPackage createPackage(PackageCreateRequestDto dto, String dealerId) throws InterruptedException {
         log.info("经销商ID '{}' 正在创建新旅行团 '{}'...", dealerId, dto.getTitle());
 
         // 1. 查找经销商实体
         Merchant dealer = merchantRepository.findById(dealerId)
                 .orElseThrow(() -> new BizException("找不到ID为 " + dealerId + " 的经销商"));
 
-        // 2. 创建并填充旅行团基本信息
+        // 2. 创建并填充旅行团基本信息 重构后去掉三个字段
         TravelPackage newPackage = new TravelPackage();
         newPackage.setTitle(dto.getTitle());
         newPackage.setDetailedDescription(dto.getDetailedDescription());
-        newPackage.setPrice(dto.getPrice());
-        newPackage.setCapacity(dto.getCapacity());
+//        newPackage.setPrice(dto.getPrice());
+//        newPackage.setCapacity(dto.getCapacity());
         newPackage.setParticipants(0);
-        newPackage.setDepartureDate(dto.getDepartureDate().truncatedTo(ChronoUnit.DAYS)); // 截断到天
+//        newPackage.setDepartureDate(dto.getDepartureDate().truncatedTo(ChronoUnit.DAYS)); // 截断到天
         newPackage.setDurationInDays(dto.getDurationInDays());
         newPackage.setDealer(dealer);
         newPackage.setStatus(TravelPackage.PackageStatus.PENDING_APPROVAL); // 初始状态为待审核
@@ -125,6 +129,7 @@ public class MerchantPackageService {
                 routeSpot.setSpot(spot);
                 routeSpot.setOrderColumn(i + 1);
                 dailyRoute.getSpots().add(routeSpot);
+                Thread.sleep(500);
             }
 
             // 先保存这个新创建的Route，使其获得一个持久化的ID
@@ -138,10 +143,68 @@ public class MerchantPackageService {
             newPackage.getRoutes().add(packageRoute);
         }
 
+        // 3. 处理并关联标签
+        if (dto.getTagIds() != null && !dto.getTagIds().isEmpty()) {
+            List<Tag> tags = tagRepository.findAllById(dto.getTagIds());
+            if (tags.size() != dto.getTagIds().size()) {
+                throw new BizException("部分标签ID无效，请检查后重试");
+            }
+            newPackage.setTags(new HashSet<>(tags));
+            log.info("服务层：为新旅行团关联了 {} 个标签", tags.size());
+        }
+
         // 4. 保存旅行团
         TravelPackage savedPackage = packageRepository.save(newPackage);
         log.info("新旅行团 '{}' (ID: {}) 已成功创建，状态为待审核。", savedPackage.getTitle(), savedPackage.getId());
         return savedPackage;
+    }
+
+    /**
+     * 【新增】获取单个产品的详细信息（商家视角）
+     */
+    @Transactional(readOnly = true)
+    public PackageDetailForMerchantDto getPackageDetailsForMerchant(String packageId, String currentDealerId) {
+        log.info("服务层：开始为经销商 '{}' 查询产品ID '{}' 的详细信息", currentDealerId, packageId);
+
+        // 1. 查找产品，同时验证所有权
+        TravelPackage travelPackage = packageRepository.findById(packageId)
+                .orElseThrow(() -> new BizException("找不到对应的旅游产品"));
+
+        if (!travelPackage.getDealer().getId().equals(currentDealerId)) {
+            throw new BizException("无权查看不属于自己的产品详情");
+        }
+
+        // 2. 调用新的转换方法，将实体转换为商家专用的DTO
+        return dtoConverter.convertPackageToDetailForMerchantDto(travelPackage);
+    }
+
+    /**
+     * 【新增】更新一个旅行团的标签
+     */
+    @Transactional
+    public void updatePackageTags(String packageId, List<String> tagIds, String currentDealerId) {
+        log.info("服务层：开始为产品ID '{}' 更新标签", packageId);
+
+        // 1. 验证产品是否存在且属于当前经销商
+        TravelPackage travelPackage = packageRepository.findById(packageId)
+                .orElseThrow(() -> new BizException("找不到对应的旅游产品"));
+
+        if (!travelPackage.getDealer().getId().equals(currentDealerId)) {
+            throw new BizException("无权操作不属于自己的产品");
+        }
+
+        // 2. 查找新的标签实体列表
+        List<Tag> newTags = tagRepository.findAllById(tagIds);
+        if (newTags.size() != tagIds.size()) {
+            throw new BizException("部分标签ID无效，请检查后重试");
+        }
+
+        // 3. 替换标签集合
+        travelPackage.setTags(new HashSet<>(newTags));
+
+        // 4. 保存更新
+        packageRepository.save(travelPackage);
+        log.info("服务层：成功将产品ID '{}' 的标签更新为 {} 个", packageId, newTags.size());
     }
 
 
@@ -152,6 +215,15 @@ public class MerchantPackageService {
 
         // 1. 查找并验证旅行团的所有权
         TravelPackage packageToUpdate = findPackageByIdAndVerifyOwnership(packageId, currentDealerId);
+
+        // 2. 【新增】关键业务规则校验！
+        // 检查该产品模板下的所有团期，是否存在任何“活跃”的订单。
+        boolean hasActiveOrders = travelOrderRepository.existsActiveOrdersForPackage(packageId);
+        if (hasActiveOrders) {
+            log.warn("服务层：更新操作被阻止！产品ID '{}' 存在待支付或已支付的订单。", packageId);
+            throw new BizException("更新失败：该产品已有用户报名且订单处于活跃状态，请先处理相关订单。");
+        }
+        log.info("服务层：产品ID '{}' 无活跃订单，校验通过，允许更新。", packageId);
 
         // 2. 更新允许修改的字段
         packageToUpdate.setTitle(dto.getTitle());
@@ -166,7 +238,7 @@ public class MerchantPackageService {
         return updatedPackage;
     }
 
-    // [重构] 删除自己的一个旅行团（级联删除）
+    // [重构] 删除自己的一个旅行团（级联删除） TODO: 删除要检查各种数据一致性的情况
     @Transactional
     public void deletePackage(String packageId, String currentDealerId) {
         log.info("经销商ID '{}' 正在尝试删除旅行团ID '{}'...", currentDealerId, packageId);
@@ -174,10 +246,10 @@ public class MerchantPackageService {
         // 1. 查找并验证旅行团的所有权
         TravelPackage packageToDelete = findPackageByIdAndVerifyOwnership(packageId, currentDealerId);
 
-        boolean hasActiveOrders = orderRepository.existsByTravelPackageId(packageId);
-        if (hasActiveOrders) {
-            log.warn("删除失败：旅行团ID '{}' 存在有效的关联订单。", packageId);
-            throw new BizException("无法删除：该旅行团尚有未完成或未取消的订单，请先处理相关订单。");
+        boolean hasActiveDepartures = travelDepartureRepository.existsByTravelPackageId(packageId);
+        if (hasActiveDepartures) {
+            log.warn("删除失败：旅行团ID '{}' 存在有效的关联团期。", packageId);
+            throw new BizException("无法删除：该旅行团存在有效的关联团期，请先处理相关团期。");
         }
 
         // 2. [核心修改] 在删除旅行团之前，先手动删除它关联的所有路线
@@ -219,23 +291,62 @@ public class MerchantPackageService {
 
 
     // 获取指定旅行团的订单列表（分页）
+//    @Transactional(readOnly = true)
+//    public PageResponseDto<OrderSummaryForDealerDto> getPackageOrders(String packageId, String currentDealerId, PageRequestDto pageRequestDto) {
+//        log.info("经销商ID '{}' 正在获取旅行团ID '{}'的订单列表, 分页参数: {}", currentDealerId, packageId, pageRequestDto);
+//
+//        // 1. 验证该旅行团是否属于当前经销商
+//        findPackageByIdAndVerifyOwnership(packageId, currentDealerId);
+//
+//        // 2. 创建分页和排序对象
+//        Sort sort = Sort.by(Sort.Direction.fromString(pageRequestDto.getSortDirection()), pageRequestDto.getSortBy());
+//        Pageable pageable = PageRequest.of(pageRequestDto.getPage() - 1, pageRequestDto.getSize(), sort);
+//
+//        // 3. 查询状态为“已支付”的订单
+//        Page<Order> orderPage = orderRepository.findByTravelPackageIdAndStatus(packageId, Order.OrderStatus.PAID, pageable);
+//
+//        // 4. 将实体列表转换为对经销商安全的DTO列表
+//        List<OrderSummaryForDealerDto> dtos = orderPage.getContent().stream()
+//                .map(dtoConverter::convertOrderToSummaryForDealerDto)
+//                .collect(Collectors.toList());
+//
+//        // 5. 封装并返回分页结果
+//        return dtoConverter.convertPageToDto(orderPage, dtos);
+//    }
+    /**
+     * 【核心重构】获取指定产品模板下所有团期的订单列表（分页）
+     */
+    // TODO: 目前只能查询所有已支付状态的订单，并且不能分团期进行查询，需要修改
     @Transactional(readOnly = true)
-    public PageResponseDto<OrderSummaryForDealerDto> getPackageOrders(String packageId, String currentDealerId, PageRequestDto pageRequestDto) {
-        log.info("经销商ID '{}' 正在获取旅行团ID '{}'的订单列表, 分页参数: {}", currentDealerId, packageId, pageRequestDto);
+    public PageResponseDto<TravelOrderDetailDto> getPackageOrders(String packageId, String currentDealerId, PageRequestDto pageRequestDto) {
+        log.info("服务层：经销商ID '{}' 正在获取产品ID '{}'的订单列表, 分页参数: {}", currentDealerId, packageId, pageRequestDto);
 
-        // 1. 验证该旅行团是否属于当前经销商
-        findPackageByIdAndVerifyOwnership(packageId, currentDealerId);
+        // 1. 验证该产品模板是否属于当前经销商
+        if (!travelPackageRepository.existsByIdAndDealerId(packageId, currentDealerId)) {
+            throw new BizException("找不到对应的旅游产品或无权访问");
+        }
 
         // 2. 创建分页和排序对象
         Sort sort = Sort.by(Sort.Direction.fromString(pageRequestDto.getSortDirection()), pageRequestDto.getSortBy());
         Pageable pageable = PageRequest.of(pageRequestDto.getPage() - 1, pageRequestDto.getSize(), sort);
 
-        // 3. 查询状态为“已支付”的订单
-        Page<Order> orderPage = orderRepository.findByTravelPackageIdAndStatus(packageId, Order.OrderStatus.PAID, pageable);
+        // 3. 【重大改变】查询逻辑变更
+        // 我们现在需要查询的是，所有关联到该产品模板的、已支付的订单
+        // 这需要一个新的Repository方法，通过 TravelOrder -> TravelDeparture -> TravelPackage 进行关联查询
+//        Page<TravelOrder> orderPage = travelOrderRepository.findByTravelDeparture_TravelPackage_IdAndStatus(
+//                packageId,
+//                TravelOrder.OrderStatus.PAID, // 假设商家只关心已支付的订单
+//                pageable
+//        );
+        Page<TravelOrder> orderPage = travelOrderRepository.findByTravelDeparture_TravelPackage_Id(
+                packageId,
+                pageable
+        );
+        log.info("服务层：为产品ID '{}' 查询到 {} 条已支付订单", packageId, orderPage.getTotalElements());
 
         // 4. 将实体列表转换为对经销商安全的DTO列表
-        List<OrderSummaryForDealerDto> dtos = orderPage.getContent().stream()
-                .map(dtoConverter::convertOrderToSummaryForDealerDto)
+        List<TravelOrderDetailDto> dtos = orderPage.getContent().stream()
+                .map(dtoConverter::convertTravelOrderToDetailDto) // 使用新的转换方法
                 .collect(Collectors.toList());
 
         // 5. 封装并返回分页结果

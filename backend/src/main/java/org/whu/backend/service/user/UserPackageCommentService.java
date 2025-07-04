@@ -2,6 +2,7 @@ package org.whu.backend.service.user;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -13,13 +14,15 @@ import org.whu.backend.dto.PageRequestDto;
 import org.whu.backend.dto.PageResponseDto;
 import org.whu.backend.dto.packagecomment.PackageCommentCreateDto;
 import org.whu.backend.dto.packagecomment.PackageCommentDto;
-import org.whu.backend.entity.Order;
-import org.whu.backend.entity.PackageComment;
-import org.whu.backend.entity.TravelPackage;
+import org.whu.backend.entity.travelpac.PackageComment;
+import org.whu.backend.entity.travelpac.TravelOrder;
+import org.whu.backend.entity.travelpac.TravelPackage;
 import org.whu.backend.entity.accounts.User;
+import org.whu.backend.event.travelpac.PackageCommentedEvent;
 import org.whu.backend.repository.authRepo.UserRepository;
 import org.whu.backend.repository.travelRepo.OrderRepository;
 import org.whu.backend.repository.travelRepo.PackageCommentRepository;
+import org.whu.backend.repository.travelRepo.TravelOrderRepository;
 import org.whu.backend.repository.travelRepo.TravelPackageRepository;
 import org.whu.backend.service.DtoConverter;
 
@@ -42,6 +45,13 @@ public class UserPackageCommentService {
     private PackageCommentRepository packageCommentRepository;
     @Autowired
     private DtoConverter dtoConverter;
+    @Autowired
+    private TravelOrderRepository travelOrderRepository;
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
+
+
+    public static final int MAX_NOTIFICATION_CONTENT_LENGTH = 50;
 
     @Transactional
     public PackageComment createComment(String packageId, PackageCommentCreateDto dto, String currentUserId) {
@@ -54,14 +64,14 @@ public class UserPackageCommentService {
                 .orElseThrow(() -> new BizException("找不到旅行团 " + packageId));
 
         // 2.【重要】业务规则校验：用户必须完成过该旅行团才能评价
-        boolean hasPurchased = orderRepository.existsByUserAndTravelPackageAndStatus(author, travelPackage, Order.OrderStatus.COMPLETED);
+        boolean hasPurchased = travelOrderRepository.existsByUserAndTravelDeparture_TravelPackageAndStatus(author, travelPackage, TravelOrder.OrderStatus.COMPLETED);
         if (!hasPurchased) {
-            throw new BizException("尚未购买该旅行团，无法评价");
+            throw new BizException("尚未完成该旅行团，无法评价");
         }
 
         // 2.1  不允许重复评价旅游团
-        boolean hasCommented = packageCommentRepository.existsByAuthorIdAndTravelPackageId(currentUserId,packageId);
-        if (hasCommented){
+        boolean hasCommented = packageCommentRepository.existsByAuthorIdAndTravelPackageId(currentUserId, packageId);
+        if (hasCommented) {
             throw new BizException("请不要重复评价");
         }
 
@@ -86,9 +96,26 @@ public class UserPackageCommentService {
                 throw new BizException("不允许回复楼中楼");
             }
             newComment.setParent(parentComment);
+
+            // 是回复，通知被回复者
+            eventPublisher.publishEvent(
+                    new PackageCommentedEvent(
+                            travelPackage,
+                            author,
+                            parentComment.getAuthor(),
+                            truncateContent(dto.getContent())));
+        } // 不是回复，通知经销商
+        else {
+            eventPublisher.publishEvent(
+                    new PackageCommentedEvent(
+                            travelPackage,
+                            author,
+                            travelPackage.getDealer(),
+                            truncateContent(dto.getContent())));
         }
         // 原子地增加评论数
         packageRepository.incrementCommentCount(packageId);
+
 
         return commentRepository.save(newComment);
     }
@@ -148,7 +175,7 @@ public class UserPackageCommentService {
                 })
                 .collect(Collectors.toList());
 
-        return dtoConverter.convertPageToDto(commentPage,dtos);
+        return dtoConverter.convertPageToDto(commentPage, dtos);
     }
 
     /**
@@ -174,6 +201,13 @@ public class UserPackageCommentService {
                 .map(dtoConverter::convertPackageCommentToSimpleDto)
                 .toList();
 
-        return dtoConverter.convertPageToDto(repliesPage,dtos);
+        return dtoConverter.convertPageToDto(repliesPage, dtos);
+    }
+
+    private String truncateContent(String content) {
+        if (content.length() <= MAX_NOTIFICATION_CONTENT_LENGTH) {
+            return content;
+        }
+        return content.substring(0, MAX_NOTIFICATION_CONTENT_LENGTH) + "...";
     }
 }

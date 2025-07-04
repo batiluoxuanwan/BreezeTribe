@@ -390,7 +390,7 @@ const goLogin = () => {
 }
 
 .register-left {
-  width: 340px;
+  width: 330px;
   background: white;
   border-radius: 50px;
   padding: 40px;
@@ -406,10 +406,10 @@ const goLogin = () => {
 
 .register-right {
   position: absolute;
-  right: 60px;
+  right: 50px;
   top: 50%;
   transform: translateY(-50%);
-  width: 400px;
+  width: 395px;
   height: 575px;
   padding: 30px 30px;
   background: #6fc3b06f;

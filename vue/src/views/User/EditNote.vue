@@ -45,9 +45,6 @@
         <span class="views">
           <el-icon><View /></el-icon>{{ note.viewCount || 0 }} 阅读
         </span>
-        <span class="favorite">
-          <el-icon><Star /></el-icon> {{ note.favoriteCount || 0 }}
-        </span>
         <span class="likes">
           <el-icon><Pointer /></el-icon>{{ note.likeCount || 0 }} 喜欢
         </span>
@@ -79,7 +76,7 @@
       </div>
 
       <div class="note-tags" v-if="note.tags && note.tags.length">
-        <el-tag v-for="(tag, index) in note.tags" :key="index" size="large" class="note-tag">{{ tag }}</el-tag>
+        <el-tag v-for="(tag, index) in note.tags" :key="index" size="large" class="note-tag">{{ tag.name }}</el-tag>
       </div>
       
       <el-divider></el-divider>

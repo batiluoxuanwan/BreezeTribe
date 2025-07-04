@@ -6,6 +6,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.SoftDelete;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.whu.backend.entity.accounts.User;
+import org.whu.backend.entity.travelpac.TravelPackage;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -14,6 +15,7 @@ import java.util.UUID;
 /**
  * 表示一个用户创建的加入旅游团的订单
  */
+// 已经废弃！！！！！！！！！！！！！！！！！！！！！！！！
 @Data
 @Entity
 @SoftDelete

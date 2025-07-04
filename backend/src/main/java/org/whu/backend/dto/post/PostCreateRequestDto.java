@@ -24,6 +24,9 @@ public class PostCreateRequestDto {
     @Schema(description = "关联的景点ID (可选)")
     private String spotId;
 
+    @Schema(description = "为该游记关联的标签ID列表 (可选)")
+    private List<String> tagIds;
+
     @Schema(description = "游记的图片MediaFile ID列表，按顺序排列，第一张为封面")
     @NotEmpty(message = "至少需要上传一张图片")
     private List<String> imageIds;

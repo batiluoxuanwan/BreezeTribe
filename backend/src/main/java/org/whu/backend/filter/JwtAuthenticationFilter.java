@@ -1,5 +1,7 @@
 package org.whu.backend.filter;
 
+import io.jsonwebtoken.ExpiredJwtException;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -28,11 +30,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final AuthRepository authRepository;
+    private final RedisTemplate<String, String> redisTemplate; // ✅ 注入 RedisTemplate
 
     public JwtAuthenticationFilter(JwtService jwtService,
-                                   AuthRepository authRepository) {
+                                   AuthRepository authRepository,
+                                   RedisTemplate<String, String> redisTemplate) {
         this.jwtService = jwtService;
         this.authRepository = authRepository;
+        this.redisTemplate = redisTemplate;
     }
 
     @Override
@@ -41,16 +46,32 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws IOException, ServletException {
         String authHeader = request.getHeader("Authorization");
         String tokenPrefix = "Bearer ";
-
-        // 检查是否携带 Token
+        String requestPath = request.getRequestURI();
+//        //跳过 Token 校验（白名单）
+//        if (requestPath.startsWith("/api/auth/refresh")) {
+//            filterChain.doFilter(request, response);
+//            return;
+//        }
+        // 检查是否携带 Token，不带则跳过
         if (!StringUtils.hasText(authHeader) || !authHeader.startsWith(tokenPrefix)) {
             filterChain.doFilter(request, response);
             return;
         }
 
         String token = authHeader.substring(tokenPrefix.length());
-        String identifier = jwtService.extractAccountIdentifier(token);
-        Role role = jwtService.extractAccountRole(token);
+
+        // 检查 token 是否在黑名单中
+        if (Boolean.TRUE.equals(redisTemplate.hasKey("blacklist:" + token))) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json;charset=UTF-8");
+            response.getWriter().write("{\"code\":401,\"msg\":\"登录状态已失效，请重新登录\"}");
+            return;
+        }
+
+        try {
+            // 你的token解析逻辑
+            String identifier = jwtService.extractAccountIdentifier(token);
+            Role role = jwtService.extractAccountRole(token);
 
         if (identifier == null || role == null || SecurityContextHolder.getContext().getAuthentication() != null) {
             filterChain.doFilter(request, response);
@@ -77,7 +98,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
         }
-
+        } catch (ExpiredJwtException e) {
+            // 这里直接构造401响应，终止filterChain
+            //过滤器里面打爆出的错误不会被全局异常处理器捕捉
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json;charset=UTF-8");
+            response.getWriter().write("{\"code\":401,\"msg\":\"访问令牌已过期，请重新登录\"}");
+            return;
+        }
         filterChain.doFilter(request, response);
     }
 }

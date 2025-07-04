@@ -1,4 +1,4 @@
-package org.whu.backend.entity.travelpost;
+package org.whu.backend.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
@@ -44,13 +44,13 @@ public class Notification {
     /**
      * 通知描述，例如："张三 回复了你的评论"
      */
-    @Column(nullable = true)
+    @Column(nullable = false)
     private String description;
 
     /**
      * 通知内容，例如："评论内容：哈哈哈哈"
      */
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String content;
 
     /**
@@ -84,15 +84,20 @@ public class Notification {
         NEW_POST_LIKE,          // 游记被点赞
         NEW_POST_FAVORITE,      // 游记被收藏
 
+        NEW_PACKAGE_FAVORITE,   // 旅行团被收藏
+
         // 评论和回复类
         NEW_POST_COMMENT,       // 游记被评论
         NEW_COMMENT_REPLY,      // 你的评论被回复
+
+        NEW_PACKAGE_COMMENT,    // 旅行团被评论
 
         // 系统和订单类
         ORDER_CREATED,          // 订单创建成功
         ORDER_PAID,             // 订单支付成功
         ORDER_CANCELED,         // 订单取消成功
         PACKAGE_APPROVED,       // 旅行团审核通过
-        PACKAGE_REJECTED        // 旅行团审核被驳回
+        PACKAGE_REJECTED,       // 旅行团审核被驳回
+        DEPARTURE_REMINDER      // 临行时通知（对商户和对用户）
     }
 }

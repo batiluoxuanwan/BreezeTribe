@@ -11,7 +11,6 @@
       <div class="card-footer-fixed">
         <div class="tour-meta">
           <span class="duration">{{ tour.durationInDays }}天</span>
-          <span class="departure-date">出发日期: {{ tour.startDate }}</span>
         </div>
         <div class="tour-price-wrapper">
           <span class="tour-price">¥{{ tour.price }}</span>

@@ -21,7 +21,7 @@
           <el-icon><ChatDotRound /></el-icon> {{ note.commentCount || 0 }}
         </span>
         <span class="meta-item">
-          <el-icon><Star /></el-icon> {{ note.likeCount || 0 }}
+          <el-icon><Pointer /></el-icon> {{ note.likeCount || 0 }}
         </span>
         <el-button type="primary" link @click.stop="goToDetail">阅读全文</el-button>
       </div>
@@ -32,7 +32,7 @@
 <script setup>
 import { defineProps } from 'vue';
 import { ElCard, ElAvatar, ElButton, ElIcon } from 'element-plus';
-import { View, ChatDotRound, Star } from '@element-plus/icons-vue';
+import { View, ChatDotRound, Pointer } from '@element-plus/icons-vue';
 import {useRouter} from 'vue-router';
 const router = useRouter();
 
