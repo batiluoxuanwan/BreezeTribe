@@ -10,11 +10,8 @@
         class="avatar"
       />
       <h2 class="username">{{ merchantProfile.companyName || merchantProfile.username }}</h2>
-      <div class="stats">
-        <div><strong>{{ merchantOverview.totalTours }}</strong><p>发布团数</p></div>
-        <div><strong>{{ merchantOverview.pendingTours }}</strong><p>待审团数</p></div>
-        <div><strong>{{ merchantOverview.totalOrders }}</strong><p>累计订单</p></div>
-      </div>
+
+      <br>
 
       <div class="sidebar-menu">
         <div
@@ -275,26 +272,6 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="orderDetailsDialog" :title="`订单详情: ${selectedOrder.orderId}`" width="600px">
-      <el-descriptions border :column="1">
-        <el-descriptions-item label="订单号">{{ selectedOrder.orderId }}</el-descriptions-item>
-        <el-descriptions-item label="旅行团名">{{ selectedOrder.tourTitle }}</el-descriptions-item>
-        <el-descriptions-item label="客户名称">{{ selectedOrder.customerName }}</el-descriptions-item>
-        <el-descriptions-item label="客户电话">{{ selectedOrder.customerPhone }}</el-descriptions-item>
-        <el-descriptions-item label="预订人数">{{ selectedOrder.paxCount }}</el-descriptions-item>
-        <el-descriptions-item label="总金额">{{ selectedOrder.totalPrice }}</el-descriptions-item>
-        <el-descriptions-item label="下单日期">{{ selectedOrder.orderDate }}</el-descriptions-item>
-        <el-descriptions-item label="订单状态">
-          <el-tag :type="getOrderStatusType(selectedOrder.status)">{{ getOrderStatusText(selectedOrder.status) }}</el-tag>
-        </el-descriptions-item>
-        </el-descriptions>
-      <template #footer>
-        <el-button @click="orderDetailsDialog = false">关闭</el-button>
-        <el-button v-if="selectedOrder.status === 'PENDING_PAYMENT'" type="warning" @click="markOrderPaid(selectedOrder)">标记付款</el-button>
-        <el-button v-if="selectedOrder.status === 'PAID'" type="success" @click="markOrderCompleted(selectedOrder)">标记完成</el-button>
-      </template>
-    </el-dialog>
-
     <el-dialog v-model="reviewDetailsDialog" :title="`评价详情: ${selectedReview.tourTitle}`" width="600px">
       <el-descriptions border :column="1">
         <el-descriptions-item label="旅行团名">{{ selectedReview.tourTitle }}</el-descriptions-item>
@@ -319,6 +296,37 @@
       <template #footer>
         <el-button @click="messageDetailsDialog = false">关闭</el-button>
       </template>
+    </el-dialog>
+
+    <el-dialog v-model="travelPackageOrdersDialog" :title="`旅行团订单列表: ${selectedTour.title}`" width="80%">
+      <el-table :data="ordersForSelectedPackage.content" v-loading="ordersForSelectedPackage.loading" style="width: 100%" max-height="400">
+        <el-table-column prop="id" label="订单号" width="150"></el-table-column>
+        <el-table-column prop="contactName" label="客户名称" width="120"></el-table-column>
+        <el-table-column prop="contactPhone" label="客户电话" width="150"></el-table-column>
+        <el-table-column prop="travelerCount" label="预订人数" width="100"></el-table-column>
+        <el-table-column prop="totalPrice" label="总金额" width="100"></el-table-column>
+        <el-table-column prop="orderTime" label="下单日期" width="150">
+          <template #default="{ row }">
+            {{ formatTime(row.orderTime) }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="status" label="订单状态" width="120">
+          <template #default="{ row }">
+            <el-tag :type="getOrderStatusType(row.status)">{{ getOrderStatusText(row.status) }}</el-tag>
+          </template>
+        </el-table-column>
+      </el-table>
+      <el-pagination
+        v-if="ordersForSelectedPackage.totalElements > 0"
+        background
+        layout="prev, pager, next"
+        :total="ordersForSelectedPackage.totalElements"
+        :page-size="ordersForSelectedPackage.pageSize"
+        v-model:current-page="ordersForSelectedPackage.pageNumber"
+        @current-change="fetchTravelPackageOrders"
+        class="pagination-bottom"
+      />
+      <el-empty v-if="!ordersForSelectedPackage.loading && ordersForSelectedPackage.content.length === 0" description="该旅行团暂无订单" :image-size="50"></el-empty>
     </el-dialog>
 
   </div>
@@ -386,6 +394,15 @@ const ordersPageSize = 10;
 const orderSearchQuery = ref('');
 const selectedOrder = ref({});
 const orderDetailsDialog = ref(false);
+
+const travelPackageOrdersDialog = ref(false);
+const ordersForSelectedPackage = reactive({
+  content: [],
+  totalElements: 0,
+  pageNumber: 1,
+  pageSize: 5, 
+  loading: false,
+});
 
 // --- 评价管理数据 ---
 const reviews = ref([]);
@@ -516,10 +533,12 @@ const fetchMyTours = async () => {
 };
 const debouncedSearchTours = debounce(fetchMyTours, 500);
 
+
 // 查看旅行团详情
 const viewTourDetails = (tourRow) => {
   selectedTour.value = { ...tourRow };
   tourDetailsDialog.value = true;
+  console.log('当前旅行团详情:',tourRow)
 };
 
 // 编辑旅行团 (可能跳转到发布新团页面并预填数据，或在弹窗内编辑)
@@ -584,60 +603,6 @@ const fetchOrders = async () => {
 };
 const debouncedSearchOrders = debounce(fetchOrders, 500);
 
-// 查看订单详情
-const viewOrderDetails = (orderRow) => {
-  selectedOrder.value = { ...orderRow };
-  orderDetailsDialog.value = true;
-};
-
-// 标记订单为已付款
-const markOrderPaid = async (orderRow) => {
-  ElMessageBox.confirm(`确定要将订单 ${orderRow.orderId} 标记为“已付款”吗？`, '提示', { type: 'info' })
-    .then(async () => {
-      try {
-        const response = await authAxios.post(`/api/merchant/orders/${orderRow.orderId}/mark-paid`); // 假设后端接口
-        if (response.data.code === 200) {
-          ElMessage.success('订单已标记为已付款！');
-          orderRow.status = 'PAID'; // 乐观更新
-          fetchMerchantOverview(); // 更新概览
-          // 如果弹窗打开，也更新弹窗中的状态
-          if (orderDetailsDialog.value && selectedOrder.value.orderId === orderRow.orderId) {
-            selectedOrder.value.status = 'PAID';
-          }
-        } else {
-          ElMessage.error(response.data.message || '操作失败');
-        }
-      } catch (error) {
-        console.error('标记订单已付款时发生错误:', error);
-        ElMessage.error('操作失败，请稍后再试。');
-      }
-    });
-};
-
-// 标记订单为已完成
-const markOrderCompleted = async (orderRow) => {
-  ElMessageBox.confirm(`确定要将订单 ${orderRow.orderId} 标记为“已完成”吗？`, '提示', { type: 'success' })
-    .then(async () => {
-      try {
-        const response = await authAxios.post(`/api/merchant/orders/${orderRow.orderId}/mark-completed`); // 假设后端接口
-        if (response.data.code === 200) {
-          ElMessage.success('订单已标记为已完成！');
-          orderRow.status = 'COMPLETED'; // 乐观更新
-          fetchMerchantOverview(); // 更新概览
-          // 如果弹窗打开，也更新弹窗中的状态
-          if (orderDetailsDialog.value && selectedOrder.value.orderId === orderRow.orderId) {
-            selectedOrder.value.status = 'COMPLETED';
-          }
-        } else {
-          ElMessage.error(response.data.message || '操作失败');
-        }
-      } catch (error) {
-        console.error('标记订单已完成时发生错误:', error);
-        ElMessage.error('操作失败，请稍后再试。');
-      }
-    });
-};
-
 
 // 获取评价列表
 const fetchReviews = async () => {
@@ -669,6 +634,49 @@ const viewReviewDetails = (reviewRow) => {
   selectedReview.value = { ...reviewRow };
   reviewDetailsDialog.value = true;
 };
+
+
+// 查看指定旅行团的订单列表
+const viewOrders = (tourRow) => {
+  selectedTour.value = { ...tourRow }; // 存储当前选中的旅行团信息，方便弹窗标题显示
+  ordersForSelectedPackage.pageNumber = 1; // 重置分页到第一页
+  travelPackageOrdersDialog.value = true; // 打开弹窗
+  fetchTravelPackageOrders(); // 调用新的函数来获取订单数据
+};
+
+// 获取订单数据
+const fetchTravelPackageOrders = async () => {
+  if (!selectedTour.value || !selectedTour.value.id) {
+    console.warn('该旅行团不存在');
+    return;
+  }
+  ordersForSelectedPackage.loading = true;
+  try {
+    const response = await authAxios.get(`/dealer/travel-packages/${selectedTour.value.id}/orders`, {
+      params: {
+        page: ordersForSelectedPackage.pageNumber,
+        size: ordersForSelectedPackage.pageSize
+      }
+    });
+    if (response.data.code === 200 && response.data.data) {
+      ordersForSelectedPackage.content = response.data.data.content;
+      ordersForSelectedPackage.totalElements = response.data.data.totalElements;
+      console.log(`获取旅行团 ${selectedTour.value.id}的订单:`, ordersForSelectedPackage.content);
+    } else {
+      ElMessage.error(response.data.message || '获取旅行团订单失败');
+      ordersForSelectedPackage.content = []; 
+      ordersForSelectedPackage.totalElements = 0;
+    }
+  } catch (error) {
+    console.error(`获取旅行团 ${selectedTour.value.title} 的订单时发生错误:`, error);
+    ElMessage.error('加载旅行团订单失败。');
+    ordersForSelectedPackage.content = []; 
+    ordersForSelectedPackage.totalElements = 0;
+  } finally {
+    ordersForSelectedPackage.loading = false;
+  }
+};
+
 
 // // 获取消息列表
 // const fetchMessages = async () => {
@@ -711,13 +719,8 @@ const viewReviewDetails = (reviewRow) => {
 //   }
 // };
 
-// 查看指定旅行团的订单列表
-const viewOrders = (tourRow) => {
-  selectedTour.value = { ...tourRow }; // 存储当前选中的旅行团信息，方便弹窗标题显示
-  ordersForSelectedPackage.pageNumber = 1; // 重置分页到第一页
-  travelPackageOrdersDialog.value = true; // 打开弹窗
-  fetchTravelPackageOrders(); // 调用新的函数来获取订单数据
-};
+
+
 
 // 跳转发布旅行团页
 const goToNewGroupPage = () => {
@@ -735,6 +738,23 @@ const goToHome = () => {
 
 
 // --- 辅助函数：状态标签和文本 ---
+/**
+ * 格式化时间戳为更友好的日期时间字符串
+ * @param {string} timeString - ISO 格式的时间字符串
+ * @returns {string} 格式化后的时间字符串
+ */
+const formatTime = (timeString) => {
+  if (!timeString) return '';
+  const date = new Date(timeString);
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+};
+
 const getTourReviewStatusType = (status) => {
   switch (status) {
     case 'PENDING': return 'info';
@@ -756,8 +776,9 @@ const getOrderStatusType = (status) => {
   switch (status) {
     case 'PENDING_PAYMENT': return 'warning';
     case 'PAID': return '';
-    case 'COMPLETED': return 'success';
-    case 'CANCELLED': return 'danger';
+    case 'COMPLETED' : return '';
+    case 'ONGOING': return 'success';
+    case 'CANCELED': return 'danger';
     default: return 'info';
   }
 };
@@ -766,7 +787,8 @@ const getOrderStatusText = (status) => {
     case 'PENDING_PAYMENT': return '待付款';
     case 'PAID': return '已付款';
     case 'COMPLETED': return '已完成';
-    case 'CANCELLED': return '已取消';
+    case 'CANCELED': return '已取消';
+    case 'ONGOING': return '正在进行';
     default: return '未知';
   }
 };
