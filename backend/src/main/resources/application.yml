@@ -6,10 +6,10 @@ spring:
     username: root
     password: H2v4uZwDpBVv4ysHy5wy
     driver-class-name: com.mysql.cj.jdbc.Driver
-#    url: jdbc:mysql://localhost:3306/breeze-tribe
-#    username: root
-#    password: 95515
-#    driver-class-name: com.mysql.cj.jdbc.Driver
+  #    url: jdbc:mysql://localhost:3306/breeze-tribe
+  #    username: root
+  #    password: 95515
+  #    driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     show-sql: false # 是否在控制台显示Hibernate执行的SQL语句
     hibernate:
@@ -66,11 +66,19 @@ dashscope:
   api-key: sk-98e1d9b45e064da1a03e214f7c0ff468
   app-id: a3a0b11cce024d7b8325632b2cab6924
 
+recommendation:
+  weights:
+    order: 10
+    favorite: 5
+    like: 3
+    view: 1
 
 baidu:
   map:
-    #    ak: cX3Lu6F9cEcRr7M2K80G0Di49wvz4hY0
-    ak: r49IueXKnldrFS4IWoqnlW0iM1GD77KE
+    ak: cX3Lu6F9cEcRr7M2K80G0Di49wvz4hY0
+#    ak: r49IueXKnldrFS4IWoqnlW0iM1GD77KE
+
+
 
 #Sms
 sms:
@@ -81,13 +89,6 @@ sms:
   smsSignId: 2e65b1bb3d054466b82f0c9d125465e2
   templateId: 908e94ccf08b4476ba6c876d13f084ad
 
-devtools:
-  restart:
-    enabled: false
-
-
-logging:
-  level:
-    org:
-      springframework:
-        security=DEBUG:
+#devtools:
+#  restart:
+#    enabled: false

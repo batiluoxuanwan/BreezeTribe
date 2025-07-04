@@ -76,7 +76,7 @@ public class PublicController {
     @Operation(summary = "搜索旅行团（复杂条件）", description = "根据多种条件组合搜索旅行团")
     @GetMapping("/travel-packages/search")
     public Result<PageResponseDto<PackageSummaryDto>> searchPackages(@Valid @ParameterObject PackageSearchRequestDto searchRequestDto) {
-        log.info("访问搜索公共游记列表接口,关键词: {}，城市: {}", searchRequestDto.getKeyword(), searchRequestDto.getCity());
+        log.info("访问搜索公开旅行团列表接口,关键词: {}，城市: {}", searchRequestDto.getKeyword(), searchRequestDto.getCity());
         PageResponseDto<PackageSummaryDto> resultPage = publicService.searchPackages(searchRequestDto);
         return Result.success(resultPage);
     }
@@ -121,7 +121,7 @@ public class PublicController {
     }
 
     @Operation(summary = "获取已发布的游记列表（分页）")
-    @GetMapping("posts")
+    @GetMapping("/posts")
     public Result<PageResponseDto<PostSummaryDto>> getPublishedPosts(@Valid @ParameterObject PageRequestDto pageRequestDto) {
         log.info("访问获取公共游记列表接口, 分页参数: {}", pageRequestDto);
         PageResponseDto<PostSummaryDto> resultPage = publicService.getPublishedPosts(pageRequestDto);

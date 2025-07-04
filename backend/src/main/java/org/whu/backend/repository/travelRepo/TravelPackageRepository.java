@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.whu.backend.entity.travelpac.TravelPackage;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -64,4 +65,8 @@ public interface TravelPackageRepository extends JpaRepository<TravelPackage, St
     boolean existsByIdAndDealerId(String packageId, String currentDealerId);
 
     boolean existsByIdAndStatus(String packageId, TravelPackage.PackageStatus packageStatus);
+
+    Collection<TravelPackage> findTop10ByOrderByCreatedTimeDesc();
+
+    List<TravelPackage> findByIdNotIn(Collection<String> ids);
 }

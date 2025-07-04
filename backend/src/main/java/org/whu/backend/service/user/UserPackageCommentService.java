@@ -2,6 +2,7 @@ package org.whu.backend.service.user;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -17,6 +18,7 @@ import org.whu.backend.entity.travelpac.PackageComment;
 import org.whu.backend.entity.travelpac.TravelOrder;
 import org.whu.backend.entity.travelpac.TravelPackage;
 import org.whu.backend.entity.accounts.User;
+import org.whu.backend.event.travelpac.PackageCommentedEvent;
 import org.whu.backend.repository.authRepo.UserRepository;
 import org.whu.backend.repository.travelRepo.OrderRepository;
 import org.whu.backend.repository.travelRepo.PackageCommentRepository;
@@ -45,6 +47,11 @@ public class UserPackageCommentService {
     private DtoConverter dtoConverter;
     @Autowired
     private TravelOrderRepository travelOrderRepository;
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
+
+
+    public static final int MAX_NOTIFICATION_CONTENT_LENGTH = 50;
 
     @Transactional
     public PackageComment createComment(String packageId, PackageCommentCreateDto dto, String currentUserId) {
@@ -63,8 +70,8 @@ public class UserPackageCommentService {
         }
 
         // 2.1  不允许重复评价旅游团
-        boolean hasCommented = packageCommentRepository.existsByAuthorIdAndTravelPackageId(currentUserId,packageId);
-        if (hasCommented){
+        boolean hasCommented = packageCommentRepository.existsByAuthorIdAndTravelPackageId(currentUserId, packageId);
+        if (hasCommented) {
             throw new BizException("请不要重复评价");
         }
 
@@ -89,9 +96,26 @@ public class UserPackageCommentService {
                 throw new BizException("不允许回复楼中楼");
             }
             newComment.setParent(parentComment);
+
+            // 是回复，通知被回复者
+            eventPublisher.publishEvent(
+                    new PackageCommentedEvent(
+                            travelPackage,
+                            author,
+                            parentComment.getAuthor(),
+                            truncateContent(dto.getContent())));
+        } // 不是回复，通知经销商
+        else {
+            eventPublisher.publishEvent(
+                    new PackageCommentedEvent(
+                            travelPackage,
+                            author,
+                            travelPackage.getDealer(),
+                            truncateContent(dto.getContent())));
         }
         // 原子地增加评论数
         packageRepository.incrementCommentCount(packageId);
+
 
         return commentRepository.save(newComment);
     }
@@ -151,7 +175,7 @@ public class UserPackageCommentService {
                 })
                 .collect(Collectors.toList());
 
-        return dtoConverter.convertPageToDto(commentPage,dtos);
+        return dtoConverter.convertPageToDto(commentPage, dtos);
     }
 
     /**
@@ -177,6 +201,13 @@ public class UserPackageCommentService {
                 .map(dtoConverter::convertPackageCommentToSimpleDto)
                 .toList();
 
-        return dtoConverter.convertPageToDto(repliesPage,dtos);
+        return dtoConverter.convertPageToDto(repliesPage, dtos);
+    }
+
+    private String truncateContent(String content) {
+        if (content.length() <= MAX_NOTIFICATION_CONTENT_LENGTH) {
+            return content;
+        }
+        return content.substring(0, MAX_NOTIFICATION_CONTENT_LENGTH) + "...";
     }
 }

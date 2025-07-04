@@ -9,9 +9,10 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import org.whu.backend.entity.travelpost.TravelPost;
 
+import java.util.Collection;
+
 @Repository
-public interface TravelPostRepository extends
-        JpaRepository<TravelPost, String> {
+public interface TravelPostRepository extends JpaRepository<TravelPost, String> {
     // 根据作者ID分页查询游记
     Page<TravelPost> findByAuthorId(String authorId, Pageable pageable);
 
@@ -56,4 +57,6 @@ public interface TravelPostRepository extends
 
     // 复杂的搜索查询
     Page<TravelPost> findAll(Specification<TravelPost> spec, Pageable pageable);
+
+    Collection<TravelPost> findTop10ByOrderByCreatedTimeDesc();
 }
