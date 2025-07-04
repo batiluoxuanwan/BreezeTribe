@@ -34,7 +34,7 @@ export async function connectWebSocket(token, onMessageCallback) {
     stompClient = new Client({
         webSocketFactory: () =>
             new SockJS(`https://121.43.136.251:8080/ws?token=${encodeURIComponent(token)}`),
-            //new SockJS(`http://localhost:8081/ws?token=${encodeURIComponent(token)}`),
+            // new SockJS(`http://localhost:8081/ws?token=${encodeURIComponent(token)}`),
 
         connectHeaders: {
             Authorization: `Bearer ${token}`
