@@ -13,7 +13,6 @@ import org.whu.backend.common.Result;
 import org.whu.backend.common.exception.BizException;
 import org.whu.backend.dto.PageRequestDto;
 import org.whu.backend.dto.PageResponseDto;
-import org.whu.backend.dto.order.OrderSummaryForDealerDto;
 import org.whu.backend.dto.order.TravelOrderDetailDto;
 import org.whu.backend.dto.travelpack.DepartureCreateDto;
 import org.whu.backend.dto.travelpack.DepartureSummaryDto;

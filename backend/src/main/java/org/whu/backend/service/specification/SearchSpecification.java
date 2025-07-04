@@ -7,6 +7,7 @@ import org.whu.backend.dto.post.PostSearchRequestDto;
 import org.whu.backend.dto.travelpack.PackageSearchRequestDto;
 import org.whu.backend.entity.travelpac.Route;
 import org.whu.backend.entity.Spot;
+import org.whu.backend.entity.travelpac.TravelDeparture;
 import org.whu.backend.entity.travelpac.TravelPackage;
 import org.whu.backend.entity.accounts.User;
 import org.whu.backend.entity.association.PackageRoute;
@@ -19,41 +20,62 @@ import java.util.List;
 
 public class SearchSpecification {
 
-    // 模糊查找旅游团
+    /**
+     * 【核心重构】从搜索DTO动态构建Specification
+     */
     public static Specification<TravelPackage> from(PackageSearchRequestDto searchDto) {
         return (Root<TravelPackage> root, CriteriaQuery<?> query, CriteriaBuilder cb) -> {
 
             List<Predicate> predicates = new ArrayList<>();
 
-            // --- [优化] 预先定义好所有可能用到的JOIN ---
-            // 这样做可以避免在多个if块中重复创建JOIN，让SQL更高效
-            Join<TravelPackage, PackageRoute> packageRouteJoin = root.join("routes", JoinType.LEFT);
-            Join<PackageRoute, Route> routeJoin = packageRouteJoin.join("route", JoinType.LEFT);
-            Join<Route, RouteSpot> routeSpotJoin = routeJoin.join("spots", JoinType.LEFT);
-            Join<RouteSpot, Spot> spotJoin = routeSpotJoin.join("spot", JoinType.LEFT);
+            // --- 条件1: 必须是已发布的旅行团 ---
+            predicates.add(cb.equal(root.get("status"), TravelPackage.PackageStatus.PUBLISHED));
 
-
-            // 1. 关键词模糊搜索 (现在复用预定义的JOIN)
+            // --- 条件2: 关键词模糊搜索 ---
             if (StringUtils.hasText(searchDto.getKeyword())) {
+                // 【正确路径】一次性定义好所有需要的JOIN
+                Join<TravelPackage, PackageRoute> packageRouteJoin = root.join("routes", JoinType.LEFT);
+                Join<PackageRoute, Route> routeJoin = packageRouteJoin.join("route", JoinType.LEFT);
+                Join<Route, RouteSpot> routeSpotJoin = routeJoin.join("spots", JoinType.LEFT);
+                Join<RouteSpot, Spot> spotJoin = routeSpotJoin.join("spot", JoinType.LEFT);
+
                 String likePattern = "%" + searchDto.getKeyword() + "%";
-                Predicate titleLike = cb.like(root.get("title"), likePattern);
-                Predicate descriptionLike = cb.like(root.get("detailedDescription"), likePattern);
-                Predicate routeNameLike = cb.like(routeJoin.get("name"), likePattern);
-                Predicate routeDescriptionLike = cb.like(routeJoin.get("description"), likePattern);
-                Predicate spotNameLike = cb.like(spotJoin.get("name"), likePattern);
-
-                predicates.add(cb.or(titleLike, descriptionLike, routeNameLike, routeDescriptionLike, spotNameLike));
+                predicates.add(cb.or(
+                        cb.like(root.get("title"), likePattern),
+                        cb.like(root.get("detailedDescription"), likePattern),
+                        cb.like(routeJoin.get("name"), likePattern),      // 直接从routeJoin获取name
+                        cb.like(spotJoin.get("name"), likePattern)        // 直接从spotJoin获取name
+                ));
             }
 
-            // 2. 价格区间搜索
-            if (searchDto.getMinPrice() != null) {
-                predicates.add(cb.greaterThanOrEqualTo(root.get("price"), searchDto.getMinPrice()));
-            }
-            if (searchDto.getMaxPrice() != null) {
-                predicates.add(cb.lessThanOrEqualTo(root.get("price"), searchDto.getMaxPrice()));
+            // --- 条件3: 【重大改变】价格区间搜索，使用子查询 ---
+            if (searchDto.getMinPrice() != null || searchDto.getMaxPrice() != null) {
+                // 创建一个子查询，查询TravelDeparture
+                Subquery<Long> subquery = query.subquery(Long.class);
+                Root<TravelDeparture> departureRoot = subquery.from(TravelDeparture.class);
+                subquery.select(departureRoot.get("id"));
+
+                List<Predicate> subqueryPredicates = new ArrayList<>();
+                // 关联条件：子查询的团期必须属于主查询的产品
+                subqueryPredicates.add(cb.equal(departureRoot.get("travelPackage"), root));
+                // 状态条件：团期必须是可报名的
+                subqueryPredicates.add(cb.equal(departureRoot.get("status"), TravelDeparture.DepartureStatus.OPEN));
+
+                // 价格条件
+                if (searchDto.getMinPrice() != null) {
+                    subqueryPredicates.add(cb.greaterThanOrEqualTo(departureRoot.get("price"), searchDto.getMinPrice()));
+                }
+                if (searchDto.getMaxPrice() != null) {
+                    subqueryPredicates.add(cb.lessThanOrEqualTo(departureRoot.get("price"), searchDto.getMaxPrice()));
+                }
+
+                subquery.where(subqueryPredicates.toArray(new Predicate[0]));
+
+                // 主查询条件：必须存在(EXISTS)满足子查询条件的团期
+                predicates.add(cb.exists(subquery));
             }
 
-            // 3. 行程天数搜索
+            // --- 条件4: 行程天数搜索 (逻辑不变) ---
             if (searchDto.getMinDuration() != null) {
                 predicates.add(cb.greaterThanOrEqualTo(root.get("durationInDays"), searchDto.getMinDuration()));
             }
@@ -61,14 +83,18 @@ public class SearchSpecification {
                 predicates.add(cb.lessThanOrEqualTo(root.get("durationInDays"), searchDto.getMaxDuration()));
             }
 
-            // 4. 城市搜索 (复用预定义的JOIN)
+            // --- 条件5: 城市搜索 ---
             if (StringUtils.hasText(searchDto.getCity())) {
-                String cityLikePattern = "%" + searchDto.getCity() + "%";
-                predicates.add(cb.like(spotJoin.get("city"), cityLikePattern));
+                // 【正确路径】
+                Join<TravelPackage, PackageRoute> packageRouteJoin = root.join("routes", JoinType.LEFT);
+                Join<PackageRoute, Route> routeJoin = packageRouteJoin.join("route", JoinType.LEFT);
+                Join<Route, RouteSpot> routeSpotJoin = routeJoin.join("spots", JoinType.LEFT);
+                Join<RouteSpot, Spot> spotJoin = routeSpotJoin.join("spot", JoinType.LEFT);
+
+                predicates.add(cb.like(spotJoin.get("city"), "%" + searchDto.getCity() + "%"));
             }
 
-            // 将所有条件用 AND 连接起来，并去重
-            // 眼不见为净 :)
+            // 使用 distinct 避免因JOIN产生重复结果
             if (query != null) {
                 query.distinct(true);
             }

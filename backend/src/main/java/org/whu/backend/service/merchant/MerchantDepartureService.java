@@ -1,6 +1,5 @@
 package org.whu.backend.service.merchant;
 
-import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -12,7 +11,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.whu.backend.common.exception.BizException;
 import org.whu.backend.dto.PageRequestDto;
 import org.whu.backend.dto.PageResponseDto;
-import org.whu.backend.dto.order.OrderSummaryForDealerDto;
 import org.whu.backend.dto.order.TravelOrderDetailDto;
 import org.whu.backend.dto.travelpack.DepartureCreateDto;
 import org.whu.backend.dto.travelpack.DepartureSummaryDto;
@@ -162,7 +160,7 @@ public class MerchantDepartureService {
         log.info("服务层：经销商ID '{}' 正在获取团期ID '{}'的订单列表, 分页参数: {}", currentDealerId, departureId, pageRequestDto);
 
         // 1. 验证团期是否存在且属于当前经销商
-        TravelDeparture departure = findDepartureByIdAndVerifyOwnership(departureId, currentDealerId);
+        findDepartureByIdAndVerifyOwnership(departureId, currentDealerId);
 
         // 2. 创建分页和排序对象
         Sort sort = Sort.by(Sort.Direction.fromString(pageRequestDto.getSortDirection()), pageRequestDto.getSortBy());
