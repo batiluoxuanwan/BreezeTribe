@@ -15,7 +15,6 @@
         <div><strong>{{ merchantOverview.pendingTours }}</strong><p>待审团数</p></div>
         <div><strong>{{ merchantOverview.totalOrders }}</strong><p>累计订单</p></div>
       </div>
-      <el-button @click="editProfileDialog = true" type="primary" plain class="edit-profile-btn">编辑资料</el-button>
 
       <div class="sidebar-menu">
         <div
@@ -190,7 +189,11 @@
               </template>
             </el-table-column>
             <el-table-column prop="comment" label="评价内容" show-tooltip-when-overflow></el-table-column>
-            <el-table-column prop="reviewDate" label="评价日期" width="120"></el-table-column>
+            <el-table-column prop="reviewDate" label="评价日期" width="120">
+              <template #default="{ row }">
+                {{ formatTime(row.reviewDate) }}
+              </template>
+            </el-table-column>
             <el-table-column label="操作" width="100">
               <template #default="{ row }">
                 <el-button link type="primary" size="small" @click="viewReviewDetails(row)">详情</el-button>
@@ -249,13 +252,13 @@
         <el-descriptions-item label="团名">{{ selectedTour.title }}</el-descriptions-item>
         <el-descriptions-item label="地点">{{ selectedTour.location }}</el-descriptions-item>
         <el-descriptions-item label="价格">{{ selectedTour.price }}</el-descriptions-item>
-        <el-descriptions-item label="天数">{{ selectedTour.duration }}</el-descriptions-item>
-        <el-descriptions-item label="出发日期">{{ selectedTour.startDate }}</el-descriptions-item>
+        <el-descriptions-item label="天数">{{ selectedTour.durationInDays }}</el-descriptions-item>
+        <el-descriptions-item label="出发日期">{{ formatTime(selectedTour.startDate) }}</el-descriptions-item>
         <el-descriptions-item label="状态">
           <el-tag :type="getTourStatusType(selectedTour.status)">{{ getTourStatusText(selectedTour.status) }}</el-tag>
         </el-descriptions-item>
         <el-descriptions-item label="封面图" :span="2">
-          <img :src="selectedTour.image" alt="封面" style="width: 100%; max-height: 250px; object-fit: cover; border-radius: 8px;">
+          <img :src="selectedTour.coverImageUrl" alt="封面" style="width: 100%; max-height: 250px; object-fit: cover; border-radius: 8px;">
         </el-descriptions-item>
         <el-descriptions-item label="详情描述" :span="2">
           <p>{{ selectedTour.description }}</p>
@@ -264,24 +267,21 @@
       <template #footer>
         <el-button @click="tourDetailsDialog = false">关闭</el-button>
         <el-button type="warning" @click="editTour(selectedTour)">编辑</el-button>
-        <el-button :type="selectedTour.status === 'PUBLISHED' ? 'danger' : 'success'" @click="toggleTourStatus(selectedTour)">
-          {{ selectedTour.status === 'PUBLISHED' ? '下架' : '上架' }}
-        </el-button>
       </template>
     </el-dialog>
 
     <el-dialog v-model="orderDetailsDialog" :title="`订单详情: ${selectedOrder.orderId}`" width="600px">
       <el-descriptions border :column="1">
         <el-descriptions-item label="订单号">{{ selectedOrder.orderId }}</el-descriptions-item>
-        <el-descriptions-item label="旅行团名">{{ selectedOrder.tourTitle }}</el-descriptions-item>
-        <el-descriptions-item label="客户名称">{{ selectedOrder.customerName }}</el-descriptions-item>
-        <el-descriptions-item label="客户电话">{{ selectedOrder.customerPhone }}</el-descriptions-item>
-        <el-descriptions-item label="预订人数">{{ selectedOrder.paxCount }}</el-descriptions-item>
+        <el-descriptions-item label="旅行团名">{{ selectedTour.title }}</el-descriptions-item>
+        <el-descriptions-item label="客户名称">{{ selectedOrder.contactName }}</el-descriptions-item>
+        <el-descriptions-item label="客户电话">{{ selectedOrder.contactPhone }}</el-descriptions-item>
+        <el-descriptions-item label="预订人数">{{ selectedOrder.travelerCount }}</el-descriptions-item>
         <el-descriptions-item label="总金额">{{ selectedOrder.totalPrice }}</el-descriptions-item>
-        <el-descriptions-item label="下单日期">{{ selectedOrder.orderDate }}</el-descriptions-item>
-        <el-descriptions-item label="订单状态">
+        <el-descriptions-item label="下单日期">{{ formatTime(selectedOrder.orderTime) }}</el-descriptions-item>
+        <!-- <el-descriptions-item label="订单状态">
           <el-tag :type="getOrderStatusType(selectedOrder.status)">{{ getOrderStatusText(selectedOrder.status) }}</el-tag>
-        </el-descriptions-item>
+        </el-descriptions-item> -->
         </el-descriptions>
       <template #footer>
         <el-button @click="orderDetailsDialog = false">关闭</el-button>
@@ -316,6 +316,41 @@
       </template>
     </el-dialog>
 
+    <el-dialog v-model="travelPackageOrdersDialog" :title="`旅行团订单列表: ${selectedTour.title}`" width="80%">
+      <el-table :data="ordersForSelectedPackage.content" v-loading="ordersForSelectedPackage.loading" style="width: 100%" max-height="400">
+        <el-table-column prop="orderId" label="订单号" width="150"></el-table-column>
+        <el-table-column prop="contactName" label="客户名称" width="120"></el-table-column>
+        <el-table-column prop="contactPhone" label="客户电话" width="150"></el-table-column>
+        <el-table-column prop="travelerCount" label="预订人数" width="100"></el-table-column>
+        <el-table-column prop="totalPrice" label="总金额" width="100"></el-table-column>
+        <el-table-column prop="orderTime" label="下单日期" width="150">
+          <template #default="{ row }">
+            {{ formatTime(row.orderTime) }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="status" label="订单状态" width="120">
+          <template #default="{ row }">
+            <el-tag :type="getOrderStatusType(row.status)">{{ getOrderStatusText(row.status) }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="120">
+          <template #default="{ row }">
+            <el-button link type="primary" size="small" @click="viewOrderDetails(row)">详情</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <el-pagination
+        v-if="ordersForSelectedPackage.totalElements > 0"
+        background
+        layout="prev, pager, next"
+        :total="ordersForSelectedPackage.totalElements"
+        :page-size="ordersForSelectedPackage.pageSize"
+        v-model:current-page="ordersForSelectedPackage.pageNumber"
+        @current-change="fetchTravelPackageOrders"
+        class="pagination-bottom"
+      />
+      <el-empty v-if="!ordersForSelectedPackage.loading && ordersForSelectedPackage.content.length === 0" description="该旅行团暂无订单" :image-size="50"></el-empty>
+    </el-dialog>
   </div>
 </template>
 
@@ -355,8 +390,6 @@ const merchantOverview = ref({
 
 const activeTab = ref('overview'); // 默认激活的 Tab
 
-const editProfileDialog = ref(false); // 编辑资料弹窗
-
 // --- 概览页数据 ---
 const recentTourReviews = ref([]); // 近期旅行团审核状态
 const recentOrders = ref([]); // 近期订单概览
@@ -380,6 +413,15 @@ const ordersPageSize = 10;
 const orderSearchQuery = ref('');
 const selectedOrder = ref({});
 const orderDetailsDialog = ref(false);
+
+const travelPackageOrdersDialog = ref(false);
+const ordersForSelectedPackage = reactive({
+  content: [],
+  totalElements: 0,
+  pageNumber: 1,
+  pageSize: 5, 
+  loading: false,
+});
 
 // --- 评价管理数据 ---
 const reviews = ref([]);
@@ -406,6 +448,24 @@ const passwordForm = ref({
   newPassword: '',
   confirmNewPassword: '',
 });
+
+
+/**
+ * 格式化时间戳为更友好的日期时间字符串
+ * @param {string} timeString - ISO 格式的时间字符串
+ * @returns {string} 格式化后的时间字符串
+ */
+const formatTime = (timeString) => {
+  if (!timeString) return '';
+  const date = new Date(timeString);
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+};
 
 // --- API 请求函数 ---
 
@@ -514,6 +574,7 @@ const debouncedSearchTours = debounce(fetchMyTours, 500);
 const viewTourDetails = (tourRow) => {
   selectedTour.value = { ...tourRow };
   tourDetailsDialog.value = true;
+  console.log('当前旅行团详情:',tourRow)
 };
 
 // 编辑旅行团 (可能跳转到发布新团页面并预填数据，或在弹窗内编辑)
@@ -522,34 +583,6 @@ const editTour = (tourRow) => {
   // 实际项目中，这里会填充 newTourForm 或打开一个专门的编辑弹窗
   // 例如：router.push({ name: 'PublishTour', query: { tourId: tourRow.id } });
   // 或者：selectedTour.value = { ...tourRow }; editTourDialog.value = true;
-};
-
-// 切换旅行团状态 (上架/下架)
-const toggleTourStatus = async (tourRow) => {
-  const newStatus = tourRow.status === 'PUBLISHED' ? 'OFFLINE' : 'PUBLISHED';
-  const actionText = newStatus === 'OFFLINE' ? '下架' : '上架';
-  ElMessageBox.confirm(`确定要${actionText}旅行团 “${tourRow.title}” 吗？`, '提示', {
-    type: newStatus === 'OFFLINE' ? 'warning' : 'success'
-  })
-    .then(async () => {
-      try {
-        const response = await authAxios.post(`/api/merchant/tours/${tourRow.id}/status`, { status: newStatus }); // 假设后端接口
-        if (response.data.code === 200) {
-          ElMessage.success(`${actionText}成功！`);
-          tourRow.status = newStatus; // 乐观更新UI
-          // 如果弹窗打开，也更新弹窗中的状态
-          if (tourDetailsDialog.value && selectedTour.value.id === tourRow.id) {
-            selectedTour.value.status = newStatus;
-          }
-        } else {
-          ElMessage.error(response.data.message || `${actionText}失败`);
-        }
-      } catch (error) {
-        console.error(`${actionText}旅行团时发生错误:`, error);
-        ElMessage.error(`操作失败，请稍后再试。`);
-      }
-    })
-    .catch(() => { /* 用户取消 */ });
 };
 
 // 获取订单列表
@@ -582,6 +615,7 @@ const debouncedSearchOrders = debounce(fetchOrders, 500);
 const viewOrderDetails = (orderRow) => {
   selectedOrder.value = { ...orderRow };
   orderDetailsDialog.value = true;
+  console.log('该订单详情:',selectedOrder)
 };
 
 // 标记订单为已付款
@@ -711,6 +745,39 @@ const viewOrders = (tourRow) => {
   ordersForSelectedPackage.pageNumber = 1; // 重置分页到第一页
   travelPackageOrdersDialog.value = true; // 打开弹窗
   fetchTravelPackageOrders(); // 调用新的函数来获取订单数据
+};
+
+// 获取订单数据
+const fetchTravelPackageOrders = async () => {
+  if (!selectedTour.value || !selectedTour.value.id) {
+    console.warn('该旅行团不存在');
+    return;
+  }
+  ordersForSelectedPackage.loading = true;
+  try {
+    const response = await authAxios.get(`/dealer/travel-packages/${selectedTour.value.id}/orders`, {
+      params: {
+        page: ordersForSelectedPackage.pageNumber,
+        size: ordersForSelectedPackage.pageSize
+      }
+    });
+    if (response.data.code === 200 && response.data.data) {
+      ordersForSelectedPackage.content = response.data.data.content;
+      ordersForSelectedPackage.totalElements = response.data.data.totalElements;
+      console.log(`获取旅行团 ${selectedTour.value.id}的订单:`, ordersForSelectedPackage.content);
+    } else {
+      ElMessage.error(response.data.message || '获取旅行团订单失败');
+      ordersForSelectedPackage.content = []; 
+      ordersForSelectedPackage.totalElements = 0;
+    }
+  } catch (error) {
+    console.error(`获取旅行团 ${selectedTour.value.title} 的订单时发生错误:`, error);
+    ElMessage.error('加载旅行团订单失败。');
+    ordersForSelectedPackage.content = []; 
+    ordersForSelectedPackage.totalElements = 0;
+  } finally {
+    ordersForSelectedPackage.loading = false;
+  }
 };
 
 // 保存团长资料
@@ -943,13 +1010,6 @@ onMounted(() => {
   font-weight: 600;
 }
 
-.edit-profile-btn {
-  width: 80%;
-  margin-bottom: 30px;
-  border-radius: 8px;
-  font-weight: 500;
-  letter-spacing: 0.5px;
-}
 
 .sidebar-menu {
   width: 100%;
