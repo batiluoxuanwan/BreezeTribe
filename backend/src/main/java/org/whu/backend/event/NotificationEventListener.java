@@ -18,7 +18,6 @@ import org.whu.backend.event.travelpac.PackageCommentedEvent;
 import org.whu.backend.event.travelpac.PackageFavouredEvent;
 import org.whu.backend.repository.travelRepo.TravelPackageRepository;
 import org.whu.backend.service.NotificationService;
-import org.whu.backend.service.auth.JwtService;
 import org.whu.backend.util.JpaUtil;
 
 @Component
@@ -29,8 +28,6 @@ public class NotificationEventListener {
     private NotificationService notificationService;
     @Autowired
     private TravelPackageRepository travelPackageRepository;
-    @Autowired
-    private JwtService jwtService;
 
     /**
      * 监听“订单创建成功”事件
@@ -53,13 +50,16 @@ public class NotificationEventListener {
         );
     }
 
-
+    /**
+     * 监听“订单支付成功”事件
+     */
     @Async
     @EventListener
     public void handleOrderConfirmed(OrderConfirmedEvent event) {
         TravelOrder order = event.getOrder();
         User user = order.getUser();
         String packageTitle = order.getTravelDeparture().getTravelPackage().getTitle();
+        // 通知用户
         String description = String.format("您关于旅行产品 [%s] 的订单已成功支付", packageTitle);
         notificationService.createAndSendNotification(
                 user,
@@ -71,6 +71,9 @@ public class NotificationEventListener {
         );
     }
 
+    /**
+     * 监听“订单取消”事件
+     */
     @Async
     @EventListener
     public void handleOrderCancelled(OrderCancelledEvent event) {
@@ -88,6 +91,9 @@ public class NotificationEventListener {
         );
     }
 
+    /**
+     * 监听“旅行团收藏”事件
+     */
     @Async
     @EventListener
     public void handlePackageFavoured(PackageFavouredEvent event) {
@@ -106,6 +112,9 @@ public class NotificationEventListener {
         );
     }
 
+    /**
+     * 监听“游记点赞”事件
+     */
     @Async
     @EventListener
     public void handlePostLiked(PostLikedEvent event) {
@@ -123,6 +132,9 @@ public class NotificationEventListener {
         );
     }
 
+    /**
+     * 监听“游记评论”事件
+     */
     @Async
     @EventListener
     public void handlePostCommented(PostCommentedEvent event) {
@@ -140,6 +152,9 @@ public class NotificationEventListener {
         );
     }
 
+    /**
+     * 监听“旅行团评论”事件
+     */
     @Async
     @EventListener
     public void handlePackageCommented(PackageCommentedEvent event){

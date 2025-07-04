@@ -97,6 +97,8 @@ public class Notification {
         ORDER_PAID,             // 订单支付成功
         ORDER_CANCELED,         // 订单取消成功
         PACKAGE_APPROVED,       // 旅行团审核通过
-        PACKAGE_REJECTED        // 旅行团审核被驳回
+        PACKAGE_REJECTED,       // 旅行团审核被驳回
+
+        DEPARTURE_REMINDER      // 临行时通知（对商户和对用户）
     }
 }
