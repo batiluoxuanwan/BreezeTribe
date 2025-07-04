@@ -54,196 +54,167 @@
     </aside>
 
     <main class="main-content">
-      <el-tabs v-model="activeTab" class="hidden-tabs-header">
-        <el-tab-pane label="概览" name="overview">
-          <div class="stat-cards-grid">
-            <el-card class="stat-card">
-              <div class="card-icon"><el-icon><DocumentCopy /></el-icon></div>
-              <div class="card-info">
-                <p>待审核旅行团</p>
-                <h2>{{ merchantOverview.pendingTours }}</h2>
-              </div>
-            </el-card>
-            <el-card class="stat-card">
+      <div v-if="activeTab === 'overview'">
+        <div class="stat-cards-grid">
+          <el-card class="stat-card">
+            <div class="card-icon"><el-icon><DocumentCopy /></el-icon></div>
+            <div class="card-info">
+              <p>待审核旅行团</p>
+              <h2>{{ merchantOverview.pendingTours }}</h2>
+            </div>
+          </el-card>
+          <el-card class="stat-card">
+            <div class="card-icon"><el-icon><Calendar /></el-icon></div>
+            <div class="card-info">
+              <p>今日订单数</p>
+              <h2>{{ merchantOverview.todayOrders }}</h2>
+            </div>
+          </el-card>
+          <el-card class="stat-card">
+            <div class="card-icon"><el-icon><TrendCharts /></el-icon></div>
+            <div class="card-info">
+              <p>本月营收</p>
+              <h2>¥{{ merchantOverview.monthlyRevenue }}</h2>
+            </div>
+          </el-card>
+          <el-card class="stat-card">
+            <div class="card-icon"><el-icon><StarFilled /></el-icon></div>
+            <div class="card-info">
+              <p>整体评分</p>
+              <h2>{{ merchantOverview.overallRating }}</h2>
+            </div>
+          </el-card>
+          <el-card class="stat-card new-tour-card" @click="goToNewGroupPage">
+            <div class="card-icon"><el-icon><Plus /></el-icon></div>
+            <div class="card-info">
+              <h2>发布新团</h2>
+            </div>
+            <el-button type="primary" :icon="Plus" circle class="add-tour-btn"></el-button>
+          </el-card>
+          <el-card class="stat-card add-schedule-card" @click="goToAddSchedulePage">
               <div class="card-icon"><el-icon><Calendar /></el-icon></div>
               <div class="card-info">
-                <p>今日订单数</p>
-                <h2>{{ merchantOverview.todayOrders }}</h2>
+                  <h2>添加团期</h2>
               </div>
-            </el-card>
-            <el-card class="stat-card">
-              <div class="card-icon"><el-icon><TrendCharts /></el-icon></div>
-              <div class="card-info">
-                <p>本月营收</p>
-                <h2>¥{{ merchantOverview.monthlyRevenue }}</h2>
-              </div>
-            </el-card>
-            <el-card class="stat-card">
-              <div class="card-icon"><el-icon><StarFilled /></el-icon></div>
-              <div class="card-info">
-                <p>整体评分</p>
-                <h2>{{ merchantOverview.overallRating }}</h2>
-              </div>
-            </el-card>
-            <el-card class="stat-card new-tour-card" @click="goToNewGroupPage">
-              <div class="card-icon"><el-icon><Plus /></el-icon></div>
-              <div class="card-info">
-                <h2>发布新团</h2>
-              </div>
-              <el-button type="primary" :icon="Plus" circle class="add-tour-btn"></el-button>
-            </el-card>
-            <el-card class="stat-card add-schedule-card" @click="goToAddSchedulePage">
-                <div class="card-icon"><el-icon><Calendar /></el-icon></div>
-                <div class="card-info">
-                    <h2>添加团期</h2>
+              <el-button type="primary" :icon="Calendar" circle class="add-schedule-btn"></el-button>
+          </el-card>
+        </div>
+
+        <el-row :gutter="20" class="overview-sections">
+          <el-col :span="12">
+            <el-card class="recent-status-card">
+              <template #header>
+                <div class="card-header-with-link">
+                  <span>近期旅行团审核状态</span>
+                  <el-link type="primary" @click="activeTab = 'tourManagement'">查看所有</el-link>
                 </div>
-                <el-button type="primary" :icon="Calendar" circle class="add-schedule-btn"></el-button>
+              </template>
+              <el-table :data="recentTourReviews" :show-header="false" style="width: 100%">
+                <el-table-column prop="title" label="团名"></el-table-column>
+                <el-table-column prop="status" label="状态" width="100">
+                  <template #default="{ row }">
+                    <el-tag :type="getTourReviewStatusType(row.status)">{{ getTourReviewStatusText(row.status) }}</el-tag>
+                  </template>
+                </el-table-column>
+              </el-table>
+              <el-empty v-if="recentTourReviews.length === 0" description="暂无近期审核记录" :image-size="50"></el-empty>
             </el-card>
-          </div>
-
-          <el-row :gutter="20" class="overview-sections">
-            <el-col :span="12">
-              <el-card class="recent-status-card">
-                <template #header>
-                  <div class="card-header-with-link">
-                    <span>近期旅行团审核状态</span>
-                    <el-link type="primary" @click="activeTab = 'tourManagement'">查看所有</el-link>
-                  </div>
-                </template>
-                <el-table :data="recentTourReviews" :show-header="false" style="width: 100%">
-                  <el-table-column prop="title" label="团名"></el-table-column>
-                  <el-table-column prop="status" label="状态" width="100">
-                    <template #default="{ row }">
-                      <el-tag :type="getTourReviewStatusType(row.status)">{{ getTourReviewStatusText(row.status) }}</el-tag>
-                    </template>
-                  </el-table-column>
-                </el-table>
-                <el-empty v-if="recentTourReviews.length === 0" description="暂无近期审核记录" :image-size="50"></el-empty>
-              </el-card>
-            </el-col>
-            <el-col :span="12">
-              <el-card class="recent-status-card">
-                <template #header>
-                  <div class="card-header-with-link">
-                    <span>近期订单概览</span>
-                    <el-link type="primary" @click="activeTab = 'orderManagement'">查看所有</el-link>
-                  </div>
-                </template>
-                <el-table :data="recentOrders" :show-header="false" style="width: 100%">
-                  <el-table-column prop="tourTitle" label="旅行团"></el-table-column>
-                  <el-table-column prop="orderStatus" label="状态" width="100">
-                    <template #default="{ row }">
-                      <el-tag :type="getOrderStatusType(row.orderStatus)">{{ getOrderStatusText(row.orderStatus) }}</el-tag>
-                    </template>
-                  </el-table-column>
-                  <el-table-column prop="orderDate" label="日期" width="120"></el-table-column>
-                </el-table>
-                <el-empty v-if="recentOrders.length === 0" description="暂无近期订单" :image-size="50"></el-empty>
-              </el-card>
-            </el-col>
-          </el-row>
-        </el-tab-pane>
-
-        <el-tab-pane label="我的旅行团" name="tourManagement">
-          <el-table :data="myTours" v-loading="tourLoading" style="width: 100%" class="admin-table">
-            <el-table-column prop="title" label="团名"></el-table-column>
-            <el-table-column prop="description" label="详细描述"></el-table-column>
-            <el-table-column prop="startDate" label="出发日期" width="120"></el-table-column>
-            <el-table-column prop="price" label="价格" width="100"></el-table-column>
-            <el-table-column prop="status" label="状态" width="100">
-              <template #default="{ row }">
-                <el-tag :type="getTourStatusType(row.status)">{{ getTourStatusText(row.status) }}</el-tag>
+          </el-col>
+          <el-col :span="12">
+            <el-card class="recent-status-card">
+              <template #header>
+                <div class="card-header-with-link">
+                  <span>近期订单概览</span>
+                  <el-link type="primary" @click="activeTab = 'orderManagement'">查看所有</el-link>
+                </div>
               </template>
-            </el-table-column>
-            <el-table-column label="操作" width="200">
-              <template #default="{ row }">
-                <el-button link type="primary" size="small" @click="viewTourDetails(row)">详情</el-button>
-                <el-button link type="warning" size="small" @click="editTour(row)">编辑</el-button>
-                <el-button 
-                  link 
-                  type="info" 
-                  size="small" 
-                  @click="viewOrders(row)" 
-                  :disabled="row.status === 'REJECTED' || row.status === 'PENDING_APPROVAL'">
-                  查看订单
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-          <el-pagination
-            background
-            layout="prev, pager, next"
-            :total="myToursTotal"
-            :page-size="myToursPageSize"
-            v-model:current-page="myToursCurrentPage"
-            @current-change="fetchMyTours"
-            class="pagination-bottom"
-          />
-        </el-tab-pane>
+              <el-table :data="recentOrders" :show-header="false" style="width: 100%">
+                <el-table-column prop="tourTitle" label="旅行团"></el-table-column>
+                <el-table-column prop="orderStatus" label="状态" width="100">
+                  <template #default="{ row }">
+                    <el-tag :type="getOrderStatusType(row.orderStatus)">{{ getOrderStatusText(row.orderStatus) }}</el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="orderDate" label="日期" width="120"></el-table-column>
+              </el-table>
+              <el-empty v-if="recentOrders.length === 0" description="暂无近期订单" :image-size="50"></el-empty>
+            </el-card>
+          </el-col>
+        </el-row>
+      </div>
 
-        <el-tab-pane label="评价管理" name="reviewManagement">
-          <el-table :data="reviews" v-loading="reviewLoading" style="width: 100%" class="admin-table">
-            <el-table-column prop="tourTitle" label="旅行团"></el-table-column>
-            <el-table-column prop="userName" label="评价用户"></el-table-column>
-            <el-table-column prop="rating" label="评分" width="100">
-              <template #default="{ row }">
-                <el-rate v-model="row.rating" disabled show-score text-color="#ff9900" score-template="{value} 星"></el-rate>
-              </template>
-            </el-table-column>
-            <el-table-column prop="comment" label="评价内容" show-tooltip-when-overflow></el-table-column>
-            <el-table-column prop="reviewDate" label="评价日期" width="120"></el-table-column>
-            <el-table-column label="操作" width="100">
-              <template #default="{ row }">
-                <el-button link type="primary" size="small" @click="viewReviewDetails(row)">详情</el-button>
-                </template>
-            </el-table-column>
-          </el-table>
-          <el-pagination
-            background
-            layout="prev, pager, next"
-            :total="reviewsTotal"
-            :page-size="reviewsPageSize"
-            v-model:current-page="reviewsCurrentPage"
-            @current-change="fetchReviews"
-            class="pagination-bottom"
-          />
-        </el-tab-pane>
+      <div v-if="activeTab === 'tourManagement'">
+        <el-table :data="myTours" v-loading="tourLoading" style="width: 100%" class="admin-table">
+          <el-table-column prop="title" label="团名"></el-table-column>
+          <el-table-column prop="description" label="详细描述"></el-table-column>
+          <el-table-column prop="startDate" label="出发日期" width="120"></el-table-column>
+          <el-table-column prop="price" label="价格" width="100"></el-table-column>
+          <el-table-column prop="status" label="状态" width="100">
+            <template #default="{ row }">
+              <el-tag :type="getTourStatusType(row.status)">{{ getTourStatusText(row.status) }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="200">
+            <template #default="{ row }">
+              <el-button link type="primary" size="small" @click="viewTourDetails(row)">详情</el-button>
+              <el-button link type="warning" size="small" @click="editTour(row)">编辑</el-button>
+              <el-button
+                link
+                type="info"
+                size="small"
+                @click="viewOrders(row)"
+                :disabled="row.status === 'REJECTED' || row.status === 'PENDING_APPROVAL'">
+                查看订单
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+        <el-pagination
+          background
+          layout="prev, pager, next"
+          :total="myToursTotal"
+          :page-size="myToursPageSize"
+          v-model:current-page="myToursCurrentPage"
+          @current-change="fetchMyTours"
+          class="pagination-bottom"
+        />
+      </div>
 
-        <el-tab-pane label="消息中心" name="messageCenter">
-          <MyNotifications/>
-          <!-- <el-table :data="messages" v-loading="messageLoading" style="width: 100%" class="admin-table">
-            <el-table-column prop="title" label="标题"></el-table-column>
-            <el-table-column prop="content" label="内容" show-tooltip-when-overflow></el-table-column>
-            <el-table-column prop="sender" label="发送者" width="120"></el-table-column>
-            <el-table-column prop="sendDate" label="发送日期" width="120"></el-table-column>
-            <el-table-column prop="isRead" label="状态" width="80">
-              <template #default="{ row }">
-                <el-tag :type="row.isRead ? 'info' : ''">{{ row.isRead ? '已读' : '未读' }}</el-tag>
+      <div v-if="activeTab === 'reviewManagement'">
+        <el-table :data="reviews" v-loading="reviewLoading" style="width: 100%" class="admin-table">
+          <el-table-column prop="tourTitle" label="旅行团"></el-table-column>
+          <el-table-column prop="userName" label="评价用户"></el-table-column>
+          <el-table-column prop="rating" label="评分" width="100">
+            <template #default="{ row }">
+              <el-rate v-model="row.rating" disabled show-score text-color="#ff9900" score-template="{value} 星"></el-rate>
+            </template>
+          </el-table-column>
+          <el-table-column prop="comment" label="评价内容" show-tooltip-when-overflow></el-table-column>
+          <el-table-column prop="reviewDate" label="评价日期" width="120"></el-table-column>
+          <el-table-column label="操作" width="100">
+            <template #default="{ row }">
+              <el-button link type="primary" size="small" @click="viewReviewDetails(row)">详情</el-button>
               </template>
-            </el-table-column>
-            <el-table-column label="操作" width="100">
-              <template #default="{ row }">
-                <el-button link type="primary" size="small" @click="viewMessageDetails(row)">查看</el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-          <el-pagination
-            background
-            layout="prev, pager, next"
-            :total="messagesTotal"
-            :page-size="messagesPageSize"
-            v-model:current-page="messagesCurrentPage"
-            @current-change="fetchMessages"
-            class="pagination-bottom"
-          /> -->
-        </el-tab-pane>
+          </el-table-column>
+        </el-table>
+        <el-pagination
+          background
+          layout="prev, pager, next"
+          :total="reviewsTotal"
+          :page-size="reviewsPageSize"
+          v-model:current-page="reviewsCurrentPage"
+          @current-change="fetchReviews"
+          class="pagination-bottom"
+        />
+      </div>
 
-        <el-tab-pane label="账户设置" name="accountSettings">
-          <div style="margin-bottom: 32px;">
-            <AccountOverview @userUpdated="handleUserUpdated"/>
-          </div>            
-        </el-tab-pane>
-      </el-tabs>
+      <div v-if="activeTab === 'messageCenter'">
+        <MyNotifications/>
+      </div>
+
+      <div v-if="activeTab === 'accountSettings'" class="settings-section">
+        <AccountOverview @userUpdated="handleUserUpdated"/>
+      </div>
     </main>
 
     <el-dialog v-model="tourDetailsDialog" :title="`旅行团详情: ${selectedTour.title}`" width="800px">
@@ -328,7 +299,6 @@
       />
       <el-empty v-if="!ordersForSelectedPackage.loading && ordersForSelectedPackage.content.length === 0" description="该旅行团暂无订单" :image-size="50"></el-empty>
     </el-dialog>
-
   </div>
 </template>
 
@@ -541,12 +511,14 @@ const viewTourDetails = (tourRow) => {
   console.log('当前旅行团详情:',tourRow)
 };
 
-// 编辑旅行团 (可能跳转到发布新团页面并预填数据，或在弹窗内编辑)
+// 编辑旅行团
 const editTour = (tourRow) => {
-  ElMessage.info(`跳转到编辑页面或打开编辑弹窗，编辑团：${tourRow.title}`);
-  // 实际项目中，这里会填充 newTourForm 或打开一个专门的编辑弹窗
-  // 例如：router.push({ name: 'PublishTour', query: { tourId: tourRow.id } });
-  // 或者：selectedTour.value = { ...tourRow }; editTourDialog.value = true;
+  router.push({
+    name: '发布新团', 
+    query: {
+      tourData: JSON.stringify(tourRow)
+    }
+  });
 };
 
 // 切换旅行团状态 (上架/下架)
@@ -677,51 +649,6 @@ const fetchTravelPackageOrders = async () => {
   }
 };
 
-
-// // 获取消息列表
-// const fetchMessages = async () => {
-//   messageLoading.value = true;
-//   try {
-//     const response = await authAxios.get('/api/merchant/messages', {
-//       params: {
-//         pageNum: messagesCurrentPage.value,
-//         pageSize: messagesPageSize,
-//       }
-//     });
-//     if (response.data.code === 200 && response.data.data) {
-//       messages.value = response.data.data.records;
-//       messagesTotal.value = response.data.data.total;
-//       merchantOverview.value.unreadMessages = response.data.data.records.filter(m => !m.isRead).length; // 更新未读消息计数
-//     } else {
-//       ElMessage.error(response.data.message || '获取消息列表失败');
-//     }
-//   } catch (error) {
-//     console.error('获取消息列表时发生错误:', error);
-//     ElMessage.error('加载消息列表失败。');
-//   } finally {
-//     messageLoading.value = false;
-//   }
-// };
-
-// // 查看消息详情
-// const viewMessageDetails = async (messageRow) => {
-//   selectedMessage.value = { ...messageRow };
-//   messageDetailsDialog.value = true;
-//   if (!messageRow.isRead) {
-//     // 标记为已读
-//     try {
-//       await authAxios.post(`/api/merchant/messages/${messageRow.id}/mark-read`); // 假设后端接口
-//       messageRow.isRead = true; // 乐观更新
-//       fetchMerchantOverview(); // 重新获取概览以更新未读消息数
-//     } catch (error) {
-//       console.error('标记消息为已读失败:', error);
-//     }
-//   }
-// };
-
-
-
-
 // 跳转发布旅行团页
 const goToNewGroupPage = () => {
   router.push('/merchant/newgroup');
@@ -830,16 +757,6 @@ onMounted(() => {
   // fetchMessages();
 });
 
-// 监听 activeTab 变化，动态加载对应数据 (按需开启，避免初始化加载过多)
-// watch(activeTab, (newTab) => {
-//   nextTick(() => { // 确保 DOM 更新后执行
-//     if (newTab === 'tourManagement') fetchMyTours();
-//     else if (newTab === 'orderManagement') fetchOrders();
-//     else if (newTab === 'reviewManagement') fetchReviews();
-//     else if (newTab === 'messageCenter') fetchMessages();
-//   });
-// });
-
 </script>
 
 <style scoped>
@@ -872,6 +789,7 @@ onMounted(() => {
   top: 40px;
   align-self: flex-start;
   height: 100%;
+  min-height: 100vh;
 }
 
 .back-to-home-btn{
@@ -1125,7 +1043,6 @@ onMounted(() => {
 .admin-table {
   border-radius: 10px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .pagination-bottom {

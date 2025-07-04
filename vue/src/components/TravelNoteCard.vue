@@ -11,7 +11,7 @@
       <div class="card-author">
         <el-avatar :src="note.author.avatarUrl || defaultAvatar" :size="24" class="author-avatar"></el-avatar>
         <span class="author-name">{{ note.author.username }}</span>
-        <span class="publish-date">{{ note.createdTime }}</span>
+        <span class="publish-date">{{ formatTime(note.createdTime) }}</span>
       </div>
       <div class="card-footer">
         <span class="meta-item">
@@ -45,6 +45,23 @@ const props = defineProps({
 
 const defaultNoteCover = '/assets/images/default_note_cover.jpg';
 const defaultAvatar = '/assets/images/default_avatar.png';
+
+/**
+ * 格式化时间戳为更友好的日期时间字符串
+ * @param {string} timeString - ISO 格式的时间字符串
+ * @returns {string} 格式化后的时间字符串
+ */
+const formatTime = (timeString) => {
+  if (!timeString) return '';
+  const date = new Date(timeString);
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+};
 
 // 获取互动状态
 const fetchInteractionStatus = async (itemId) => {

@@ -1,10 +1,11 @@
 <template>
-  <div class="notification-center">
-    <el-tabs v-model="activeNotificationTab" tab-position="left" class="notification-tabs-vertical beautiful-sidebar">
+  <div class="notification-container">
+    <el-tabs v-model="activeNotificationTab" tab-position="top" class="notification-tabs-horizontal beautiful-navbar">
       <el-tab-pane name="all">
         <template #label>
-          <div class="sidebar-item-content">
-            <el-icon><Bell /></el-icon> <span class="item-text">全部通知</span>
+          <div class="navbar-item-content">
+            <el-icon><Bell /></el-icon>
+            <span class="item-text">全部通知</span>
             <el-badge v-if="unreadCounts.all > 0" :value="unreadCounts.all" :max="99" class="notification-badge" />
           </div>
         </template>
@@ -12,8 +13,9 @@
 
       <el-tab-pane name="likes">
         <template #label>
-          <div class="sidebar-item-content">
-            <el-icon><Star /></el-icon> <span class="item-text">赞和收藏</span>
+          <div class="navbar-item-content">
+            <el-icon><Star /></el-icon>
+            <span class="item-text">赞和收藏</span>
             <el-badge v-if="unreadCounts.likes > 0" :value="unreadCounts.likes" :max="99" class="notification-badge" />
           </div>
         </template>
@@ -21,8 +23,9 @@
 
       <el-tab-pane name="comments">
         <template #label>
-          <div class="sidebar-item-content">
-            <el-icon><ChatDotRound /></el-icon> <span class="item-text">评论与@</span>
+          <div class="navbar-item-content">
+            <el-icon><ChatDotRound /></el-icon>
+            <span class="item-text">评论回复</span>
             <el-badge v-if="unreadCounts.comments > 0" :value="unreadCounts.comments" :max="99" class="notification-badge" />
           </div>
         </template>
@@ -30,16 +33,31 @@
 
       <el-tab-pane name="system">
         <template #label>
-          <div class="sidebar-item-content">
-            <el-icon><Monitor /></el-icon> <span class="item-text">系统消息</span>
+          <div class="navbar-item-content">
+            <el-icon><Monitor /></el-icon>
+            <span class="item-text">系统消息</span>
             <el-badge v-if="unreadCounts.system > 0" :value="unreadCounts.system" :max="99" class="notification-badge" />
           </div>
         </template>
       </el-tab-pane>
     </el-tabs>
 
-    <div class="notification-content-area">
-      <div v-loading="notificationLoading">
+    <div class="notification-content-area-top">
+      <div class="notification-actions">
+        <el-button
+          v-if="notifications.length > 0 || unreadCounts.all > 0"
+          type="primary"
+          plain
+          size="small"
+          @click="activeNotificationTab === 'all' ? markAllNotificationsAsRead() : markCurrentCategoryAsRead()"
+          class="mark-read-btn"
+        >
+          <el-icon><Bell /></el-icon>
+          <span>{{ activeNotificationTab === 'all' ? '将所有通知标为已读' : '将本类别全部标为已读' }}</span>
+        </el-button>
+      </div>
+
+      <div v-loading="notificationLoading" class="notification-list-wrapper">
         <div v-if="notifications.length > 0" class="notification-list">
           <el-card
             v-for="notification in notifications"
@@ -50,13 +68,14 @@
           >
             <div class="notification-item-header">
               <span class="notification-source">{{ getNotificationSource(notification.type) }}</span>
-              <span v-if="!notification.isRead" class="unread-dot"></span> </div>
+              <span v-if="!notification.isRead" class="unread-dot" title="未读"></span>
+            </div>
             <p class="notification-title">{{ notification.title }}</p>
             <p class="notification-text">{{ notification.message }}</p>
             <p class="notification-date">{{ notification.date }}</p>
           </el-card>
         </div>
-        <el-empty v-else description="暂无通知" :image-size="80"></el-empty>
+        <el-empty v-else description="暂无通知" :image-size="120"></el-empty>
       </div>
 
       <div class="load-more-container">
@@ -71,7 +90,10 @@
           {{ notificationLoading ? '加载中...' : '加载更多' }}
         </el-button>
         <p v-else-if="notifications.length > 0 && noMoreNotifications" class="no-more-text">
-          已加载全部通知
+          已加载全部通知，没有更多了。
+        </p>
+        <p v-else-if="!notifications.length && !noMoreNotifications && !notificationLoading" class="no-more-text">
+          您当前没有新的通知。
         </p>
       </div>
     </div>
@@ -81,11 +103,15 @@
 <script setup>
 import { onMounted, ref, computed, watch, reactive } from 'vue';
 import { ElTabs, ElTabPane, ElCard, ElButton, ElEmpty, ElMessage, ElBadge, ElIcon } from 'element-plus';
-import { Bell, Star, ChatDotRound, Monitor } from '@element-plus/icons-vue'; // 引入新图标
+import { Bell, Star, ChatDotRound, Monitor } from '@element-plus/icons-vue'; 
 import { authAxios } from '@/utils/request';
-import { useRouter } from 'vue-router'; // 引入 useRouter 用于导航
+import { useRouter } from 'vue-router'; 
+import { useNotificationStore } from '@/stores/notificationStore';
 
 const router = useRouter(); // 初始化 router
+
+const notificationStore = useNotificationStore();
+const unreadCounts = computed(() => notificationStore.unreadCounts);
 
 // 当前激活的通知分类标签页
 const activeNotificationTab = ref('all');
@@ -99,14 +125,6 @@ const totalNotifications = ref(0);
 const notificationLoading = ref(false);
 const noMoreNotifications = ref(false);
 
-// 各类别未读数量
-const unreadCounts = reactive({
-  all: 0,
-  likes: 0,
-  comments: 0,
-  system: 0,
-});
-
 // 计算属性，判断是否还有更多通知
 const hasMoreNotifications = computed(() => {
   return notifications.value.length < totalNotifications.value && !noMoreNotifications.value;
@@ -114,7 +132,6 @@ const hasMoreNotifications = computed(() => {
 
 // 获取通知列表
 const fetchNotifications = async (category, reset = false) => {
- console.log('category:',category)
   if (notificationLoading.value) return;
   if (noMoreNotifications.value && !reset) {
     ElMessage.info('没有更多通知了。');
@@ -132,10 +149,12 @@ const fetchNotifications = async (category, reset = false) => {
 
   try {
     const params = {
-      page: nextPage, // 后端页码可能从1开始，或者0开始，请根据实际情况调整
+      page: nextPage,
       size: pageSize.value,
-      category: category === 'all' ? undefined : category, // 根据分类传递类型参数
+      category: category === 'all' ? undefined : category,
     };
+
+    console.log('category',category)
 
     const response = await authAxios.get('/notifications', { params });
 
@@ -143,15 +162,16 @@ const fetchNotifications = async (category, reset = false) => {
       const newNotificationsRaw = response.data.data.content;
       totalNotifications.value = response.data.data.totalElements;
 
+      console.log('newNotificationsRaw',newNotificationsRaw)
       // 数据转换与格式化
       const formattedNewNotifications = newNotificationsRaw.map(item => ({
         id: item.id,
         isRead: item.isRead,
-        title: item.description || '无标题', // 确保有标题
-        message: item.content || '无内容', // 确保有内容
-        date: new Date(item.createdTime).toLocaleString(), // 格式化日期时间
-        type: item.type, // 假设后端返回通知类型，例如 'LIKE', 'COMMENT', 'SYSTEM'
-        relatedItemId: item.relatedItemId, // 用于跳转详情页的ID
+        title: item.description || '无标题',
+        message: item.content || '无内容',
+        date: new Date(item.createdTime).toLocaleString(),
+        type: item.type, 
+        relatedItemId: item.relatedItemId, 
       }));
 
       if (reset) {
@@ -165,10 +185,8 @@ const fetchNotifications = async (category, reset = false) => {
       if (notifications.value.length >= totalNotifications.value) {
         noMoreNotifications.value = true;
       }
-      // 首次加载或切换分类时，更新未读数量
-      if (reset || category === 'all') {
-         updateUnreadCounts(); // 仅在加载'all'或重置时更新总未读数
-      }
+      // 在加载完通知后，更新未读数量
+      notificationStore.fetchUnreadCounts();
 
     } else {
       ElMessage.warning('未能获取通知数据，请稍后再试。');
@@ -196,43 +214,30 @@ const fetchUnreadCounts = async () => {
     }
 };
 
-// 更新未读数量（当后端没有提供直接的未读分类计数接口时，前端可以从“全部通知”中统计）
-const updateUnreadCounts = () => {
-  // 假设后端在 `/notifications?type=likes` 等接口中会返回 totalElements 和 content
-  // 这里需要为每个分类单独请求未读数量，或者后端提供一个汇总接口。
-  // 临时方案：如果后端只提供`all`的isRead状态，你需要在获取到所有通知后在前端进行分类统计
-  // 最佳实践：后端提供一个 `/notifications/unreadCounts` 这样的接口
-  // 目前先简化处理，实际开发中需调整
-  fetchUnreadCounts(); // 调用获取所有分类未读数量的函数
-};
 
-
-// 标记通知为已读并导航
 const markAsReadAndNavigate = async (notification) => {
   if (!notification.isRead) {
     try {
-      // 假设后端有标记为已读的接口
-      await authAxios.post(`/notifications/${notification.id}/read`);
-      notification.isRead = true; // 乐观更新UI
-      // 更新未读数量
+      await authAxios.post('/api/notifications/mark-as-read', {
+        types: [notification.category] 
+      });
+      notification.isRead = true; 
       updateUnreadCounts();
+      console.log('标记已读成功')
     } catch (error) {
       console.error('标记通知为已读失败:', error);
       ElMessage.error('标记为已读失败。');
     }
   }
 
-  // 根据通知类型导航到不同页面
-  // 你需要根据实际业务逻辑定义通知类型和对应的路由
-  if (notification.type === 'COMMENT' && notification.relatedItemId) {
-    router.push(`/post/${notification.relatedItemId}#comment-${notification.id}`); // 示例：跳转到帖子详情页的特定评论
-  } else if (notification.type === 'LIKE' && notification.relatedItemId) {
-    router.push(`/post/${notification.relatedItemId}`); // 示例：跳转到帖子详情页
-  } else if (notification.type === 'SYSTEM') {
-    // 系统通知可能不需要跳转，或者跳转到公告页等
+  console.log('notification',notification)
+  if (notification.type === 'comments' && notification.relatedItemId) {
+    router.push(`/post/${notification.relatedItemId}#comment-${notification.id}`);
+  } else if (notification.type === 'likes' && notification.relatedItemId) {
+    router.push(`/post/${notification.relatedItemId}`);
+  } else if (notification.type === 'system') {
     ElMessage.info('这是一条系统通知，通常不需要跳转。');
   }
-  // 如果通知没有相关链接，可以不跳转，或者显示详情弹窗
 };
 
 // 获取通知来源文本
@@ -253,130 +258,193 @@ watch(activeNotificationTab, (newTab) => {
 
 onMounted(() => {
   fetchNotifications(activeNotificationTab.value, true); // 首次加载默认“全部通知”
-  fetchUnreadCounts(); // 页面加载时获取未读数量
+  notificationStore.fetchUnreadCounts();                 // 加载未读数字
 });
+
+// 通知类型映射
+const NOTIFICATION_TYPE_MAP = {
+  // 点赞和收藏类 (映射到前端的 'likes' 分类)
+  NEW_POST_LIKE: { category: 'likes', sourceText: '游记点赞', pathPrefix: '/post/' },
+  NEW_POST_FAVORITE: { category: 'likes', sourceText: '游记收藏', pathPrefix: '/post/' },
+  NEW_PACKAGE_FAVORITE: { category: 'likes', sourceText: '旅行团收藏', pathPrefix: '/travel-package/' },
+
+  // 评论和回复类 (映射到前端的 'comments' 分类)
+  NEW_POST_COMMENT: { category: 'comments', sourceText: '游记评论', pathPrefix: '/post/' },
+  NEW_COMMENT_REPLY: { category: 'comments', sourceText: '评论回复', pathPrefix: null },
+  NEW_PACKAGE_COMMENT: { category: 'comments', sourceText: '旅行团评论', pathPrefix: '/travel-package/' },
+
+  // 系统和订单类 (映射到前端的 'system' 分类)
+  ORDER_CREATED: { category: 'system', sourceText: '订单创建', pathPrefix: '/merchant/dashboard?tab=orderManagement&orderId=' },
+  ORDER_PAID: { category: 'system', sourceText: '订单支付', pathPrefix: '/merchant/dashboard?tab=orderManagement&orderId=' },
+  ORDER_CANCELED: { category: 'system', sourceText: '订单取消', pathPrefix: '/merchant/dashboard?tab=orderManagement&orderId=' },
+  PACKAGE_APPROVED: { category: 'system', sourceText: '旅行团审核通过', pathPrefix: '/merchant/dashboard?tab=tourManagement&tourId=' }, // 假设跳转到旅行团管理页
+  PACKAGE_REJECTED: { category: 'system', sourceText: '旅行团审核驳回', pathPrefix: '/merchant/dashboard?tab=tourManagement&tourId=' }, // 假设跳转到旅行团管理页
+
+  DEPARTURE_REMINDER: { category: 'system', sourceText: '临行提醒', pathPrefix: null  },
+};
 </script>
 
 <style scoped>
 /* 整体布局容器 */
-.notification-center {
-  display: flex;
+.notification-container {
   width: 100%;
-  gap: 20px; /* 侧边栏和内容区域的间距 */
-  background-color: transparent; /* 背景透明 */
-  padding: 20px; /* 增加整体内边距 */
-  box-sizing: border-box; /* 包含 padding 和 border */
-}
-
-/* 左侧导航栏容器 */
-.notification-tabs-vertical.beautiful-sidebar {
-  flex-shrink: 0; /* 不会被压缩 */
-  width: 180px; /* 增加宽度以容纳图标和文字 */
-  background-color: #fff;
-  border-radius: 12px; /* 更圆润的边角 */
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08); /* 柔和阴影 */
-  padding: 20px 0; /* 上下内边距，左右由 tab-pane 自身控制 */
+  max-width: 1200px; /* 限制最大宽度，居中显示 */
+  margin: 0px auto; /* 上下外边距，左右居中 */
+  border-radius: 12px;
+  padding-bottom: 20px; /* 底部留白 */
   box-sizing: border-box;
+  display: flex; /* 让顶部导航和内容区域垂直排列 */
+  flex-direction: column;
 }
 
-/* 隐藏 Element Plus 默认的 Tab 内容区域，由我们自己控制右侧内容 */
-.notification-tabs-vertical :deep(.el-tabs__content) {
+/* 顶部导航栏容器 */
+.notification-tabs-horizontal.beautiful-navbar {
+  border-bottom: 1px solid #e0e0e0; /* 底部细分隔线 */
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+  padding: 0 20px; /* 左右内边距 */
+}
+
+/* 隐藏 Element Plus 默认的 Tab 内容区域*/
+.notification-tabs-horizontal :deep(.el-tabs__content) {
   display: none;
 }
 
 /* 调整 Tab 标签的样式 */
-.notification-tabs-vertical :deep(.el-tabs__item) {
-  height: 50px; /* 增加 Tab 项高度 */
+.notification-tabs-horizontal :deep(.el-tabs__header) {
+  margin-bottom: 0; /* 移除 header 底部默认间距 */
+}
+
+.notification-tabs-horizontal :deep(.el-tabs__nav-wrap::after) {
+  height: 0; /* 移除默认的底部线条 */
+}
+
+.notification-tabs-horizontal :deep(.el-tabs__item) {
+  height: 50px; /* Tab 项高度 */
   line-height: 50px;
   padding: 0 20px; /* 左右内边距 */
-  justify-content: flex-start; /* 内容左对齐 */
-  color: #555;
+  color: #606266;
   font-weight: 500;
   transition: all 0.3s ease;
+  font-size: 1rem;
 }
 
-.notification-tabs-vertical :deep(.el-tabs__item.is-active) {
-  background-color: #e6f7ff; /* 激活状态的背景色 */
-  color: #1890ff; /* 激活状态的文字颜色 */
+.notification-tabs-horizontal :deep(.el-tabs__item:hover) {
+  color: #54b4a7; /* 悬停文字颜色 */
+}
+
+.notification-tabs-horizontal :deep(.el-tabs__item.is-active) {
+  color: #52b8a7; /* 激活状态的文字颜色 */
   font-weight: 600;
-  border-right: 3px solid #1890ff; /* 激活状态的右侧边框 */
+  background-color: transparent; /* 激活时背景透明 */
+  /* 我们可以通过 active-bar 来控制底部指示线，或者自定义 */
 }
 
-.notification-tabs-vertical :deep(.el-tabs__active-bar) {
-  display: none; /* 隐藏默认的激活条 */
+.notification-tabs-horizontal :deep(.el-tabs__active-bar) {
+  height: 3px; /* 激活条高度 */
+  background-color: #52b8a7; /* 激活条颜色 */
+  border-radius: 2px; /* 激活条圆角 */
 }
 
-/* 侧边栏项内容 */
-.sidebar-item-content {
+/* 顶部导航栏项内容 */
+.navbar-item-content {
   display: flex;
   align-items: center;
-  gap: 10px; /* 图标和文字之间的间距 */
-  width: 100%;
+  gap: 8px; /* 图标和文字之间的间距缩小 */
   position: relative; /* 用于徽标定位 */
 }
 
-.sidebar-item-content .el-icon {
+.navbar-item-content .el-icon {
   font-size: 1.2rem; /* 图标大小 */
   color: inherit; /* 继承父元素的颜色 */
 }
 
-.sidebar-item-content .item-text {
-  flex-grow: 1; /* 文字占据剩余空间 */
+.navbar-item-content .item-text {
+  /* 在水平导航中，文字不需要 flex-grow 来占据剩余空间 */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* 未读消息徽标 */
 .notification-badge {
-  /* margin-left: auto; 让徽标推到右边 */
-  position: absolute;
-  right: 0; /* 定位到最右侧 */
-  top: 50%;
-  transform: translateY(-50%);
+  /* 在水平导航中，徽章可以更紧凑地跟随文字 */
+  margin-left: 5px; /* 徽章与文字的间距 */
+  transform: translateY(-2px); /* 微调垂直位置 */
+  --el-badge-bg-color: var(--el-color-danger);
+  --el-badge-font-size: 10px;
+  --el-badge-size: 18px;
 }
 
-/* 右侧通知内容区域 */
-.notification-content-area {
+/* 通知内容区域 - 调整为适应顶部导航 */
+.notification-content-area-top {
   flex: 1; /* 自动填充剩余空间 */
-  min-width: 0; /* 确保在 flex 布局中不会溢出 */
-  background-color: #fff; /* 独立的白色背景 */
-  border-radius: 12px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-  padding: 20px; /* 内容区域内边距 */
+  min-width: 0;
+  background-color: #fff; /* 内容区域背景色 */
+  border-bottom-left-radius: 12px; /* 底部圆角 */
+  border-bottom-right-radius: 12px;
+  padding: 25px; /* 内容区域内边距增加 */
   box-sizing: border-box;
-  display: flex; /* 让内容和加载更多按钮垂直排列 */
+  display: flex;
+  flex-direction: column;
+}
+
+/* 通知动作区域 */
+.notification-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 20px;
+}
+
+.mark-read-btn {
+  border-radius: 8px;
+  padding: 8px 15px;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.notification-list-wrapper {
+  flex-grow: 1;
+  min-height: 200px;
+  display: flex;
   flex-direction: column;
 }
 
 .notification-list {
   display: flex;
   flex-direction: column;
-  gap: 15px; /* 通知卡片之间的间距 */
-  padding-bottom: 20px; /* 防止加载更多按钮遮挡 */
+  gap: 12px;
 }
 
 /* 单个通知卡片 */
 .notification-item {
-  border-radius: 10px; /* 统一圆角 */
+  border-radius: 10px;
   overflow: hidden;
-  padding: 15px; /* 调整内边距 */
-  background-color: #f9f9f9; /* 稍微深一点的底色 */
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04); /* 更轻的阴影 */
+  padding: 18px;
+  background-color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
-  border: 1px solid #eee;
-  cursor: pointer; /* 鼠标手型 */
-  display: flex; /* 内部内容也使用 flex */
+  border: 1px solid #ebeef5;
+  cursor: pointer;
+  display: flex;
   flex-direction: column;
   align-items: flex-start;
+  position: relative;
+  justify-content: space-between;
+  width: 100%;
 }
 
 .notification-item:hover {
-  transform: translateY(-3px); /* 悬停效果 */
-  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
-  background-color: #ffffff; /* 悬停时变为白色 */
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  background-color: #f7f9fc;
 }
 
 .notification-item.is-read {
-  opacity: 0.7; /* 已读通知稍微变淡 */
-  background-color: #f0f0f0; /* 已读通知的背景色 */
+  opacity: 0.8;
+  background-color: #f5f7fa;
 }
 
 /* 通知头，包含来源和未读点 */
@@ -385,16 +453,17 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   width: 100%;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .notification-source {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: #606266;
   background-color: #e0e0e0;
-  padding: 3px 8px;
-  border-radius: 4px;
+  padding: 4px 10px;
+  border-radius: 20px;
   font-weight: 500;
+  letter-spacing: 0.5px;
 }
 
 /* 未读圆点 */
@@ -402,47 +471,56 @@ onMounted(() => {
   display: inline-block;
   width: 8px;
   height: 8px;
-  background-color: #f56c6c; /* Element Plus danger color */
+  background-color: var(--el-color-primary);
   border-radius: 50%;
-  margin-left: 10px; /* 确保与来源文本有间距 */
-  flex-shrink: 0; /* 防止被压缩 */
+  margin-left: auto;
+  flex-shrink: 0;
+  animation: pulse-dot 1.5s infinite ease-out;
+}
+
+@keyframes pulse-dot {
+  0% { transform: scale(0.8); opacity: 0.7; }
+  50% { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(0.8); opacity: 0.7; }
 }
 
 .notification-title {
-  font-size: 1.05rem; /* 稍微调整标题大小 */
+  font-size: 1.1rem;
   font-weight: 600;
-  color: #333;
-  margin-bottom: 5px; /* 标题和正文间距 */
+  color: #303133;
+  margin-bottom: 8px;
+  line-height: 1.4;
 }
 
 .notification-text {
-  font-size: 0.95rem; /* 调整正文大小 */
-  color: #666;
-  line-height: 1.5;
-  margin-bottom: 10px; /* 正文和日期间距 */
-  /* Ellipsis for long text */
-  white-space: nowrap;
+  font-size: 0.9rem;
+  color: #606266;
+  line-height: 1.6;
+  margin-bottom: 12px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 100%; /* 防止超出行宽 */
+  max-width: 100%;
 }
 
 .notification-date {
-  font-size: 0.8rem; /* 调整日期大小 */
-  color: #999;
-  align-self: flex-end; /* 让日期靠右对齐 */
+  font-size: 0.8rem;
+  color: #909399;
+  align-self: flex-end;
 }
 
+/* 加载更多容器和按钮 */
 .load-more-container {
   text-align: center;
-  padding-top: 20px;
-  /* 确保在内容区域内部底部 */
-  margin-top: auto; /* 将加载更多推到底部 */
+  padding-top: 25px;
+  margin-top: auto;
 }
 
 .load-more-btn {
-  width: 150px;
-  height: 40px;
+  width: 160px;
+  height: 42px;
   font-size: 1rem;
   border-radius: 8px;
   transition: all 0.3s ease;
@@ -450,8 +528,19 @@ onMounted(() => {
 
 .no-more-text {
   text-align: center;
-  color: #aaa;
+  color: #a8a8a8;
   font-size: 0.9rem;
   margin-top: 15px;
+  padding-bottom: 10px;
+}
+
+/* ElEmpty 样式调整 */
+.el-empty {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 0;
 }
 </style>

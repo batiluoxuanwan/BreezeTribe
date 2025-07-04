@@ -3,9 +3,11 @@
     <div class="create-tour-package-page">
       <div class="header-section">
         <h2 class="page-title">
-          <el-icon><Plus /></el-icon> 发布新的旅行团
+          <el-icon><Plus /></el-icon> {{ tourId ? '编辑旅行团' : '发布新的旅行团' }}
         </h2>
-        <p class="page-subtitle">在这里创建您独一无二的旅行团行程，让更多人发现精彩！</p>
+        <p class="page-subtitle">
+          {{ tourId ? '在这里更新您的旅行团行程，让信息保持最新！' : '在这里创建您独一无二的旅行团行程，让更多人发现精彩！' }}
+        </p>
         <el-button type="info" :icon="ArrowLeft" class="back-to-profile-btn" @click="goToProfile">
           返回
         </el-button>
@@ -177,26 +179,6 @@
                     <div class="spot-title-text">{{ spot.name }}</div>
                     <el-button type="danger" :icon="Delete" circle size="small" class="delete-spot-btn" @click="removeSpot(index, i)"></el-button>
                   </div>
-
-                  <!-- <div class="note-preview" @click="openSpotDetailDialog(index, i)">
-                    <el-icon><Edit /></el-icon>
-                    <div class="note-content">
-                      <div v-if="spot.timeRange && spot.timeRange.length === 2 && spot.timeRange[0] && spot.timeRange[1]" class="time-range-display">
-                        <el-icon><Clock /></el-icon> {{ spot.timeRange[0] }} - {{ spot.timeRange[1] }}
-                      </div>
-                      <div v-if="spot.note" class="actual-note">{{ spot.note }}</div>
-                      <el-image
-                        v-if="spot.imageUrl"
-                        :src="spot.imageUrl"
-                        :preview-src-list="[spot.imageUrl]"
-                        fit="cover"
-                        class="spot-image-preview"
-                      />
-                      <div v-if="!spot.note && (!spot.timeRange || spot.timeRange.length === 0) && !spot.imageUrl" class="empty-note">
-                        点击此处，为该地点添加时间、备注或图片
-                      </div>
-                    </div>
-                  </div> -->
                 </div>
               </el-card>
             </div>
@@ -205,7 +187,7 @@
 
         <div class="submit-section" v-if="dailySchedules.length > 0">
           <el-button type="success" size="large" :icon="Check" class="submit-button" @click="submitTourPackage">
-            发布旅行团
+            {{ tourId ? '更新旅行团' : '发布旅行团' }}
           </el-button>
         </div>
       </div>
@@ -253,80 +235,26 @@
           <el-button @click="spotDialogVisible = false">取消</el-button>
         </template>
       </el-dialog>
-
-      <!-- <el-dialog v-model="spotDetailDialogVisible" :title="currentSpot.name || '编辑地点/活动详情'" width="500px" class="spot-detail-dialog">
-        <el-form label-width="80px">
-          <el-form-item label="备注">
-            <el-input
-              v-model="currentSpot.note"
-              type="textarea"
-              placeholder="输入此地点/活动的详细备注或介绍，例如：推荐午餐地点、最佳观景时间"
-              rows="4"
-            />
-          </el-form-item>
-          <el-form-item label="时间段">
-            <el-time-picker
-              is-range
-              v-model="currentSpot.timeRange"
-              range-separator="至"
-              start-placeholder="开始时间"
-              end-placeholder="结束时间"
-              format="HH:mm"
-              value-format="HH:mm"
-              style="width: 100%;"
-            />
-          </el-form-item>
-          <el-form-item label="图片">
-            <div class="image-upload-wrapper">
-              <el-upload
-                class="image-uploader"
-                action="#"
-                :auto-upload="false"
-                :show-file-list="false"
-                :on-change="(file) => handleImageUpload(file)"
-                accept="image/jpeg,image/png"
-              >
-                <img v-if="currentSpot.imageUrl" :src="currentSpot.imageUrl" class="uploaded-image" />
-                <el-icon v-else class="uploader-icon"><Plus /></el-icon>
-              </el-upload>
-              <el-button
-                v-if="currentSpot.imageUrl"
-                type="danger"
-                :icon="Delete"
-                circle
-                size="small"
-                class="remove-image-btn"
-                @click="currentSpot.imageUrl = ''"
-                title="移除图片"
-              ></el-button>
-            </div>
-            <div class="el-upload__tip">
-              点击上传图片 (JPG/PNG格式，大小不超过 500KB)
-            </div>
-          </el-form-item>
-        </el-form>
-        <template #footer>
-          <el-button type="primary" @click="spotDetailDialogVisible = false">确定</el-button>
-        </template>
-      </el-dialog> -->
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, watch, useId } from 'vue'
+import { ref, reactive, watch, onMounted } from 'vue'
 import { Search, Edit, Upload, Plus, InfoFilled, Calendar, List, Location, Check, Clock, Delete, ArrowLeft } from '@element-plus/icons-vue'
 import { publicAxios,authAxios } from '@/utils/request'
 import { ElMessage,ElMessageBox } from 'element-plus'
-import { useRouter } from 'vue-router'
+import { useRouter,useRoute } from 'vue-router'
 
 const router = useRouter()
+const route = useRoute()
 
 const goToProfile = () => {
   router.push('/merchant/me')
 }
 
 // 旅行团整体信息
+const tourId = ref(null); // 用于存储旅行团ID，如果是在编辑现有旅行团
 const title = ref('')
 const travelDays = ref(1) 
 const dailySchedules = ref([]) 
@@ -339,17 +267,6 @@ const spotDialogVisible = ref(false)
 const spotKeyword = ref('')
 const spotResults = ref([])
 const loading = ref(false)
-
-// // 景点详情/备注弹窗相关
-// const spotDetailDialogVisible = ref(false)
-// const currentSpot = reactive({
-//   name: '',
-//   note: '',
-//   timeRange: [],
-//   imageUrl: '',
-//   dayIndex: null, // 记录当前编辑的景点属于哪一天
-//   spotIndex: null, // 记录当前编辑的景点是当天的第几个
-// })
 
 const showSelector = ref(false)
 const searchName = ref('')
@@ -598,30 +515,6 @@ const removeSpot = (dayIndex, spotIndex) => {
   ElMessage.info(`已将 "${spotName}" 从行程中移除。`);
 };
 
-// // --- 景点详情/备注弹窗 ---
-// const openSpotDetailDialog = (dayIndex, spotIndex) => {
-//   // 深拷贝景点数据，避免直接修改原始数据导致意外副作用
-//   Object.assign(currentSpot, JSON.parse(JSON.stringify(dailySchedules.value[dayIndex][spotIndex])));
-//   currentSpot.dayIndex = dayIndex;
-//   currentSpot.spotIndex = spotIndex;
-//   spotDetailDialogVisible.value = true;
-// };
-
-// // 监听弹窗关闭事件，将 currentSpot 的修改同步回原始数据
-// watch(spotDetailDialogVisible, (newVal) => {
-//   if (!newVal && currentSpot.dayIndex !== null && currentSpot.spotIndex !== null) {
-//     const dayIdx = currentSpot.dayIndex;
-//     const spotIdx = currentSpot.spotIndex;
-//     // 将 currentSpot 的属性更新到原始数据中
-//     Object.assign(dailySchedules.value[dayIdx][spotIdx], {
-//       note: currentSpot.note,
-//       timeRange: currentSpot.timeRange,
-//       imageUrl: currentSpot.imageUrl,
-//     });
-//     // 重置 currentSpot 状态
-//     Object.assign(currentSpot, { name: '', note: '', timeRange: [], imageUrl: '', dayIndex: null, spotIndex: null });
-//   }
-// });
 
 // --- 最终提交 ---
 const submitTourPackage = async () => {
@@ -673,6 +566,89 @@ const submitTourPackage = async () => {
   }
 };
 
+onMounted(() => {
+  // 检查路由查询参数中是否存在 tourData（用于编辑模式）
+  if (route.query.tourData) {
+    try {
+      const tourToEdit = JSON.parse(route.query.tourData);
+      console.log("正在加载要编辑的旅行团:", tourToEdit);
+
+      // 填充基本信息
+      tourId.value = tourToEdit.id;
+      title.value = tourToEdit.title;
+      travelDays.value = tourToEdit.durationInDays;
+      detailDescription.value = tourToEdit.description;
+
+      // 填充图片信息
+      tourImageUrls.splice(0); // 清空现有图片
+      uploadedBackendFileIds.splice(0); // 清空现有文件ID
+      imageFileList.splice(0); // 清空 Element Plus 文件列表
+
+      if (tourToEdit.imageUrls && Array.isArray(tourToEdit.imageUrls)) {
+        tourToEdit.imageUrls.forEach((imgUrl, index) => {
+          tourImageUrls.push(imgUrl);
+          // 假设后端返回的图片 URL 已经可以直接使用，并且有一个对应的 ID
+          // 这里需要一个逻辑来获取这些图片的 fileId，如果后端返回了
+          // 暂时用一个虚拟的uid和name，实际中应根据后端数据调整
+          imageFileList.push({
+            name: `image-${index + 1}.jpg`, // 假定文件名
+            url: imgUrl,
+            uid: Date.now() + index, // 确保UID唯一
+            status: 'success'
+          });
+        });
+      }
+      
+      // 注意：如果您的后端返回的是 image IDs 而不是直接 URL，您需要：
+      // 1. 在这里填充 uploadedBackendFileIds
+      // 2. 对于 imageFileList，您可能需要一个 API 调用来根据这些 ID 获取实际的图片 URL
+      if (tourToEdit.imgIds && Array.isArray(tourToEdit.imgIds)) {
+        uploadedBackendFileIds.push(...tourToEdit.imgIds);
+      } else if (tourToEdit.imageUrls && Array.isArray(tourToEdit.imageUrls)) {
+        // 如果后端在编辑时只返回 URL 没有 ID，您可能需要考虑如何处理
+        // 例如，如果这些图片是不能删除的，或者删除逻辑需要在后端通过 URL 识别
+        // 或者您在后端获取到编辑数据时，也一并返回这些图片的 fileId
+      }
+
+
+      // 填充标签
+      selectedTags.splice(0); // 清空现有标签
+      if (tourToEdit.tags && Array.isArray(tourToEdit.tags)) {
+        selectedTags.push(...tourToEdit.tags);
+      }
+
+      // 填充每日行程
+      dailySchedules.splice(0); // 清空现有行程
+      if (tourToEdit.dailySchedules && Array.isArray(tourToEdit.dailySchedules)) {
+        tourToEdit.dailySchedules.forEach(day => {
+          dailySchedules.push({
+            routeName: day.routeName || '',
+            routeDescription: day.routeDescription || '',
+            spots: day.spots && Array.isArray(day.spots) ? day.spots.map(spot => ({
+              uid: spot.uid, // 确保这里有景点UID
+              name: spot.name,
+              location: spot.location || '', // 假设后端返回 location
+              note: spot.note || '',
+              timeRange: spot.startTime && spot.endTime ? [spot.startTime, spot.endTime] : [],
+              imageUrl: spot.imageUrl || ''
+            })) : []
+          });
+        });
+      } else {
+        // 如果没有行程数据，根据 travelDays 生成空的每日行程框架
+        generateDays();
+      }
+
+      ElMessage.info('已载入旅行团数据，请进行编辑。');
+    } catch (e) {
+      console.error("解析路由中的 tourData 失败:", e);
+      ElMessage.error('加载旅行团数据失败。');
+    }
+  } else {
+    // 如果没有 tourData，确保 dailySchedules 为新团正确初始化
+    generateDays(); // 根据 travelDays.value 的初始值或默认值初始化（默认1天）
+  }
+});
 </script>
 
 <style scoped>
@@ -1062,19 +1038,6 @@ const submitTourPackage = async () => {
   margin-right: 10px;
 }
 
-/* 弹窗样式覆盖 */
-.spot-search-dialog .el-dialog__header,
-.spot-detail-dialog .el-dialog__header {
-  border-bottom: 1px solid #e0e0e0;
-  padding-bottom: 15px;
-  margin-bottom: 20px;
-}
-
-.spot-search-dialog .el-dialog__title,
-.spot-detail-dialog .el-dialog__title {
-  font-weight: 600;
-  color: #333;
-}
 
 .autocomplete-item {
   line-height: normal;
@@ -1168,11 +1131,6 @@ const submitTourPackage = async () => {
   height: 100%;
   object-fit: cover;
   display: block;
-}
-.el-upload__tip {
-  font-size: 0.8rem;
-  color: #999;
-  margin-top: 5px;
 }
 .remove-image-btn {
   position: absolute;

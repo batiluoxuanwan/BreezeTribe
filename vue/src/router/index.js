@@ -40,6 +40,12 @@ const routes =[
         meta: { requiresAuth: true }
     },
     {
+        path: '/review/:orderId', 
+        name: 'SubmitReviewPage', 
+        component:() =>import('../views/User/SubmitReviewPage.vue'),
+        props: true 
+    },
+    {
         path:'/merchant/me',
         name:'团长个人主页',
         component:() =>import('../views/Merchant/Profile.vue')

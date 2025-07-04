@@ -47,7 +47,7 @@
         >
           <el-icon><Bell /></el-icon>
           <span>我的通知</span>
-          <el-badge v-if="unreadNotifications > 0" :value="unreadNotifications" class="notification-badge" />
+          <el-badge :value="notificationStore.unreadCounts.all" v-if="notificationStore.unreadCounts.all > 0" class="notification-badge" />
         </div>
         <div
           :class="{ 'menu-item': true, 'active': activeTab === 'friends' }"
@@ -67,52 +67,21 @@
     </aside>
 
     <main class="main-content">
-      <el-tabs v-model="activeTab" class="hidden-tabs-header">
-        <el-tab-pane label="我的收藏" name="collected">
-            <MyFavorites/>
-        </el-tab-pane>
+      <MyFavorites v-if="activeTab === 'collected'" />
 
-        <el-tab-pane label="我的报名" name="joined">
-          <MyJoinedTours/>
-        </el-tab-pane>
+      <MyJoinedTours v-if="activeTab === 'joined'" />
 
-        <el-tab-pane label="我的游记" name="notes">
-          <MyNotes/>
-        </el-tab-pane>
+      <MyNotes v-if="activeTab === 'notes'" />
 
-        <el-tab-pane label="我的评价" name="reviews">
-          <div v-if="reviews.length > 0" class="card-grid">
-            <el-card
-              v-for="review in reviews"
-              :key="review.id"
-              class="review-card hover-card"
-            >
-              <div class="review-info">
-                <h3>{{ review.tourTitle }}</h3>
-                <el-rate v-model="review.rating" disabled show-text />
-                <p>{{ review.comment }}</p>
-                <p class="review-date">评价日期：{{ review.date }}</p>
-              </div>
-            </el-card>
-          </div>
-          <el-empty v-else description="暂无评价"></el-empty>
-        </el-tab-pane>
+      <MyReviews v-if="activeTab === 'reviews'"/>
 
-       <!-- [修改] 我的通知模块，增加了加载状态和加载更多按钮 -->
-       <el-tab-pane label="我的通知" name="notifications">
-        <MyNotifications/>
-      </el-tab-pane>
+      <MyNotifications v-if="activeTab === 'notifications'" />
 
-        <el-tab-pane label="我的好友" name="friends">
-          <MyFriends/>
-        </el-tab-pane>
+      <MyFriends v-if="activeTab === 'friends'" />
 
-        <el-tab-pane label="系统设置" name="systemSettings">
-          <div style="margin-bottom: 32px;">
-            <AccountOverview @userUpdated="handleUserUpdated"/>
-          </div>
-        </el-tab-pane>
-      </el-tabs>
+      <div v-if="activeTab === 'systemSettings'" class="settings-section">
+        <AccountOverview @userUpdated="handleUserUpdated" />
+      </div>
     </main>
   </div>
 </template>
@@ -125,15 +94,20 @@ import { ElMessageBox,ElTabs, ElTabPane, ElCard, ElForm, ElFormItem, ElInput, El
 
 import { useRoute,useRouter } from 'vue-router';
 import { authAxios,publicAxios } from '@/utils/request';
+import { useNotificationStore } from '@/stores/notificationStore';
 
 import MyNotes from '@/components/profile/MyNotes.vue' 
 import MyFavorites from '@/components/profile/MyFavorites.vue' 
 import MyJoinedTours from '@/components/profile/MyJoinedTours.vue' 
 import MyNotifications from '@/components/profile/MyNotifications.vue';
 import MyFriends from '@/components/profile/MyFriends.vue' 
+import MyReviews from '@/components/profile/MyReviews.vue' 
 import AccountOverview from '@/components/AccountOverview.vue' 
 const router = useRouter();
 const route = useRoute();
+const notificationStore = useNotificationStore();
+
+// 用户资料
 const user = reactive({
   id: '',
   email: '',
@@ -145,18 +119,21 @@ const user = reactive({
   updatedAt: '',
 });
 
-
-// 示例评价数据
-const reviews = ref([
-  { id: 1, tourTitle: '桂林山水团', rating: 4, comment: '风景很美，导游很热情！', date: '2025-06-20' },
-  { id: 2, tourTitle: '成都美食团', rating: 5, comment: '火锅太棒了！', date: '2025-06-15' },
-])
-
+// 我的评价
+const reviews = ref([]); // 用于存储评价（或待评价订单）数据的响应式引用
+const reviewStatus = ref('PENDING'); // 控制评价状态筛选: 'PENDING' (待评价), 'REVIEWED' (已评价), 'ALL' (全部)
+const currentReviewPage = ref(1); // 评价列表当前页码，从1开始
+const reviewPageSize = ref(6); // 评价列表每页记录数，改为6，这样在卡片网格中更美观
+const totalReviews = ref(0); // 评价总数
+const reviewLoading = ref(false); // 评价加载状态
+const noMoreReviews = computed(() => {
+  // 如果已加载的评价数量大于等于总数，且总数大于0（避免空列表时显示“没有更多”）
+  return reviews.value.length >= totalReviews.value && totalReviews.value > 0;
+});
 
 const activeTab = ref('collected')
 
-const unreadNotifications = ref(1);
-
+// 获取用户资料
 const fetchUserProfile = async () => {
   try {
     const res = await authAxios.get('/auth/me'); 
@@ -190,8 +167,6 @@ const fetchUserProfile = async () => {
 };
 
 
-// --- [新增] 通知模块的所有逻辑 ---
-
 // 当前激活的通知分类标签页
 const activeNotificationTab = ref('all') 
 
@@ -211,78 +186,6 @@ const noMoreNotifications = ref(false)
 const hasMoreNotifications = computed(() => {
   return notifications.value.length < totalNotifications.value && !noMoreNotifications.value;
 });
-
-/**
- * 获取通知列表的核心函数
- * @param {string} category - 通知的类别
- * @param {boolean} reset - 是否是重置操作
- */
-const fetchNotifications = async (category, reset = false) => {
-  if (notificationLoading.value) return
-  if (noMoreNotifications.value && !reset) {
-    ElMessage.info('没有更多通知了。')
-    return
-  }
-
-  notificationLoading.value = true
-  if (reset) {
-    currentNotificationPage.value = 0
-    notifications.value = []
-    noMoreNotifications.value = false
-  }
-
-  const nextPage = currentNotificationPage.value + 1
-
-  try {
-    const params = {
-      page: nextPage,
-      size: pageNotificationSize.value,
-      category: category === 'all' ? undefined : category,
-    }
-
-    const response = await authAxios.get('/notifications', { params })
-
-    if (response.data.code === 200 && response.data.data) {
-      const newNotificationsRaw = response.data.data.content
-      totalNotifications.value = response.data.data.totalElements
-
-      // 数据转换
-      const formattedNewNotifications = newNotificationsRaw.map(item => ({
-        id: item.id,
-        isRead: item.isRead,
-        title: item.description, 
-        message: item.content, 
-        date: new Date(item.createdTime).toLocaleString(), 
-        triggerUsername: item.triggerUsername,
-        relatedItemId: item.relatedItemId,
-        type: item.type,
-      }))
-
-      if (reset) {
-        notifications.value = formattedNewNotifications
-      } else {
-        notifications.value = [...notifications.value, ...formattedNewNotifications]
-      }
-
-      currentNotificationPage.value = nextPage
-
-      if (notifications.value.length >= totalNotifications.value) {
-        noMoreNotifications.value = true
-      }
-    } else {
-      ElMessage.warning('未能获取通知数据，请稍后再试。')
-      noMoreNotifications.value = true
-    }
-  } catch (error) {
-    console.error("获取通知失败:", error)
-    ElMessage.error('获取通知列表失败，请检查网络或稍后再试。')
-    noMoreNotifications.value = true
-  } finally {
-    notificationLoading.value = false
-  }
-}
-
-// --- [结束] 通知模块的所有逻辑 ---
 
 
 // 跳转首页
@@ -307,6 +210,7 @@ const hasMoreNotes = computed(() => {
   return notes.value.length < totalNotes.value && !noMoreNotes.value;
 });
 
+// 获取游记
 const fetchNotes = async (reset = false) => {
   if (noteLoading.value) return; // 如果正在加载中，则跳过
   if (noMoreNotes.value && !reset) { // 如果已经没有更多，且不是重置操作，则跳过
@@ -365,14 +269,101 @@ const fetchNotes = async (reset = false) => {
   }
 };
 
+// 更新个人资料
 const handleUserUpdated = () => {
   console.log('Parent: User update notification received from child. Re-fetching user profile...');
   fetchUserProfile();
 };
 
+// 获取评价列表
+const fetchReviews = async (reset = false) => {
+  if (reviewLoading.value) return; 
+  if (noMoreReviews.value && !reset) {
+    ElMessage.info('没有更多相关订单了。');
+    return;
+  }
+
+  reviewLoading.value = true;
+  if (reset) {
+    currentReviewPage.value = 1; // 重置页码为1
+    reviews.value = []; // 清空现有数据
+  }
+
+  try {
+    const response = await authAxios.get('/api/user/orders/for-review', {
+      params: {
+        status: reviewStatus.value, 
+        page: currentReviewPage.value,
+        size: reviewPageSize.value,
+        sortBy: 'orderTime', 
+        sortDirection: 'DESC', 
+      },
+    });
+
+    if (response.data.code === 200 && response.data.data) {
+      const newOrders = response.data.data.content;
+      totalReviews.value = response.data.data.totalElements;
+
+      // 将订单数据映射为评价卡片所需的格式
+      const mappedOrders = newOrders.map(order => ({
+        id: order.id, // 使用订单ID作为唯一标识
+        tourTitle: order.packageTitle,
+        packageCoverImageUrl: order.packageCoverImageUrl,
+        // 这里根据订单状态设置评价内容和星级占位符
+        rating: order.status === 'REVIEWED' ? 5 : 0, // 如果已评价，默认显示5星；待评价显示0星
+        comment: order.status === 'REVIEWED' ? '您已对该订单进行评价。' : '该订单等待您的评价。',
+        date: new Date(order.orderTime).toLocaleDateString(), // 订单日期
+        orderStatus: order.status, // 保存原始订单状态以便后续判断
+      }));
+
+      if (reset) {
+        reviews.value = mappedOrders;
+      } else {
+        reviews.value = [...reviews.value, ...mappedOrders]; // 追加新数据
+      }
+
+      currentReviewPage.value++; // 准备获取下一页数据
+
+      if (reviews.value.length >= totalReviews.value) {
+        // ElMessage.info('所有相关订单已加载完毕。'); 
+      }
+    } else {
+      ElMessage.warning(response.data.message || '未能获取订单数据。');
+      if (reset) reviews.value = []; // 重置时清除数据
+    }
+  } catch (error) {
+    console.error('获取订单评价列表失败:', error);
+    ElMessage.error('获取订单评价列表失败，请检查网络或稍后再试。');
+    if (reset) reviews.value = []; // 重置时清除数据
+  } finally {
+    reviewLoading.value = false;
+  }
+};
+
+// **处理“去评价”点击事件**
+const goToReview = (orderId) => {
+  // 导航到评价提交页面，并传递订单ID
+  router.push({ name: 'SubmitReviewPage', params: { orderId: orderId } });
+  // 你需要确保你的路由中定义了名为 'SubmitReviewPage' 的路由
+  // 例如： { path: '/review/:orderId', name: 'SubmitReviewPage', component: SubmitReviewComponent }
+  ElMessage.info(`跳转到订单 ${orderId} 的评价页面`);
+};
+
+// **处理“查看评价”点击事件**
+const viewReview = (orderId) => {
+  // 导航到评价详情页面，并传递订单ID或评价ID
+  // 如果你的后端 /api/reviews/my 会返回实际评价ID，那这里可以传递评价ID
+  // 如果没有，可能需要根据 orderId 再去获取评价详情
+  router.push({ name: 'ViewReviewPage', params: { orderId: orderId } });
+  // 例如： { path: '/review-detail/:orderId', name: 'ViewReviewPage', component: ViewReviewComponent }
+  ElMessage.info(`查看订单 ${orderId} 的评价详情`);
+};
+
 onMounted(() => {
   fetchNotes(true);
   fetchUserProfile();
+  notificationStore.fetchUnreadCounts();
+  fetchReviews();
 })
 
 // 跳转详情页并传递游记id
@@ -391,21 +382,6 @@ watch(
   },
   { immediate: true } 
 );
-
-// [新增] 监听主标签页的变化
-watch(activeTab, (newTab) => {
-  if (newTab === 'notifications') {
-    // 当切换到“我的通知”时，触发一次重置加载
-    fetchNotifications(activeNotificationTab.value, true);
-  }
-});
-
-// [新增] 监听通知分类标签页的变化
-watch(activeNotificationTab, (newCategory) => {
-  // 当用户在通知内部切换分类时，也触发重置加载
-  fetchNotifications(newCategory, true);
-});
-
 
 </script>
 
