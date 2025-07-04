@@ -29,6 +29,9 @@ public class NotificationEventListener {
     @Autowired
     private TravelPackageRepository travelPackageRepository;
 
+
+    // -----------------------系统通知----------------------
+
     /**
      * 监听“订单创建成功”事件
      */
@@ -91,17 +94,18 @@ public class NotificationEventListener {
         );
     }
 
+
+    // -----------------------收藏点赞通知----------------------
+
     /**
      * 监听“旅行团收藏”事件
      */
     @Async
     @EventListener
     public void handlePackageFavoured(PackageFavouredEvent event) {
-
-        String userName = event.getUser().getUsername();
         TravelPackage travelPackage = JpaUtil.getOrThrow(travelPackageRepository, event.getPackageId(), "旅行团不存在");
         String packageTitle = travelPackage.getTitle();
-        String description = String.format("用户 [%s] 收藏了你的旅行团 [%s]", userName, packageTitle);
+        String description = String.format("收藏了你的旅行团 [%s]", packageTitle);
         notificationService.createAndSendNotification(
                 travelPackage.getDealer(),
                 Notification.NotificationType.NEW_PACKAGE_FAVORITE,
@@ -118,10 +122,8 @@ public class NotificationEventListener {
     @Async
     @EventListener
     public void handlePostLiked(PostLikedEvent event) {
-
-        String userName = event.getUser().getUsername();
         String postTitle = event.getPost().getTitle();
-        String description = String.format("用户 [%s] 点赞了你的游记 [%s]", userName, postTitle);
+        String description = String.format("点赞了你的游记 [%s]", postTitle);
         notificationService.createAndSendNotification(
                 event.getPost().getAuthor(),
                 Notification.NotificationType.NEW_POST_LIKE,
@@ -132,16 +134,17 @@ public class NotificationEventListener {
         );
     }
 
+    // -----------------------评论回复通知----------------------
+
     /**
      * 监听“游记评论”事件
      */
     @Async
     @EventListener
     public void handlePostCommented(PostCommentedEvent event) {
-        String userName = event.getCommentSender().getUsername();
         String postTitle = event.getPost().getTitle();
         String content = event.getContent();
-        String description = String.format("用户 [%s] 在游记 [%s] 中回复了你：[%s]", userName, postTitle, content);
+        String description = String.format("在游记 [%s] 中回复了你：[%s]", postTitle, content);
         notificationService.createAndSendNotification(
                 event.getCommentReceiver(),
                 Notification.NotificationType.NEW_POST_COMMENT,
@@ -158,10 +161,9 @@ public class NotificationEventListener {
     @Async
     @EventListener
     public void handlePackageCommented(PackageCommentedEvent event){
-        String userName = event.getCommentSender().getUsername();
         String packageTitle = event.getTravelPackage().getTitle();
         String content = event.getContent();
-        String description = String.format("用户 [%s] 在旅行团评价 [%s] 中回复了你：[%s]", userName, packageTitle, content);
+        String description = String.format("在旅行团评价 [%s] 中回复了你：[%s]", packageTitle, content);
         notificationService.createAndSendNotification(
                 event.getCommentReceiver(),
                 Notification.NotificationType.NEW_PACKAGE_COMMENT,

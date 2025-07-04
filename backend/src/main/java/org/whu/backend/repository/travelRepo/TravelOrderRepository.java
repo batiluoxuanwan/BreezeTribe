@@ -32,6 +32,20 @@ public interface TravelOrderRepository extends JpaRepository<TravelOrder, String
     boolean existsByUserAndTravelDeparture_TravelPackageAndStatus(User author, TravelPackage travelPackage, TravelOrder.OrderStatus orderStatus);
 
     /**
+     * 【新增】检查一个产品模板下是否存在任何活跃的订单（待支付或已支付）
+     * @param packageId 产品模板的ID
+     * @return 如果存在则返回true，否则返回false
+     */
+    @Query("SELECT CASE WHEN COUNT(o) > 0 THEN true ELSE false END " +
+            "FROM TravelOrder o " +
+            "WHERE o.travelDeparture.travelPackage.id = :packageId " +
+            "AND o.status IN ('PENDING_PAYMENT', 'PAID')")
+    boolean existsActiveOrdersForPackage(@Param("packageId") String packageId);
+    // Spring Data JPA 也可以用更简洁的方法名派生查询来实现同样的效果：
+    // boolean existsByTravelDeparture_TravelPackage_IdAndStatusIn(String packageId, List<TravelOrder.OrderStatus> statuses);
+
+
+    /**
      * 【新增】查询一个用户购买过的所有旅游产品ID
      */
     @Query("SELECT DISTINCT o.travelDeparture.travelPackage.id FROM TravelOrder o WHERE o.user.id = :userId")

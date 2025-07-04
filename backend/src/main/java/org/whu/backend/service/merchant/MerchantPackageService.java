@@ -49,8 +49,6 @@ public class MerchantPackageService {
     @Autowired
     private MediaFileRepository mediaFileRepository;
     @Autowired
-    private OrderRepository orderRepository;
-    @Autowired
     private SpotRepository spotRepository;
     @Autowired
     private BaiduMapService baiduMapService;
@@ -217,6 +215,15 @@ public class MerchantPackageService {
 
         // 1. 查找并验证旅行团的所有权
         TravelPackage packageToUpdate = findPackageByIdAndVerifyOwnership(packageId, currentDealerId);
+
+        // 2. 【新增】关键业务规则校验！
+        // 检查该产品模板下的所有团期，是否存在任何“活跃”的订单。
+        boolean hasActiveOrders = travelOrderRepository.existsActiveOrdersForPackage(packageId);
+        if (hasActiveOrders) {
+            log.warn("服务层：更新操作被阻止！产品ID '{}' 存在待支付或已支付的订单。", packageId);
+            throw new BizException("更新失败：该产品已有用户报名且订单处于活跃状态，请先处理相关订单。");
+        }
+        log.info("服务层：产品ID '{}' 无活跃订单，校验通过，允许更新。", packageId);
 
         // 2. 更新允许修改的字段
         packageToUpdate.setTitle(dto.getTitle());
