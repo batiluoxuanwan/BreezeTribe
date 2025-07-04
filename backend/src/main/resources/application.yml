@@ -71,7 +71,7 @@ recommendation:
     order: 10
     favorite: 5
     like: 3
-    view: 1
+#    view: 1
 
 baidu:
   map:
