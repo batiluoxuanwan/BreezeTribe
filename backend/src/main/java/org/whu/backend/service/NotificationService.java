@@ -89,13 +89,18 @@ public class NotificationService {
         if (StringUtils.hasText(category)) {
             List<Notification.NotificationType> typesToQuery = switch (category.toLowerCase()) {
                 case "likes" -> List.of(Notification.NotificationType.NEW_POST_LIKE,
-                        Notification.NotificationType.NEW_POST_FAVORITE);
+                        Notification.NotificationType.NEW_POST_FAVORITE,
+                        Notification.NotificationType.NEW_PACKAGE_FAVORITE);
                 case "comments" -> List.of(Notification.NotificationType.NEW_POST_COMMENT,
-                        Notification.NotificationType.NEW_COMMENT_REPLY);
+                        Notification.NotificationType.NEW_COMMENT_REPLY,
+                        Notification.NotificationType.NEW_PACKAGE_COMMENT);
                 case "system" -> List.of(Notification.NotificationType.ORDER_CREATED,
                         Notification.NotificationType.ORDER_PAID,
+                        Notification.NotificationType.ORDER_CREATED,
+                        Notification.NotificationType.ORDER_CANCELED,
                         Notification.NotificationType.PACKAGE_APPROVED,
-                        Notification.NotificationType.PACKAGE_REJECTED);
+                        Notification.NotificationType.PACKAGE_REJECTED,
+                        Notification.NotificationType.DEPARTURE_REMINDER);
                 default -> throw new IllegalArgumentException("未知的通知类别: " + category);
             };
             notificationPage = notificationRepository.findByRecipientIdAndTypeIn(currentUserId, typesToQuery, pageable);
@@ -127,8 +132,9 @@ public class NotificationService {
             totalUnread += count;
 
             switch (type) {
-                case NEW_POST_LIKE, NEW_POST_FAVORITE -> countsByType.merge("LIKES_AND_FAVORITES", count, Long::sum);
-                case NEW_POST_COMMENT, NEW_COMMENT_REPLY ->
+                case NEW_POST_LIKE, NEW_POST_FAVORITE, NEW_PACKAGE_FAVORITE ->
+                        countsByType.merge("LIKES_AND_FAVORITES", count, Long::sum);
+                case NEW_POST_COMMENT, NEW_COMMENT_REPLY, NEW_PACKAGE_COMMENT ->
                         countsByType.merge("COMMENTS_AND_REPLIES", count, Long::sum);
                 default -> countsByType.merge("SYSTEM_AND_ORDERS", count, Long::sum);
             }
