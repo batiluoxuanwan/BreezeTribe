@@ -256,6 +256,15 @@ const fetchNoteForEditing = async (id) => {
       }
       newlyUploadedMediaFiles.value = [];
 
+      selectedTags.value = []; 
+      if (note.tags && Array.isArray(note.tags) && note.tags.length > 0) {
+        selectedTags.value = note.tags.map(tag => ({
+          id: tag.id,
+          name: tag.name,
+          category: tag.category
+        }));
+      }
+
       ElMessage.success('游记详情加载成功，可开始编辑！');
       adjustTextareaHeight(); // 确保内容填充后高度正确
     } else {
@@ -511,6 +520,24 @@ const publishNote = async () => {
       ElMessage.info('正在更新游记...');
       console.log('正在提交更新游记信息...', requestBody);
       res = await authAxios.put(`/user/posts/${editingNoteId.value}`, requestBody);
+      // --- 额外更新标签 ---
+      ElMessage.info('正在更新游记标签...');
+      console.log('正在提交更新游记标签...', selectedTagIds);
+      try {
+        // 调用独立的标签更新接口
+        const tagUpdateRes = await authAxios.put(
+            `/user/posts/${editingNoteId.value}/tags`, 
+            selectedTagIds 
+          );
+        if (tagUpdateRes.data.code === 200) {
+          ElMessage.success('游记标签更新成功！');
+        } else {
+          ElMessage.error(`游记标签更新失败: ${tagUpdateRes.data.message || '未知错误'}`);
+        }
+        } catch (tagError) {
+          console.error('更新游记标签时发生错误:', tagError);
+          ElMessage.error(`更新游记标签失败: ${tagError.response?.data?.message || '网络错误或服务器异常'}`);
+        }
     } else {
       ElMessage.info('正在发布游记...');
       console.log('正在提交新游记信息...', requestBody);
@@ -520,6 +547,7 @@ const publishNote = async () => {
     if (res.data.code === 200) {
       ElMessage.success(`${isEditMode.value ? '游记更新' : '游记发布'}成功！`);
       console.log(`${isEditMode.value ? '更新' : '发布'}成功`, res.data.data);
+      
       noteContent.value = '';
       noteTitle.value = '';
       newlyUploadedMediaFiles.value.forEach(item => { // 释放新上传图片的本地 URL
