@@ -14,6 +14,8 @@ let reconnecting = false;
 const authStore= useAuthStore()
 const chatStore = useChatStore()
 const route = useRoute()
+// const server = `http://localhost:8081/ws?token=${encodeURIComponent(token)}`
+// const server = `https://121.43.136.251:8080/ws?token=${encodeURIComponent(token)}`
 
 /**
  * 建立 WebSocket 连接，传入收到消息后的回调函数
@@ -33,7 +35,7 @@ export async function connectWebSocket(token, onMessageCallback) {
     }
     stompClient = new Client({
         webSocketFactory: () =>
-            new SockJS(`http://localhost:8081/ws?token=${encodeURIComponent(token)}`),
+            new SockJS(`https://121.43.136.251:8080/ws?token=${encodeURIComponent(token)}`),
 
         connectHeaders: {
             Authorization: `Bearer ${token}`

@@ -11,6 +11,7 @@ import org.whu.backend.entity.travelpac.TravelPackage;
 import org.whu.backend.entity.accounts.User;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Set;
 
 public interface TravelOrderRepository extends JpaRepository<TravelOrder, String> {
@@ -61,4 +62,10 @@ public interface TravelOrderRepository extends JpaRepository<TravelOrder, String
             "WHERE o.status = 'ONGOING' AND DATE_ADD(d.departure_date, INTERVAL p.duration_in_days DAY) <= :now",
             nativeQuery = true)
     int updateOngoingToCompleted(@Param("now") LocalDateTime now);
+
+    /**
+     * 【新增】查询在指定时间段内出发的、已支付的订单（用于通知用户）
+     */
+    @Query("SELECT o FROM TravelOrder o WHERE o.status = 'PAID' AND o.travelDeparture.departureDate BETWEEN :start AND :end")
+    List<TravelOrder> findPaidOrdersBetween(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 }

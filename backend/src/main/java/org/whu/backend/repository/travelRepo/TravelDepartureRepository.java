@@ -8,6 +8,9 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.whu.backend.entity.travelpac.TravelDeparture;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
 public interface TravelDepartureRepository extends JpaRepository<TravelDeparture, String> {
 
     // 分页查询某个团模板下的所有团期
@@ -32,4 +35,10 @@ public interface TravelDepartureRepository extends JpaRepository<TravelDeparture
     Page<TravelDeparture> findByTravelPackageIdAndStatus(String packageId, TravelDeparture.DepartureStatus departureStatus, Pageable pageable);
 
     boolean existsByTravelPackageId(String packageId);
+
+    /**
+     * 【新增】查询在指定时间段内出发的所有团期（用于通知商家）
+     */
+    @Query("SELECT d FROM TravelDeparture d WHERE d.departureDate BETWEEN :start AND :end")
+    List<TravelDeparture> findDeparturesBetween(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 }
