@@ -9,6 +9,61 @@
         </div>
       </template>
 
+            <div class="tag-button-wrapper">
+            <el-button type = text @click="toggleTagSelector">{{ showSelector ? '完成添加' : '快来为你的旅行团添加标签吧！' }}</el-button>
+            </div>
+
+            <div v-if="showSelector" class="tag-selector">
+              <div class="search-and-category-row"> <el-input v-model="searchName" placeholder="搜索标签" @input="fetchTags" clearable class="search-input">
+                <template #prefix> <el-icon><Search /></el-icon>
+                </template>
+              </el-input>
+              <el-select v-model="category" placeholder="选择分类" @change="fetchTags" clearable class="category-select">
+                <el-option label="主题" value="THEME" />
+                <el-option label="受众" value="TARGET_AUDIENCE" />
+                <el-option label="目的地" value="DESTINATION" />
+                <el-option label="特色" value="FEATURE" />
+              </el-select>
+              </div>
+
+              <div class="tag-list">
+                <el-tag
+                  v-for="tag in tagList"
+                  :key="tag.id"
+                  :type="isSelected(tag) ? '' : 'info'"
+                  @click="toggleTag(tag)"
+                  class="tag-item"
+                >
+                  {{ tag.name }}
+                </el-tag>
+              </div>
+              
+              <div class="pagination-wrapper">
+                <el-pagination
+                  layout="prev, pager, next"
+                  :total="total"
+                  :page-size="size"
+                  :current-page="page"
+                  @current-change="handlePageChange"
+                  small
+                />
+              </div>
+            </div>
+
+            <div v-if="selectedTags.length > 0" class="selected-tags">
+              <div class="selected-tags-content"> <span class="selected-tags-label">已选标签：</span> 
+                <el-tag
+                  v-for="tag in selectedTags"
+                  :key="tag.id"
+                  closable
+                  @close="removeTag(tag)"
+                  class="selected-tag-item" >
+                  {{ tag.name }}
+                </el-tag>
+              </div>
+            </div>
+            <el-divider v-if="selectedTags.length > 0"></el-divider>
+
       <div class="content-editor">
         <el-input
           v-model="noteContent"
@@ -433,6 +488,9 @@ const publishNote = async () => {
     ...newlyUploadedMediaFiles.value.map(item => item.id).filter(id => id) // 新上传图片 ID
   ];
 
+  // 从 selectedTags 中提取标签ID
+  const selectedTagIds = selectedTags.value.map(tag => tag.id);
+
   if (noteContent.value.trim() === '' && imageIds.length === 0) {
       ElMessage.warning('请输入游记内容或上传图片！');
       return;
@@ -443,6 +501,7 @@ const publishNote = async () => {
     content: noteContent.value,
     spotId: selectedSpotData.value ? selectedSpotData.value.uid : null,
     imageIds: allImageIds, 
+    tagIds: selectedTagIds
   };
 
   try {
@@ -473,6 +532,7 @@ const publishNote = async () => {
       selectedSpotData.value = null;
       searchLocation.value = '';
       editingNoteId.value = null; // 重置编辑ID，回到发布状态
+      selectedTags.value = [];
       adjustTextareaHeight();
       // 根据模式跳转到不同的页面
       if (isEditMode.value) {
@@ -491,6 +551,61 @@ const publishNote = async () => {
     ElMessage.error(`发布游记失败: ${error.response?.data?.message || '网络错误或服务器异常'}`);
   }
 };
+
+//标签相关
+const showSelector = ref(false)
+const searchName = ref('')
+const category = ref('')
+const page = ref(1)
+const size = 10
+const total = ref(0)
+const tagList = ref([])
+const selectedTags = ref([])
+
+const toggleTagSelector = () => {
+  showSelector.value = !showSelector.value
+  if (showSelector.value) fetchTags()
+}
+
+const fetchTags = async () => {
+  const params = {
+    name: searchName.value,
+    category: category.value,
+    page: page.value,
+    size,
+    sortBy: 'createdTime',
+    sortDirection: 'DESC'
+  }
+
+  const res = await publicAxios.get('/public', { params })
+  if (res.data.code === 200) {
+    tagList.value = res.data.data.content
+    total.value = res.data.data.totalElements
+    console.log('标签数据：', res.data)
+  }
+}
+
+const handlePageChange = (val) => {
+  page.value = val
+  fetchTags()
+}
+
+const toggleTag = (tag) => {
+  const index = selectedTags.value.findIndex(t => t.id === tag.id)
+  if (index >= 0) {
+    selectedTags.value.splice(index, 1)
+  } else {
+    selectedTags.value.push(tag)
+  }
+}
+
+const removeTag = (tag) => {
+  selectedTags.value = selectedTags.value.filter(t => t.id !== tag.id)
+}
+
+const isSelected = (tag) => {
+  return selectedTags.value.some(t => t.id === tag.id)
+}
 
 </script>
 
@@ -525,7 +640,6 @@ const publishNote = async () => {
   justify-content: space-between;
   align-items: center;
   padding: 10px 0;
-  border-bottom: 1px solid #f0f0f0;
 }
 
 .card-header span {
@@ -712,5 +826,62 @@ const publishNote = async () => {
 .autocomplete-item .address {
   font-size: 12px;
   color: #999;
+}
+
+/* --添加标签相关-- */
+.tag-button-wrapper {
+  text-align: center; /* 使内部行内元素居中 */
+  margin-bottom: 20px; /* 给按钮下方留点空间 */
+}
+.tag-selector {
+  margin-top: 20px; /* 调整与上方按钮的间距 */
+  margin-bottom: 20px; /* 调整与下方标签列表的间距 */
+}
+.search-and-category-row {
+  display: flex; 
+  gap: 20px; /* 搜索框与分类之间的间距 */
+  margin-bottom: 15px; /* 与下方标签列表的间距 */
+}
+.search-input {
+  flex-grow: 1; /* 让搜索框占据剩余的所有可用空间 */
+}
+.category-select {
+  width: 150px; /* 设置选择分类的固定宽度 */
+}
+.pagination-wrapper { 
+  display: flex;
+  justify-content: center; /* 水平居中 */
+  margin-top: 15px; /* 分页组件顶部间距 */
+}
+.selected-tags-label{
+  font-size: 14px;      
+  color: #606266;       
+  font-weight: bold;    
+  white-space: nowrap; 
+}
+.tag-list {
+  margin: 10px 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.tag-item {
+  cursor: pointer;
+}
+.selected-tags {
+  margin-top: 10px;/* 与上方标签选择器间距 */
+  margin-bottom: 30px;/* 已选标签区域下方间距** */
+}
+.selected-tags-content{
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.selected-tags-label {
+  font-weight: 500; 
+  color: #555;     
+  font-size: 14px;  
+  white-space: nowrap; /* 防止文本换行 */
 }
 </style>
