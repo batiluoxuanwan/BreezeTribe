@@ -42,7 +42,7 @@
         </div>
 
         <div v-if="note.tags && note.tags.length > 0" class="note-tags">
-          <el-tag v-for="tag in note.tags" :key="tag" size="small" effect="plain">{{ tag }}</el-tag>
+          <el-tag v-for="tag in note.tags" :key="tag" size="small" effect="plain">{{ tag.name }}</el-tag>
         </div>
 
         <div class="note-stats">

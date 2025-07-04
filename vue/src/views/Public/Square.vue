@@ -12,7 +12,7 @@
       <el-card class="filter-card">
         <el-form :inline="true" :model="searchForm" class="search-form">
           <el-form-item label="搜索">
-            <el-input v-model="searchForm.keyword" placeholder="搜索标题/内容" clearable :suffix-icon="Search" ></el-input>
+            <el-input v-model="searchForm.keyword" placeholder="搜索标题/内容" clearable ></el-input>
           </el-form-item>
           <el-form-item>
             <el-button type="primary" @click="applyFilters">搜索</el-button>
@@ -75,7 +75,6 @@ import TravelNoteCard from '@/components/TravelNoteCard.vue';
 import { useRouter, useRoute } from 'vue-router';
 import { publicAxios } from '@/utils/request';
 import { Loading } from '@element-plus/icons-vue';
-import { Search } from '@element-plus/icons-vue';
 
 const router = useRouter(); 
 const route = useRoute(); // 当前路由信息

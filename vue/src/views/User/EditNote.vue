@@ -76,7 +76,7 @@
       </div>
 
       <div class="note-tags" v-if="note.tags && note.tags.length">
-        <el-tag v-for="(tag, index) in note.tags" :key="index" size="large" class="note-tag">{{ tag }}</el-tag>
+        <el-tag v-for="(tag, index) in note.tags" :key="index" size="large" class="note-tag">{{ tag.name }}</el-tag>
       </div>
       
       <el-divider></el-divider>
