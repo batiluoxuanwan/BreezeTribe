@@ -106,10 +106,10 @@ const fetchJoinedTours = async () => {
         }
 
         return {
-          orderId: order.orderId,
+          orderId: order.id,
           image: order.packageCoverImageUrl,
           title: order.packageTitle,
-          date: tourDate,
+          date: order.departureTime ? order.departureTime.split('T')[0] : 'N/A',
           progress: progress,
           progressText: progressText, 
           packageId: order.packageId,
