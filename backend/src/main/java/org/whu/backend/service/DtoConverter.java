@@ -37,10 +37,7 @@ import org.whu.backend.entity.travelpost.TravelPost;
 import org.whu.backend.util.AliyunOssUtil;
 
 import java.math.BigDecimal;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -204,6 +201,35 @@ public class DtoConverter {
                 .orderTime(order.getCreatedTime())
                 .totalPrice(order.getTotalPrice().toString())
                 .build();
+    }
+
+    public OrderForReviewDto convertTravelOrderToReviewDto(TravelOrder order, Set<String> reviewedPackageIds,Map<String, PackageComment> reviewsMap) {
+        TravelPackage travelPackage = order.getTravelDeparture().getTravelPackage();
+
+        // 【核心逻辑】检查这个订单关联的产品ID，是否在“已评价”集合中
+        boolean hasReviewed = reviewedPackageIds.contains(travelPackage.getId());
+
+        OrderForReviewDto.OrderForReviewDtoBuilder builder =  OrderForReviewDto.builder()
+                .orderId(order.getId())
+                .departureId(order.getTravelDeparture().getId())
+                .packageId(travelPackage.getId())
+                .packageTitle(travelPackage.getTitle())
+                .packageCoverImageUrl(AliyunOssUtil.generatePresignedGetUrl(order.getTravelDeparture().getTravelPackage().getCoverImageUrl(), EXPIRE_TIME, IMAGE_PROCESS))
+                .orderTime(order.getCreatedTime())
+                .departureDate(order.getTravelDeparture().getDepartureDate())
+//                .completedTime(order.getUpdatedTime()) // 已完成订单的更新时间就是完成时间
+                .hasReviewed(hasReviewed) // 设置我们计算出的状态
+                .totalPrice(order.getTotalPrice().toString());
+        // 如果已评价，就从Map里拿出评论详情，填充到DTO里
+        if (hasReviewed) {
+            PackageComment comment = reviewsMap.get(travelPackage.getId());
+            if (comment != null) {
+                builder.star(comment.getRating());
+                builder.content(comment.getContent());
+            }
+        }
+
+        return builder.build();
     }
 
 

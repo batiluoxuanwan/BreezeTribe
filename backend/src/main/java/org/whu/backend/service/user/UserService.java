@@ -22,6 +22,7 @@ import org.whu.backend.dto.like.LikeDetailDto;
 import org.whu.backend.dto.like.LikePageRequestDto;
 import org.whu.backend.dto.like.LikeRequestDto;
 import org.whu.backend.dto.order.OrderCreateRequestDto;
+import org.whu.backend.dto.order.OrderForReviewDto;
 import org.whu.backend.dto.order.TravelOrderDetailDto;
 import org.whu.backend.dto.user.InteractionStatusRequestDto;
 import org.whu.backend.dto.user.InteractionStatusResponseDto;
@@ -29,6 +30,7 @@ import org.whu.backend.dto.user.ItemIdentifierDto;
 import org.whu.backend.dto.user.ItemStatusDto;
 import org.whu.backend.entity.*;
 import org.whu.backend.entity.accounts.User;
+import org.whu.backend.entity.travelpac.PackageComment;
 import org.whu.backend.entity.travelpac.TravelDeparture;
 import org.whu.backend.entity.travelpac.TravelOrder;
 import org.whu.backend.entity.travelpost.TravelPost;
@@ -48,6 +50,7 @@ import org.whu.backend.util.JpaUtil;
 
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 
@@ -237,45 +240,100 @@ public class UserService {
         return dtoConverter.convertPageToDto(orderPage, dtos);
     }
 
-    // 根据评价状态，获取用户的订单列表 // TODO: 这个方法有BUG，还没修，查不出来已评价和未评价！！！！！
+//    // 根据评价状态，获取用户的订单列表 // TODO: 这个方法有BUG，还没修，查不出来已评价和未评价！！！！！
+//    @Transactional(readOnly = true)
+//    public PageResponseDto<TravelOrderDetailDto> getOrdersByReviewStatus(String currentUserId, String status, PageRequestDto pageRequestDto) {
+//        log.info("用户ID '{}' 正在查询 '{}' 状态的已完成订单列表...", currentUserId, status);
+//
+//        // 1. 先找出该用户已经评价过的所有【产品模板】ID
+//        // 假设 packageCommentRepository 现在可以返回 TravelPackage 的 ID
+//        Set<String> reviewedPackageIds = packageCommentRepository.findTravelPackageIdsReviewedByUser(currentUserId);
+//
+//        Pageable pageable = PageRequest.of(pageRequestDto.getPage() - 1, pageRequestDto.getSize(),
+//                Sort.by(Sort.Direction.DESC, "createdTime"));
+//
+//        Page<TravelOrder> orderPage;
+//
+//        // 2. 根据前端传来的状态，调用新的、基于 TravelOrder 的查询方法
+//        // 注意：这里的查询逻辑现在是通过 TravelOrder -> TravelDeparture -> TravelPackage 进行关联
+//        if ("REVIEWED".equalsIgnoreCase(status)) {
+//            // 查询已完成的、且其关联的产品ID在“已评价列表”中的订单
+//            orderPage = travelOrderRepository.findByUserIdAndStatusAndTravelDeparture_TravelPackage_IdIn(
+//                    currentUserId, TravelOrder.OrderStatus.COMPLETED, reviewedPackageIds, pageable
+//            );
+//        } else if ("ALL".equalsIgnoreCase(status)) {
+//            // 查询全部已完成的订单
+//            orderPage = travelOrderRepository.findByUserIdAndStatus(
+//                    currentUserId, TravelOrder.OrderStatus.COMPLETED, pageable
+//            );
+//        } else { // 默认为查询“待评价” (PENDING)
+//            // 查询已完成的、且其关联的产品ID【不】在“已评价列表”中的订单
+//            orderPage = travelOrderRepository.findByUserIdAndStatusAndTravelDeparture_TravelPackage_IdNotIn(
+//                    currentUserId, TravelOrder.OrderStatus.COMPLETED, reviewedPackageIds, pageable
+//            );
+//        }
+//
+//        // 3. 【核心改变】将查询结果转换为DTO，使用新的转换方法
+//        List<TravelOrderDetailDto> dtos = orderPage.getContent().stream()
+//                .map(dtoConverter::convertTravelOrderToDetailDto) // 使用新的转换方法
+//                .collect(Collectors.toList());
+//
+//        return dtoConverter.convertPageToDto(orderPage, dtos);
+//    }
+    /**
+     * 根据评价状态，获取用户的订单列表
+     * 新思路：先查出所有已完成订单，然后在内存中进行处理和过滤，逻辑清晰且无BUG。
+     */
     @Transactional(readOnly = true)
-    public PageResponseDto<TravelOrderDetailDto> getOrdersByReviewStatus(String currentUserId, String status, PageRequestDto pageRequestDto) {
-        log.info("用户ID '{}' 正在查询 '{}' 状态的已完成订单列表...", currentUserId, status);
+    public PageResponseDto<OrderForReviewDto> getOrdersByReviewStatus(String currentUserId, String status, PageRequestDto pageRequestDto) {
+        log.info("服务层：用户ID '{}' 正在查询 '{}' 状态的已完成订单列表...", currentUserId, status);
 
         // 1. 先找出该用户已经评价过的所有【产品模板】ID
-        // 假设 packageCommentRepository 现在可以返回 TravelPackage 的 ID
         Set<String> reviewedPackageIds = packageCommentRepository.findTravelPackageIdsReviewedByUser(currentUserId);
+        log.info("服务层：用户 '{}' 已评价过 {} 个产品。", currentUserId, reviewedPackageIds.size());
 
+        // 2. 分页查询出该用户【所有】已完成的订单
         Pageable pageable = PageRequest.of(pageRequestDto.getPage() - 1, pageRequestDto.getSize(),
-                Sort.by(Sort.Direction.DESC, "createdTime"));
+                Sort.by(Sort.Direction.DESC, "updatedTime")); // 按完成时间排序
+        Page<TravelOrder> completedOrdersPage = travelOrderRepository.findByUserIdAndStatus(
+                currentUserId, TravelOrder.OrderStatus.COMPLETED, pageable
+        );
 
-        Page<TravelOrder> orderPage;
-
-        // 2. 【核心改变】根据前端传来的状态，调用新的、基于 TravelOrder 的查询方法
-        // 注意：这里的查询逻辑现在是通过 TravelOrder -> TravelDeparture -> TravelPackage 进行关联
-        if ("REVIEWED".equalsIgnoreCase(status)) {
-            // 查询已完成的、且其关联的产品ID在“已评价列表”中的订单
-            orderPage = travelOrderRepository.findByUserIdAndStatusAndTravelDeparture_TravelPackage_IdIn(
-                    currentUserId, TravelOrder.OrderStatus.COMPLETED, reviewedPackageIds, pageable
-            );
-        } else if ("ALL".equalsIgnoreCase(status)) {
-            // 查询全部已完成的订单
-            orderPage = travelOrderRepository.findByUserIdAndStatus(
-                    currentUserId, TravelOrder.OrderStatus.COMPLETED, pageable
-            );
-        } else { // 默认为查询“待评价” (PENDING)
-            // 查询已完成的、且其关联的产品ID【不】在“已评价列表”中的订单
-            orderPage = travelOrderRepository.findByUserIdAndStatusAndTravelDeparture_TravelPackage_IdNotIn(
-                    currentUserId, TravelOrder.OrderStatus.COMPLETED, reviewedPackageIds, pageable
-            );
-        }
-
-        // 3. 【核心改变】将查询结果转换为DTO，使用新的转换方法
-        List<TravelOrderDetailDto> dtos = orderPage.getContent().stream()
-                .map(dtoConverter::convertTravelOrderToDetailDto) // 使用新的转换方法
+        // 3. 预加载当前页所有已评价订单的“评论”内容
+        // a. 找出当前页中，所有已评价的产品ID
+        List<String> packageIdsOnPage = completedOrdersPage.getContent().stream()
+                .map(order -> order.getTravelDeparture().getTravelPackage().getId())
+                .filter(reviewedPackageIds::contains)
                 .collect(Collectors.toList());
 
-        return dtoConverter.convertPageToDto(orderPage, dtos);
+        // b. 一次性查出这些评论，并放入一个Map方便快速查找
+        Map<String, PackageComment> reviewsMap = Collections.emptyMap();
+        if (!packageIdsOnPage.isEmpty()) {
+            List<PackageComment> comments = packageCommentRepository.findByAuthorIdAndTravelPackageIdIn(currentUserId, packageIdsOnPage);
+            reviewsMap = comments.stream()
+                    .collect(Collectors.toMap(comment -> comment.getTravelPackage().getId(), Function.identity()));
+            log.info("服务层：为当前页预加载了 {} 条评论详情。", reviewsMap.size());
+        }
+
+
+        // 4. 将实体列表转换为包含“是否已评价”和“评价详情”的DTO列表
+        Map<String, PackageComment> finalReviewsMap = reviewsMap;
+        List<OrderForReviewDto> allDtos = completedOrdersPage.getContent().stream()
+                .map(order -> dtoConverter.convertTravelOrderToReviewDto(order, reviewedPackageIds, finalReviewsMap))
+                .collect(Collectors.toList());
+
+        // 5. 在内存中对DTO列表进行最终过滤
+        List<OrderForReviewDto> filteredDtos;
+        if ("REVIEWED".equalsIgnoreCase(status)) {
+            filteredDtos = allDtos.stream().filter(OrderForReviewDto::isHasReviewed).collect(Collectors.toList());
+        } else if ("PENDING".equalsIgnoreCase(status)) {
+            filteredDtos = allDtos.stream().filter(dto -> !dto.isHasReviewed()).collect(Collectors.toList());
+        } else { // "ALL"
+            filteredDtos = allDtos;
+        }
+
+        // 6. 手动构建并返回分页结果
+        return dtoConverter.convertPageToDto(completedOrdersPage,filteredDtos);
     }
 
     @Transactional // 必须加上事务注解！！！！！！

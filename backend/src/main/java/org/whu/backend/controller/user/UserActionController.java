@@ -20,6 +20,7 @@ import org.whu.backend.dto.like.LikeDetailDto;
 import org.whu.backend.dto.like.LikePageRequestDto;
 import org.whu.backend.dto.like.LikeRequestDto;
 import org.whu.backend.dto.order.OrderCreateRequestDto;
+import org.whu.backend.dto.order.OrderForReviewDto;
 import org.whu.backend.dto.order.TravelOrderDetailDto;
 import org.whu.backend.dto.user.InteractionStatusRequestDto;
 import org.whu.backend.dto.user.InteractionStatusResponseDto;
@@ -66,14 +67,14 @@ public class UserActionController {
      */
     @Operation(summary = "获取我的订单列表（按评价状态筛选）(返回的都是已完成的订单，分为已完成未评价和已完成已评价)")
     @GetMapping("/orders/for-review")
-    public Result<PageResponseDto<TravelOrderDetailDto>> getMyOrdersForReview(
+    public Result<PageResponseDto<OrderForReviewDto>> getMyOrdersForReview(
             @Parameter(description = "筛选状态: PENDING (待评价), REVIEWED (已评价)，ALL (全部)") @RequestParam(defaultValue = "PENDING") String status,
             @Valid @ParameterObject PageRequestDto pageRequestDto
     ) {
         String currentUserId = AccountUtil.getCurrentAccountId();
         log.info("用户ID '{}' 访问获取 '{}' 状态的订单列表接口", currentUserId, status);
 
-        PageResponseDto<TravelOrderDetailDto> resultPage = userService.getOrdersByReviewStatus(currentUserId, status, pageRequestDto);
+        PageResponseDto<OrderForReviewDto> resultPage = userService.getOrdersByReviewStatus(currentUserId, status, pageRequestDto);
 
         return Result.success(resultPage);
     }
