@@ -44,7 +44,7 @@ public class OrderForReviewDto {
 //    private LocalDateTime completedTime; // 订单完成时间
 
     @Schema(description = "是否已经评价")
-    private boolean hasReviewed; // 订单完成时间
+    private boolean hasReviewed;
 
     @Schema(description = "订单总价")
     private String totalPrice;

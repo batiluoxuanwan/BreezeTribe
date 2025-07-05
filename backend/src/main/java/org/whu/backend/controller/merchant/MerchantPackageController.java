@@ -71,7 +71,7 @@ public class MerchantPackageController {
     @Operation(summary = "更新自己的一个旅行团", description = "目前版本只允许更新文本信息，更新后状态变为待审核")
     @PutMapping("/{id}")
     // TODO: 未来可以逐步放开对价格、路线等其他信息的修改
-    public Result<PackageDetailDto> updatePackage(@PathVariable String id, @Valid @RequestBody PackageUpdateRequestDto packageUpdateRequestDto) {
+    public Result<PackageDetailDto> updatePackage(@PathVariable String id, @Valid @RequestBody PackageUpdateRequestDto packageUpdateRequestDto) throws InterruptedException {
         String currentDealerId = AccountUtil.getCurrentAccountId();
         log.info("经销商ID '{}' 访问更新旅行团接口, ID: {}", currentDealerId, id);
 
@@ -89,6 +89,15 @@ public class MerchantPackageController {
         log.info("经销商ID '{}' 访问删除旅行团接口, ID: {}", currentDealerId, id);
         merchantPackageService.deletePackage(id, currentDealerId);
         return Result.success("旅行团删除成功");
+    }
+
+    @Operation(summary = "【新增】检查一个旅行团当前是否可以被修改", description = "用于前端判断是否禁用“编辑”按钮，提升用户体验。")
+    @GetMapping("/{packageId}/can-update")
+    public Result<CanUpdateStatusDto> getUpdateStatus(@Parameter(description = "要检查的产品ID") @PathVariable String packageId) {
+        String currentDealerId = AccountUtil.getCurrentAccountId();
+        log.info("请求日志：经销商ID '{}' 正在检查产品ID '{}' 是否可被更新", currentDealerId, packageId);
+        CanUpdateStatusDto statusDto = merchantPackageService.checkUpdateStatus(packageId, currentDealerId);
+        return Result.success("查询成功", statusDto);
     }
 
     // TODO: 后续要细化已发布的，待审核的，驳回的

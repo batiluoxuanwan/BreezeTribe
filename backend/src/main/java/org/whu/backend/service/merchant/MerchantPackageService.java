@@ -208,35 +208,109 @@ public class MerchantPackageService {
     }
 
 
-    // 更新旅行团的核心业务逻辑，只允许修改描述和标题
+    /**
+     * 更新旅行团的核心业务逻辑
+     * 采用“先拆后建”策略，完整替换产品的关联信息。
+     */
     @Transactional
-    public TravelPackage updatePackage(String packageId, PackageUpdateRequestDto dto, String currentDealerId) {
-        log.info("经销商ID '{}' 正在尝试更新旅行团ID '{}'...", currentDealerId, packageId);
+    public TravelPackage updatePackage(String packageId, PackageUpdateRequestDto dto, String currentDealerId) throws InterruptedException {
+        log.info("服务层：经销商ID '{}' 正在尝试完整更新产品ID '{}'...", currentDealerId, packageId);
 
-        // 1. 查找并验证旅行团的所有权
+        // --- 第1步：校验与准备 ---
+        // 1a. 查找并验证旅行团的所有权
         TravelPackage packageToUpdate = findPackageByIdAndVerifyOwnership(packageId, currentDealerId);
+        Merchant dealer = packageToUpdate.getDealer(); // 获取经销商实体备用
 
-        // 2. 【新增】关键业务规则校验！
-        // 检查该产品模板下的所有团期，是否存在任何“活跃”的订单。
-        boolean hasActiveOrders = travelOrderRepository.existsActiveOrdersForPackage(packageId);
-        if (hasActiveOrders) {
+        // 1b. 检查该产品下是否存在任何“活跃”的订单，如果存在则禁止修改
+        if (travelOrderRepository.existsActiveOrdersForPackage(packageId)) {
             log.warn("服务层：更新操作被阻止！产品ID '{}' 存在待支付或已支付的订单。", packageId);
             throw new BizException("更新失败：该产品已有用户报名且订单处于活跃状态，请先处理相关订单。");
         }
         log.info("服务层：产品ID '{}' 无活跃订单，校验通过，允许更新。", packageId);
 
-        // 2. 更新允许修改的字段
+        // --- 第2步：先“拆掉”所有旧的关联关系 ---
+        log.info("服务层：正在为产品ID '{}' 拆解旧的关联关系...", packageId);
+        // 清空旧的路线。因为Route是私有的，JPA的orphanRemoval=true会自动删除这些Route实体
+        packageToUpdate.getRoutes().clear();
+        // 清空旧的图片关联。JPA会自动删除package_images中间表的记录
+        packageToUpdate.getImages().clear();
+        // 清空旧的标签关联。JPA会自动删除package_tags中间表的记录
+        packageToUpdate.getTags().clear();
+
+        // 注意: 必须先执行一次flush，让数据库的DELETE操作先生效，
+        // 否则后续的INSERT可能会因为唯一约束等问题失败。
+        packageRepository.flush();
+
+        // --- 第3步：更新简单的文本字段 ---
         packageToUpdate.setTitle(dto.getTitle());
         packageToUpdate.setDetailedDescription(dto.getDetailedDescription());
+        packageToUpdate.setDurationInDays(dto.getDurationInDays());
 
-        // 3. 重要！每次修改后，都需要重新进入待审核状态
+        // --- 第4步：用“创建”的逻辑，来“重建”新的关联关系 ---
+        log.info("服务层：正在为产品ID '{}' 重建新的关联关系...", packageId);
+
+        // 4a. 重建图片关联（逻辑与createPackage完全相同）
+        if (dto.getImgIds() != null && !dto.getImgIds().isEmpty()) {
+            for (int i = 0; i < dto.getImgIds().size(); i++) {
+                String imgId = dto.getImgIds().get(i);
+                MediaFile mediaFile = mediaFileRepository.findById(imgId).orElseThrow(() -> new BizException("找不到ID为 " + imgId + " 的媒体文件"));
+                if (!mediaFile.getUploader().getId().equals(currentDealerId)) throw new BizException("不能使用不属于自己的图片");
+
+                PackageImage packageImage = new PackageImage();
+                packageImage.setTravelPackage(packageToUpdate);
+                packageImage.setMediaFile(mediaFile);
+                packageImage.setSortOrder(i + 1);
+                packageToUpdate.getImages().add(packageImage);
+                if (i == 0) packageToUpdate.setCoverImageUrl(mediaFile.getObjectKey());
+            }
+        }
+
+        // 4b. 重建路线关联（逻辑与createPackage完全相同）
+        for (DayScheduleDto scheduleDto : dto.getDailySchedules()) {
+            Route dailyRoute = new Route();
+            dailyRoute.setName(scheduleDto.getRouteName());
+            dailyRoute.setDescription(scheduleDto.getRouteDescription());
+            dailyRoute.setDealer(dealer);
+
+            // 为这条新路线填充景点
+            for (int i = 0; i < scheduleDto.getSpotUids().size(); i++) {
+                String uid = scheduleDto.getSpotUids().get(i);
+                Spot spot = findOrCreateSpotByBaiduUid(uid);
+
+                RouteSpot routeSpot = new RouteSpot();
+                routeSpot.setRoute(dailyRoute);
+                routeSpot.setSpot(spot);
+                routeSpot.setOrderColumn(i + 1);
+                dailyRoute.getSpots().add(routeSpot);
+                Thread.sleep(500);
+            }
+
+            Route savedRoute = routeRepository.save(dailyRoute);
+
+            PackageRoute packageRoute = new PackageRoute();
+            packageRoute.setTravelPackage(packageToUpdate);
+            packageRoute.setRoute(savedRoute);
+            packageRoute.setDayNumber(scheduleDto.getDayNumber());
+            packageToUpdate.getRoutes().add(packageRoute);
+        }
+
+        // 4c. 重建标签关联（逻辑与createPackage完全相同）
+        if (dto.getTagIds() != null && !dto.getTagIds().isEmpty()) {
+            List<Tag> tags = tagRepository.findAllById(dto.getTagIds());
+            if (tags.size() != dto.getTagIds().size()) throw new BizException("部分标签ID无效");
+            packageToUpdate.setTags(new HashSet<>(tags));
+        }
+
+        // --- 第5步：将状态重新设置为待审核 ---
         packageToUpdate.setStatus(TravelPackage.PackageStatus.PENDING_APPROVAL);
 
-        // 4. 保存更新
+        // --- 第6步：保存最终的更新结果 ---
         TravelPackage updatedPackage = packageRepository.save(packageToUpdate);
-        log.info("旅行团ID '{}' 已被成功更新，状态重置为待审核。", packageId);
+        log.info("服务层：产品ID '{}' 已被成功完整更新，状态重置为待审核。", packageId);
         return updatedPackage;
     }
+
+
 
     // [重构] 删除自己的一个旅行团（级联删除） TODO: 删除要检查各种数据一致性的情况
     @Transactional
@@ -286,6 +360,26 @@ public class MerchantPackageService {
                 .collect(Collectors.toList());
 
         return dtoConverter.convertPageToDto(packagePage, summaryDtos);
+    }
+
+    /**
+     * 检查一个旅行团是否可以被更新
+     */
+    @Transactional(readOnly = true)
+    public CanUpdateStatusDto checkUpdateStatus(String packageId, String currentDealerId) {
+        log.info("服务层：开始检查产品ID '{}' 的可更新状态", packageId);
+
+        // 1. 查找并验证所有权
+        findPackageByIdAndVerifyOwnership(packageId, currentDealerId);
+
+        // 2. 检查是否存在活跃订单
+        if (travelOrderRepository.existsActiveOrdersForPackage(packageId)) {
+            log.info("服务层：产品ID '{}' 存在活跃订单，不可更新。", packageId);
+            return new CanUpdateStatusDto(false, "该产品已有用户报名且订单处于活跃状态，请先处理相关订单再进行修改。");
+        }
+
+        log.info("服务层：产品ID '{}' 无活跃订单，可以更新。", packageId);
+        return new CanUpdateStatusDto(true, "可以更新。");
     }
 
 
