@@ -34,4 +34,9 @@ public interface PackageCommentRepository extends JpaRepository<PackageComment, 
 
     // 查询用户是否已经评价过一个旅游团
     boolean existsByAuthorIdAndTravelPackageId(String userId, String packageId);
+
+    /**
+     * 根据作者ID和一组产品ID，一次性查询出所有相关的评论
+     */
+    List<PackageComment> findByAuthorIdAndTravelPackageIdIn(String authorId, List<String> packageIds);
 }

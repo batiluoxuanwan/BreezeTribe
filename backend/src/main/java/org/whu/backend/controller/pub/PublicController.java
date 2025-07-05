@@ -50,7 +50,7 @@ public class PublicController {
     private UserPackageCommentService userPackageCommentService;
 
     @Operation(summary = "获取所有标签列表（分页）", description = "【已修改】现在支持按分类筛选和按名称模糊搜索。")
-    @GetMapping
+    @GetMapping("/tags")
     public Result<PageResponseDto<TagDto>> getAllTags(
             @Parameter(description = "按分类筛选（可选），如 THEME, TARGET_AUDIENCE 等")
             @RequestParam(required = false) org.whu.backend.entity.Tag.TagCategory category,

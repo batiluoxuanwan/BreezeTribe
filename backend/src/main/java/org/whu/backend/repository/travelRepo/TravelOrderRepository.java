@@ -59,8 +59,11 @@ public interface TravelOrderRepository extends JpaRepository<TravelOrder, String
      * @return 更新的记录数
      */
     @Modifying
-    @Query("UPDATE TravelOrder o SET o.status = 'ONGOING' " +
-            "WHERE o.status = 'PAID' AND o.travelDeparture.departureDate <= :now")
+    @Query(value = "UPDATE travel_orders o " +
+            "JOIN travel_departures d ON o.departure_id = d.id " +
+            "SET o.status = 'ONGOING' " +
+            "WHERE o.status = 'PAID' AND d.departure_date <= :now",
+            nativeQuery = true)
     int updatePaidToOngoing(@Param("now") LocalDateTime now);
 
 
@@ -90,4 +93,10 @@ public interface TravelOrderRepository extends JpaRepository<TravelOrder, String
      * 【新增】根据团期ID和订单状态，分页查询订单
      */
     Page<TravelOrder> findByTravelDeparture_IdAndStatus(String departureId, TravelOrder.OrderStatus status, Pageable pageable);
+
+    /**
+     * /*
+     * 【新增】根据团期ID和订单状态，分页查询订单
+     */
+    Page<TravelOrder> findByTravelDeparture_Id(String departureId, Pageable pageable);
 }

@@ -38,13 +38,15 @@ public class SearchSpecification {
                 Join<PackageRoute, Route> routeJoin = packageRouteJoin.join("route", JoinType.LEFT);
                 Join<Route, RouteSpot> routeSpotJoin = routeJoin.join("spots", JoinType.LEFT);
                 Join<RouteSpot, Spot> spotJoin = routeSpotJoin.join("spot", JoinType.LEFT);
+                Join<TravelPackage, Tag> tagJoin = root.join("tags", JoinType.LEFT);
 
                 String likePattern = "%" + searchDto.getKeyword() + "%";
                 predicates.add(cb.or(
                         cb.like(root.get("title"), likePattern),
                         cb.like(root.get("detailedDescription"), likePattern),
                         cb.like(routeJoin.get("name"), likePattern),      // 直接从routeJoin获取name
-                        cb.like(spotJoin.get("name"), likePattern)        // 直接从spotJoin获取name
+                        cb.like(spotJoin.get("name"), likePattern),        // 直接从spotJoin获取name
+                        cb.like(tagJoin.get("name"), likePattern)
                 ));
             }
 
@@ -127,15 +129,17 @@ public class SearchSpecification {
                 Predicate spotNameLike = cb.like(spotJoin.get("name"), likePattern);
                 // 匹配城市名
                 Predicate cityNameLike = cb.like(spotJoin.get("city"), likePattern);
+                // 匹配标签名
+                Predicate tagNameLike = cb.like(tagJoin.get("name"), likePattern);
 
                 // 将所有模糊搜索条件用 OR 连接起来
-                predicates.add(cb.or(titleLike, contentLike, authorNameLike, spotNameLike, cityNameLike));
+                predicates.add(cb.or(titleLike, contentLike, authorNameLike, spotNameLike, cityNameLike,tagNameLike));
             }
 
             // 2. 按标签名精确搜索
-            if (StringUtils.hasText(searchDto.getTagName())) {
-                predicates.add(cb.equal(tagJoin.get("name"), searchDto.getTagName()));
-            }
+//            if (StringUtils.hasText(searchDto.getTagName())) {
+//                predicates.add(cb.equal(tagJoin.get("name"), searchDto.getTagName()));
+//            }
 
             // 将所有条件用 AND 连接起来，并去重
             if (query != null) {
