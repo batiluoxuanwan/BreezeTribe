@@ -29,6 +29,7 @@ import org.whu.backend.dto.travelpack.PackageDetailDto;
 import org.whu.backend.dto.travelpack.PackageDetailForMerchantDto;
 import org.whu.backend.dto.travelpack.PackageSummaryDto;
 import org.whu.backend.entity.*;
+import org.whu.backend.entity.accounts.Account;
 import org.whu.backend.entity.accounts.User;
 import org.whu.backend.entity.travelpac.*;
 import org.whu.backend.entity.travelpost.Comment;
@@ -203,13 +204,13 @@ public class DtoConverter {
                 .build();
     }
 
-    public OrderForReviewDto convertTravelOrderToReviewDto(TravelOrder order, Set<String> reviewedPackageIds,Map<String, PackageComment> reviewsMap) {
+    public OrderForReviewDto convertTravelOrderToReviewDto(TravelOrder order, Set<String> reviewedPackageIds, Map<String, PackageComment> reviewsMap) {
         TravelPackage travelPackage = order.getTravelDeparture().getTravelPackage();
 
         // 【核心逻辑】检查这个订单关联的产品ID，是否在“已评价”集合中
         boolean hasReviewed = reviewedPackageIds.contains(travelPackage.getId());
 
-        OrderForReviewDto.OrderForReviewDtoBuilder builder =  OrderForReviewDto.builder()
+        OrderForReviewDto.OrderForReviewDtoBuilder builder = OrderForReviewDto.builder()
                 .orderId(order.getId())
                 .departureId(order.getTravelDeparture().getId())
                 .packageId(travelPackage.getId())
@@ -304,7 +305,7 @@ public class DtoConverter {
     }
 
     // 把用户USER信息转换为dto
-    public AuthorDto ConvertUserToAuthorDto(User author) {
+    public AuthorDto ConvertUserToAuthorDto(Account author) {
         return AuthorDto.builder()
                 .id(author.getId())
                 .username(author.getUsername())
@@ -519,6 +520,7 @@ public class DtoConverter {
                 .commentCount(entity.getCommentCount())
                 .viewCount(entity.getViewCount())
                 .status(entity.getStatus().toString())
+                .merchant(ConvertUserToAuthorDto(entity.getDealer()))
                 .build();
     }
 
@@ -567,6 +569,7 @@ public class DtoConverter {
                 .viewCount(entity.getViewCount())
                 .status(entity.getStatus().name())
                 .price(minPrice)
+                .merchant(ConvertUserToAuthorDto(entity.getDealer()))
                 .tags(tagDtos)
                 .routes(routeDtos)
                 .build();
