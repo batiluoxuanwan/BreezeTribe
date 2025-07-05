@@ -561,7 +561,7 @@ public class DtoConverter {
         return PackageDetailDto.builder()
                 .id(entity.getId())
                 .title(entity.getTitle())
-                .coverImageUrls(signedImageUrls)
+                .imageUrls(signedImageUrls)
                 .durationInDays(entity.getDurationInDays())
                 .detailedDescription(entity.getDetailedDescription())
                 .favouriteCount(entity.getFavoriteCount())
@@ -612,7 +612,7 @@ public class DtoConverter {
                 // 填充父类字段
                 .id(entity.getId())
                 .title(entity.getTitle())
-                .coverImageUrls(signedImageUrls)
+                .imageUrls(signedImageUrls)
                 .durationInDays(entity.getDurationInDays())
                 .detailedDescription(entity.getDetailedDescription())
                 .favouriteCount(entity.getFavoriteCount())

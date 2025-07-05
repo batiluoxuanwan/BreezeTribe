@@ -28,7 +28,7 @@ public class PackageDetailDto {
     private BigDecimal price;
 
     @Schema(description = "旅行团图集")
-    private List<String> coverImageUrls;
+    private List<String> imageUrls;
 
     @Schema(description = "旅行团持续天数")
     private Integer durationInDays;
