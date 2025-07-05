@@ -226,16 +226,16 @@ public class AuthService {
         //TODO
         // 4. 校验 Redis 中是否存在此 refreshToken
         String redisKey = "refresh:" + userId;
-        List<String> tokenList = redisTemplate.opsForList().range(redisKey, 0, -1);
-        if(!(tokenList != null && tokenList.contains(refreshToken)))
-            throw new BizException("非法的 RefreshToken");
-        //String storedToken = redisTemplate.opsForValue().get(redisKey);
-//        System.out.println(storedToken);
-//        if (storedToken == null || !storedToken.equals(refreshToken)) {
-//            System.out.println("refreshToken:"+refreshToken);
-//            System.out.println("storedToken:"+storedToken);
+//        List<String> tokenList = redisTemplate.opsForList().range(redisKey, 0, -1);
+//        if(!(tokenList != null && tokenList.contains(refreshToken)))
 //            throw new BizException("非法的 RefreshToken");
-//        }
+        String storedToken = redisTemplate.opsForValue().get(redisKey);
+        System.out.println(storedToken);
+        if (storedToken == null || !storedToken.equals(refreshToken)) {
+            System.out.println("refreshToken:"+refreshToken);
+            System.out.println("storedToken:"+storedToken);
+            throw new BizException("非法的 RefreshToken");
+        }
 
         // 5. 生成新的 accessToken
         Account account = authRepository.findById(userId).orElseThrow(() -> new BizException("账户不存在"));
