@@ -345,19 +345,23 @@ const fetchTourForEditing = async (id) => {
       //existingTourImageFileIds.splice(0); // 清空现有图片ID
       //newlyUploadedTourImageFileIds.splice(0); // 清空新上传图片ID
 
-      if (tourToEdit.imageUrls && Array.isArray(tourToEdit.imageUrls)) {
-        tourToEdit.imageUrls.forEach((imgUrl, index) => {
-          imageFileList.push({
-            name: `existing-image-${index + 1}`,
-            url: imgUrl,
-            status: 'success',
-            uid: imgUrl // 使用URL作为uid，或者您后端返回的图片唯一标识
-          });
-        });
-      }
-      // 填充后端图片ID (假设后端返回的imgIds是原始图片ID的数组)
-      if (tourToEdit.imgIds && Array.isArray(tourToEdit.imgIds)) {
-        existingTourImageFileIds.push(...tourToEdit.imgIds);
+      imageFileList.splice(0); // 清空 Element Plus Upload 组件显示的文件列表
+      existingTourImageFileIds.splice(0); // 清空现有图片ID
+      newlyUploadedTourImageFileIds.splice(0); // 清空新上传图片ID
+
+      if (tourToEdit.imageIdAndUrls) {
+        for (const imageId in tourToEdit.imageIdAndUrls) {
+          if (Object.prototype.hasOwnProperty.call(tourToEdit.imageIdAndUrls, imageId)) {
+            const imageUrl = tourToEdit.imageIdAndUrls[imageId];
+            imageFileList.push({
+              name: `existing-image-${imageId}`, 
+              url: imageUrl, 
+              status: 'success', 
+              uid: imageId 
+            });
+            existingTourImageFileIds.push(imageId);
+          }
+        }
       }
 
       // 填充每日行程
@@ -368,7 +372,7 @@ const fetchTourForEditing = async (id) => {
             routeName: day.name || '',
             routeDescription: day.description || '',
             spots: day.spots && Array.isArray(day.spots) ? day.spots.map(spot => ({
-              id: spot.uid,
+              uid: spot.mapProviderUid,
               latitude: spot.latitude,
               longitude: spot.longititude,
               name: spot.name,
@@ -445,9 +449,11 @@ const isSelected = (tag) => {
 
 // --- 图片上传处理 ---
 const handleTourImageChange = async (file, fileList) => {
+  console.log('fileList:',fileList,imageFileList)
   // 检查是否超出最大限制
   if (fileList.length > 5) {
     ElMessage.warning(`最多只能上传 ${5} 张图片`);
+    fileList.splice(fileList.indexOf(file), 1);
     imageFileList.splice(fileList.indexOf(file), 1); // 移除当前添加的文件
     return false;
   }
@@ -457,18 +463,17 @@ const handleTourImageChange = async (file, fileList) => {
 
   if (!isJPGPNG) {
     ElMessage.error('图片只能是 JPG 或 PNG 格式！');
+    fileList.splice(fileList.indexOf(file), 1);
     imageFileList.splice(fileList.indexOf(file), 1); // 移除不符合要求的文件
     return false;
   }
   if (!isLt1000K) {
     ElMessage.error('图片大小不能超过 1MB！');
+    fileList.splice(fileList.indexOf(file), 1);
     imageFileList.splice(fileList.indexOf(file), 1); // 移除不符合要求的文件
     return false;
   }
 
-  // 立即将文件添加到 Element Plus 的 fileList 中，以便显示预览
-  // file.url 已经是 Element Plus 生成的本地预览 URL
-  // 这里不需要手动 push 到 tourImageUrls，因为 imageFileList 已经包含了
 
   ElMessage.info(`正在上传文件: ${file.name}...`);
   const formData = new FormData();
@@ -485,9 +490,11 @@ const handleTourImageChange = async (file, fileList) => {
 
     if (res.data.code === 200 && res.data.data && res.data.data.fileId) {
       const newFileId = res.data.data.fileId;
+      console.log('上传了图片:',res)
       newlyUploadedTourImageFileIds.push(newFileId); // 记录新上传的图片ID
       file.status = 'success'; // 更新文件状态
       file.response = res.data; // 存储后端响应
+      file.uid = res.data.data.fileId
       ElMessage.success(`${file.name} 上传成功！`);
     } else {
       file.status = 'fail'; // 更新文件状态
@@ -511,53 +518,57 @@ const handleTourImageChange = async (file, fileList) => {
 };
 
 const handleTourImageRemove = async (file) => {
-  // 判断是已存在的图片还是新上传的图片
-  const fileIdToRemove = file.response?.data?.fileId || null; // 获取新上传图片对应的后端ID
+  console.log('尝试移除的文件:', file);
+  const fileId = file.uid; 
 
-  const isExistingImage = existingTourImageFileIds.some(id => file.uid === id || file.url.includes(id)); 
-  // 询问用户是否确认删除
-  try {
-    await ElMessageBox.confirm('确定要删除此图片吗？', '删除确认', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning',
-    });
+  // 判断图片是已存在（从后端加载的）还是新上传的
+  const isExistingImage = existingTourImageFileIds.includes(fileId);
+  const isNewlyUploadedImage = newlyUploadedTourImageFileIds.includes(fileId);
+  console.log('新上传的图片',newlyUploadedTourImageFileIds)
 
-    if (isExistingImage) {
-      // 如果是已存在的图片，只从 existingTourImageFileIds 中移除
-      const index = existingTourImageFileIds.findIndex(id => file.uid === id || file.url.includes(id));
-      if (index !== -1) {
-        existingTourImageFileIds.splice(index, 1);
-        ElMessage.success('图片已标记为移除，将在更新旅行团后生效。');
-      }
-    } else if (fileIdToRemove) {
-      // 如果是新上传的图片且有后端ID，则调用后端删除接口
-      ElMessage.info('正在删除上传文件...');
-      try {
-        const response = await authAxios.delete(`/user/media/${fileIdToRemove}`);
-        if (response.data.code === 200) {
-          const index = newlyUploadedTourImageFileIds.findIndex(id => id === fileIdToRemove);
-          if (index !== -1) {
-            newlyUploadedTourImageFileIds.splice(index, 1); // 从新上传列表中移除
-          }
-          ElMessage.success('图片已从服务器移除！');
-        } else {
-          ElMessage.error(response.data.message || '从服务器删除图片失败。');
-        }
-      } catch (error) {
-        console.error('调用删除接口失败:', error);
-        ElMessage.error(`删除失败: ${error.response?.data?.message || '网络错误或服务器问题。'}`);
-      }
-    } else {
-      // 本地文件或没有后端ID的新文件，直接移除
-      ElMessage.info('本地图片已移除。');
+  if (!isExistingImage && !isNewlyUploadedImage) {
+    console.warn("尝试移除一个未识别的图片文件，直接从UI移除:", file);
+    ElMessage.warning('未能识别该图片，已从显示中移除。');
+    const idxInDisplayList = imageFileList.findIndex(item => item.uid === fileId);
+    if (idxInDisplayList !== -1) {
+      imageFileList.splice(idxInDisplayList, 1);
     }
-
     return true; 
-  } catch (cancel) {
-    ElMessage.info('已取消删除操作。');
-    return false; 
   }
+  if (isExistingImage) {
+    const index = existingTourImageFileIds.findIndex(id => id === fileId);
+    if (index !== -1) {
+      existingTourImageFileIds.splice(index, 1);
+      ElMessage.success('图片已标记为移除，将在更新旅行团后生效。');
+    } else {
+      // 理论上不会发生，但以防万一
+      console.warn(`尝试移除的现有图片ID ${fileId} 未在列表中找到。`);
+    }
+  } else if (isNewlyUploadedImage) {
+    ElMessage.info('正在删除新上传的文件...');
+    try {
+      const response = await authAxios.delete(`/user/media/${fileId}`); 
+      if (response.data.code === 200) {
+        const index = newlyUploadedTourImageFileIds.findIndex(id => id === fileId);
+        if (index !== -1) {
+          newlyUploadedTourImageFileIds.splice(index, 1);
+        }
+        if (file.url && file.url.startsWith('blob:')) {
+          URL.revokeObjectURL(file.url);
+        }
+        ElMessage.success('新上传的图片已从服务器移除！');
+      } else {
+        ElMessage.error(response.data.message || '从服务器删除图片失败。');
+        return false; 
+      }
+    } catch (error) {
+      console.error('调用删除接口失败:', error);
+      ElMessage.error(`删除失败: ${error.response?.data?.message || '网络错误或服务器问题。'}`);
+      return false; 
+    }
+  }
+
+  return true;
 };
 
 
@@ -669,7 +680,7 @@ const submitTourPackage = async () => {
     dayNumber: index + 1,
     routeName: day.routeName || '',
     routeDescription: day.routeDescription || '',
-    spotUids: day.spots.map(spot => spot.uid) // 只提交景点UID
+    spotUids: day.spots.map(spot => spot.uid) 
   }));
 
   // 构建提交数据对象
@@ -679,10 +690,11 @@ const submitTourPackage = async () => {
     dailySchedules: formattedDailySchedules,
     imgIds: allImageIds, 
     tagIds: selectedTagIds,
-    description: detailDescription.value, // 确保描述字段被包含
+    detailedDescription: detailDescription.value, 
   };
 
   console.log('即将提交的旅行团数据:', JSON.stringify(tourPackageData, null, 2));
+  console.log('dailySchedules',dailySchedules)
 
   try {
     let response;
@@ -704,7 +716,7 @@ const submitTourPackage = async () => {
       imageFileList.splice(0);
       existingTourImageFileIds.splice(0);
       newlyUploadedTourImageFileIds.splice(0);
-      selectedTags.splice(0);
+      selectedTags.value.splice(0);
       tourId.value = null; // 重置 tourId 为 null，回到发布模式
       
       router.push('/merchant/me'); // 跳转到商家个人中心

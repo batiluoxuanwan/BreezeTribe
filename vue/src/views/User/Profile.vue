@@ -275,71 +275,6 @@ const handleUserUpdated = () => {
   fetchUserProfile();
 };
 
-// 获取评价列表
-const fetchReviews = async (reset = false) => {
-  if (reviewLoading.value) return; 
-  if (noMoreReviews.value && !reset) {
-    ElMessage.info('没有更多相关订单了。');
-    return;
-  }
-
-  reviewLoading.value = true;
-  if (reset) {
-    currentReviewPage.value = 1; // 重置页码为1
-    reviews.value = []; // 清空现有数据
-  }
-
-  try {
-    const response = await authAxios.get('/api/user/orders/for-review', {
-      params: {
-        status: reviewStatus.value, 
-        page: currentReviewPage.value,
-        size: reviewPageSize.value,
-        sortBy: 'orderTime', 
-        sortDirection: 'DESC', 
-      },
-    });
-
-    if (response.data.code === 200 && response.data.data) {
-      const newOrders = response.data.data.content;
-      totalReviews.value = response.data.data.totalElements;
-
-      // 将订单数据映射为评价卡片所需的格式
-      const mappedOrders = newOrders.map(order => ({
-        id: order.id, // 使用订单ID作为唯一标识
-        tourTitle: order.packageTitle,
-        packageCoverImageUrl: order.packageCoverImageUrl,
-        // 这里根据订单状态设置评价内容和星级占位符
-        rating: order.status === 'REVIEWED' ? 5 : 0, // 如果已评价，默认显示5星；待评价显示0星
-        comment: order.status === 'REVIEWED' ? '您已对该订单进行评价。' : '该订单等待您的评价。',
-        date: new Date(order.orderTime).toLocaleDateString(), // 订单日期
-        orderStatus: order.status, // 保存原始订单状态以便后续判断
-      }));
-
-      if (reset) {
-        reviews.value = mappedOrders;
-      } else {
-        reviews.value = [...reviews.value, ...mappedOrders]; // 追加新数据
-      }
-
-      currentReviewPage.value++; // 准备获取下一页数据
-
-      if (reviews.value.length >= totalReviews.value) {
-        // ElMessage.info('所有相关订单已加载完毕。'); 
-      }
-    } else {
-      ElMessage.warning(response.data.message || '未能获取订单数据。');
-      if (reset) reviews.value = []; // 重置时清除数据
-    }
-  } catch (error) {
-    console.error('获取订单评价列表失败:', error);
-    ElMessage.error('获取订单评价列表失败，请检查网络或稍后再试。');
-    if (reset) reviews.value = []; // 重置时清除数据
-  } finally {
-    reviewLoading.value = false;
-  }
-};
-
 // **处理“去评价”点击事件**
 const goToReview = (orderId) => {
   // 导航到评价提交页面，并传递订单ID
@@ -351,11 +286,7 @@ const goToReview = (orderId) => {
 
 // **处理“查看评价”点击事件**
 const viewReview = (orderId) => {
-  // 导航到评价详情页面，并传递订单ID或评价ID
-  // 如果你的后端 /api/reviews/my 会返回实际评价ID，那这里可以传递评价ID
-  // 如果没有，可能需要根据 orderId 再去获取评价详情
   router.push({ name: 'ViewReviewPage', params: { orderId: orderId } });
-  // 例如： { path: '/review-detail/:orderId', name: 'ViewReviewPage', component: ViewReviewComponent }
   ElMessage.info(`查看订单 ${orderId} 的评价详情`);
 };
 
@@ -363,7 +294,6 @@ onMounted(() => {
   fetchNotes(true);
   fetchUserProfile();
   notificationStore.fetchUnreadCounts();
-  fetchReviews();
 })
 
 // 跳转详情页并传递游记id
