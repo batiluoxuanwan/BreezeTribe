@@ -46,8 +46,16 @@ public class JwtService {
     public Map<String, String> generateTokens(Account account) {
         String accessToken = generateToken(account);     // 15分钟
         String refreshToken = generateToken(account, 7 * 24 * 60 * 60 * 1000); // 7天
+        String redisKey = "refresh:" + account.getId();
+        //redisTemplate.opsForValue().set("refresh:" + account.getId(), refreshToken, 7, TimeUnit.DAYS);
+        // 将新 token 添加到列表尾部（保持时间顺序）
+        redisTemplate.opsForList().rightPush(redisKey, refreshToken);
+        // 裁剪列表，只保留最后 3 个，从列表的倒数第 3 个（-3）到倒数第 1 个（-1）保留，其余删除
+        redisTemplate.opsForList().trim(redisKey, -3, -1);
+        // 设置过期时间（整个列表的生命周期）
+        redisTemplate.expire(redisKey, 7, TimeUnit.DAYS);
+        redisTemplate.expire("refresh:" + account.getId(), 7, TimeUnit.DAYS);
 
-        redisTemplate.opsForValue().set("refresh:" + account.getId(), refreshToken, 7, TimeUnit.DAYS);
         System.out.println(refreshToken);
         return Map.of("accessToken", accessToken, "refreshToken", refreshToken);
     }

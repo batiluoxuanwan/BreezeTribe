@@ -43,9 +43,7 @@ public class DataController {
         Map<String, Object> data = adminService.getUserGrowthData(period,role,startDate,endDate);
         return Result.success(data);
     }
-//
 
-//
     @PreAuthorize("hasRole('ADMIN')") // 确保只有管理员能访问
     @Operation(summary = "获取旅行团增长趋势图")
     @GetMapping("/trip-growth")
@@ -57,8 +55,6 @@ public class DataController {
         Map<String, Object> data = adminService.getTravelDepartureGrowth(period, startDate, endDate);
         return Result.success(data);
     }
-
-//
 
     @PreAuthorize("hasRole('ADMIN')") // 确保只有管理员能访问
     @Operation(summary = "获取订单数量与收入流水统计")
@@ -102,29 +98,5 @@ public class DataController {
     }
 
 
-//
-//// 2. 热门旅游团排行接口
-//@Operation(summary = "获取热门旅游团排行")
-//@GetMapping("/popular-trips")
-//public Result<List<TripRankDTO>> getPopularTrips(
-//        @RequestParam(defaultValue = "10") int topN) {
-//    List<TripRankDTO> data = adminService.getPopularTrips(topN);
-//    return Result.success(data);
-//}
-//    // 5. 旅游团平均评分排行接口
-//    @Operation(summary = "获取旅游团平均评分排行")
-//    @GetMapping("/trip-rating-rank")
-//    public Result<List<PackageSummaryDto>> getTripRatingRank(
-//            @RequestParam(defaultValue = "10") int topN) {
-//        List<PackageSummaryDto> data = adminService.getTripRatingRank(topN);
-//        return Result.success(data);
-//    }
-//
-//    // 6. 商户平均旅行团评分统计接口
-//    @Operation(summary = "获取商户平均旅行团评分")
-//    @GetMapping("/merchant-rating-stats")
-//    public Result<Map<String, Object>> getMerchantRatingStats() {
-//        Map<String, Object> data = adminService.getMerchantRatingStats();
-//        return Result.success(data);
-//    }
+
 }
