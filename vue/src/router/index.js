@@ -40,9 +40,23 @@ const routes =[
         meta: { requiresAuth: true }
     },
     {
+        path: '/review/:orderId', 
+        name: 'SubmitReviewPage', 
+        component:() =>import('../views/User/SubmitReviewPage.vue'),
+        props: true 
+    },
+    {
         path:'/merchant/me',
         name:'团长个人主页',
-        component:() =>import('../views/Merchant/Profile.vue')
+        component:() =>import('../views/Merchant/Profile.vue'),
+        props: route => ({activeTab: route.query.activeTab || 'overview' }),
+    },
+    {
+        path: '/merchant/orders/:tourId', 
+        name: 'TourOrderManagement',
+        component:() =>import('../views/Merchant/TourOrderManagement.vue'),
+        props: (route) => ({ tourId: route.params.tourId, tourTitle: route.query.tourTitle }), 
+        meta: { requiresAuth: true }
     },
     {
         path:'/merchant/newgroup',
