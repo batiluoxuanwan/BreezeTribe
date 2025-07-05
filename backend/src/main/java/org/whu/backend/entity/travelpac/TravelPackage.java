@@ -13,7 +13,9 @@ import org.whu.backend.entity.association.PackageImage;
 import org.whu.backend.entity.association.PackageRoute;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 /**
@@ -64,6 +66,27 @@ public class TravelPackage {
     // 可能作废了
     @ColumnDefault("0")
     private Integer salesCount = 0; // 销售量
+
+    @Column(nullable = false)
+    private Double averageRating = 0.0; // 大众评分
+
+    @Column(nullable = false)
+    private Double hiddenScore = 0.0; // 隐藏评分
+
+    public void recalculateHiddenScore(double lambda, double k) {
+        // Step 1: 计算原始热度得分（收藏、评论、浏览加权）
+        double rawScore = 0.5 * favoriteCount + 0.3 * commentCount + 0.2 * viewCount;
+
+        // Step 2: 归一化处理，防止 rawScore 无限增长
+        double normalizedScore = rawScore / (rawScore + k); // 平滑增长曲线
+
+        // Step 3: 时间衰减处理（越新分数越高）
+        long days = ChronoUnit.DAYS.between(createdTime.toLocalDate(), LocalDate.now());
+        double decay = Math.exp(-lambda * days); // 衰减因子
+
+        // Step 4: 综合打分（新鲜度 + 热度）
+        this.hiddenScore = (0.7 * decay + 0.3) * normalizedScore;
+    }
 
 
     // 【新增关联】一个产品模板，可以有多个具体的出发团期

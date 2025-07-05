@@ -25,6 +25,9 @@ public class Merchant extends Account {
         APPROVED, REJECTED, PENDING
     }
 
+    private Double averageRating = 0.0;
+
+
     @Enumerated(EnumType.STRING)
     private status approval=status.PENDING;
 

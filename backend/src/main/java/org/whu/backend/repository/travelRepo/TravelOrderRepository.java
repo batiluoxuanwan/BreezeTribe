@@ -53,6 +53,51 @@ public interface TravelOrderRepository extends JpaRepository<TravelOrder, String
     Set<String> findPackageIdsByUserId(@Param("userId") String userId);
 
     /**
+     * ====== 1. 按日统计（YYYY-MM-DD）======
+     */
+    @Query("""
+    SELECT FUNCTION('DATE', o.createdTime), COUNT(o), SUM(o.totalPrice)
+    FROM TravelOrder o
+    WHERE o.createdTime >= :start AND o.createdTime < :end
+    AND (:merchantId IS NULL OR o.travelDeparture.travelPackage.dealer.id = :merchantId)
+    GROUP BY FUNCTION('DATE', o.createdTime)
+    ORDER BY FUNCTION('DATE', o.createdTime)
+""")
+    List<Object[]> countOrderStatsByDay(@Param("start") LocalDateTime start,
+                                        @Param("end") LocalDateTime end,
+                                        @Param("merchantId") String merchantId);
+
+    /**
+     * ====== 2. 按周统计（YEARWEEK，格式为202527）======
+     */
+    @Query("""
+    SELECT FUNCTION('YEARWEEK', o.createdTime), COUNT(o), SUM(o.totalPrice)
+    FROM TravelOrder o
+    WHERE o.createdTime >= :start AND o.createdTime < :end
+    AND (:merchantId IS NULL OR o.travelDeparture.travelPackage.dealer.id = :merchantId)
+    GROUP BY FUNCTION('YEARWEEK', o.createdTime)
+    ORDER BY FUNCTION('YEARWEEK', o.createdTime)
+""")
+    List<Object[]> countOrderStatsByWeek(@Param("start") LocalDateTime start,
+                                         @Param("end") LocalDateTime end,
+                                         @Param("merchantId") String merchantId);
+
+    /**
+     * ====== 3. 按月统计（YYYY-MM）======
+     */
+    @Query("""
+    SELECT FUNCTION('DATE_FORMAT', o.createdTime, '%Y-%m'), COUNT(o), SUM(o.totalPrice)
+    FROM TravelOrder o
+    WHERE o.createdTime >= :start AND o.createdTime < :end
+    AND (:merchantId IS NULL OR o.travelDeparture.travelPackage.dealer.id = :merchantId)
+    GROUP BY FUNCTION('DATE_FORMAT', o.createdTime, '%Y-%m')
+    ORDER BY FUNCTION('DATE_FORMAT', o.createdTime, '%Y-%m')
+""")
+    List<Object[]> countOrderStatsByMonth(@Param("start") LocalDateTime start,
+                                          @Param("end") LocalDateTime end,
+                                          @Param("merchantId") String merchantId);
+
+    /**
      * 【新增】将已支付(PAID)且已到出发日期的订单，状态更新为进行中(ONGOING)
      *
      * @param now 当前时间

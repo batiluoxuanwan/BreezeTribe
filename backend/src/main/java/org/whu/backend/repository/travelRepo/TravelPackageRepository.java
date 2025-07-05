@@ -6,6 +6,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.whu.backend.entity.accounts.Merchant;
 import org.whu.backend.entity.travelpac.TravelPackage;
 
 import java.util.Collection;
@@ -69,4 +70,7 @@ public interface TravelPackageRepository extends JpaRepository<TravelPackage, St
     Collection<TravelPackage> findTop10ByOrderByCreatedTimeDesc();
 
     List<TravelPackage> findByIdNotIn(Collection<String> ids);
+
+
+    List<TravelPackage> findByDealerAndStatus(Merchant merchant, TravelPackage.PackageStatus packageStatus);
 }
