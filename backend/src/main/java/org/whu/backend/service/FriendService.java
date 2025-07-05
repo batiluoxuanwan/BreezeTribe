@@ -46,6 +46,8 @@ public class FriendService {
     private AuthRepository accountRepository;
     @Autowired
     private PublicService publicService;
+    @Autowired
+    private DtoConverter dtoConverter;
 
     public void sendRequest(String toAccountId) {
         String currentAccountId = AccountUtil.getCurrentAccountId();
@@ -176,8 +178,8 @@ public class FriendService {
                 .map(request -> {
                     FriendRequestDto dto = new FriendRequestDto();
                     dto.setId(request.getId());
-                    dto.setFrom(request.getFrom());           // 请求发起方
-                    dto.setTo(request.getTo());               // 请求接收方
+                    dto.setFrom(dtoConverter.ConvertUserToAuthorDto(request.getFrom()));           // 请求发起方
+                    dto.setTo(dtoConverter.ConvertUserToAuthorDto(request.getTo()));               // 请求接收方
                     dto.setStatus(request.getStatus());       // 请求状态
                     dto.setCreatedAt(request.getCreatedAt()); // 创建时间
                     return dto;
@@ -198,6 +200,7 @@ public class FriendService {
     }
     public PageResponseDto<FriendRequestDto> getSentFriendRequests(PageRequestDto pageRequestDto) {
         String accountId = AccountUtil.getCurrentAccountId();
+        pageRequestDto.setSortBy("createdAt");
         // 1️创建 Pageable
         Sort.Direction direction = Sort.Direction.fromString(pageRequestDto.getSortDirection());
         Pageable pageable = PageRequest.of(pageRequestDto.getPage() - 1, pageRequestDto.getSize(),
@@ -210,8 +213,8 @@ public class FriendService {
                 .map(request -> {
                     FriendRequestDto dto = new FriendRequestDto();
                     dto.setId(request.getId());
-                    dto.setFrom(request.getFrom());           // 请求发起方
-                    dto.setTo(request.getTo());               // 请求接收方
+                    dto.setFrom(dtoConverter.ConvertUserToAuthorDto(request.getFrom()));           // 请求发起方
+                    dto.setTo(dtoConverter.ConvertUserToAuthorDto(request.getTo()));               // 请求接收方
                     dto.setStatus(request.getStatus());       // 请求状态
                     dto.setCreatedAt(request.getCreatedAt()); // 创建时间
                     return dto;
