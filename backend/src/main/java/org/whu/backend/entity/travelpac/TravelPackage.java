@@ -63,6 +63,7 @@ public class TravelPackage {
     @ColumnDefault("0")
     private Integer viewCount = 0; // 浏览量
 
+    // 可能作废了
     @ColumnDefault("0")
     private Integer salesCount = 0; // 销售量
 

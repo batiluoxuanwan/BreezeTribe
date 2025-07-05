@@ -329,20 +329,24 @@ const addDepartures = async (pkgId) => {
     return;
   }
   const departuresToAdd = newDeparturesForm.dates.map(date => {
-    const dayjsDate = dayjs(date);
-    const formattedDate = dayjsDate.utc().millisecond(0).toISOString();
+    const dayjsDate = dayjs(date); // dayjs 会根据本地时区解析 'date' 字符串（例如 '2025-07-04'
+    // 使用 format('YYYY-MM-DD') 直接获取本地解析的日期字符串，不带时间部分
+    // 然后强行拼接一个 UTC 的午夜时间 'T00:00:00.000Z'
+    const formattedDate = dayjsDate.format('YYYY-MM-DD') + 'T00:00:00.000Z';
     return {
       departureDate: formattedDate,
       price: newDeparturesForm.price,
       capacity: newDeparturesForm.capacity,
     };
   });
-
+  
   addLoading.value = true;
   try {
+    console.log('即将发送的团期数据 (departuresToAdd):', departuresToAdd);
     const response = await authAxios.post(`/merchant/packages/${pkgId}/departures`, departuresToAdd);
 
     if (response.data.code === 200) {
+      console.log('后端响应数据 (response.data):', response.data);
       ElMessage.success('团期批量添加成功！');
       // 成功后清空表单
       newDeparturesForm.dates = [];

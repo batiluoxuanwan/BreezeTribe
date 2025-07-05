@@ -13,26 +13,42 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.whu.backend.common.exception.BizException;
 import org.whu.backend.dto.ai.RecommendedPackageDto;
+import org.whu.backend.dto.ai.TagSuggestionRequestDto;
+import org.whu.backend.dto.tag.TagDto;
+import org.whu.backend.entity.Tag;
+import org.whu.backend.repository.TagRepository;
+import org.whu.backend.service.DtoConverter;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
 public class BailianAppService {
 
     // 从 application.properties 中注入配置项
-    @Value("${dashscope.api-key}")
-    private String apiKey;
+    @Value("${dashscope.api-key.package-recommend}")
+    private String apiKeyForPackageRecommend;
+    @Value("${dashscope.app-id.package-recommend}")
+    private String appIdForPackageRecommend;
 
-    @Value("${dashscope.app-id}")
-    private String appId;
+    @Value("${dashscope.api-key.tag-recommend}")
+    private String apiKeyForTagRecommend;
+    @Value("${dashscope.app-id.tag-recommend}")
+    private String appIdForTagRecommend;
+
 
     // Spring Boot自带的JSON处理工具，非常强大
     @Autowired
     private ObjectMapper objectMapper;
+    @Autowired
+    private TagRepository tagRepository;
+    @Autowired
+    private DtoConverter dtoConverter;
 
     /**
      * 调用百炼RAG应用，并期望它返回一个包含ID的JSON字符串，然后解析它。
@@ -48,12 +64,12 @@ public class BailianAppService {
         // 注意：这里的 .prompt() 就是我们精心设计的、要求返回JSON的那个Prompt模板！
         // 百炼平台会自动把用户问题(${query})和知识库内容(${documents})填进去。
         ApplicationParam param = ApplicationParam.builder()
-                .apiKey(apiKey)
-                .appId(appId)
+                .apiKey(apiKeyForPackageRecommend)
+                .appId(appIdForPackageRecommend)
                 .prompt(userQuery) // 这里直接传入用户的原始提问
                 .build();
 
-        log.info("正在向百炼RAG应用发送请求，AppId: {}, Query: {}", appId, userQuery);
+        log.info("正在向百炼RAG应用发送请求，AppId: {}, Query: {}", appIdForPackageRecommend, userQuery);
 
         try {
             // 3. 发起调用
@@ -96,5 +112,88 @@ public class BailianAppService {
         }
 
         return Collections.emptyList();
+    }
+
+    /**
+     * 【核心方法】根据文本内容，请求AI推荐相关标签
+     *
+     * @param requestDto 包含标题和内容的请求
+     * @return AI推荐的标签DTO列表
+     */
+    @Transactional(readOnly = true)
+    public List<TagDto> suggestTagsForText(TagSuggestionRequestDto requestDto) {
+        // 1. 准备“菜单”：从数据库获取所有可用标签
+        List<Tag> allTags = tagRepository.findAll();
+        if (allTags.isEmpty()) {
+            log.warn("服务层：标签库为空，无法进行AI推荐。");
+            return Collections.emptyList();
+        }
+        String availableTags = allTags.stream().map(Tag::getName).collect(Collectors.joining(", "));
+        // 2. 准备“文章”：将标题和内容拼接起来
+        String fullText = "标题：" + requestDto.getTitle() + "\n内容：" + requestDto.getContent();
+        // 3. 构建精心设计的“指令”(Prompt)
+        String prompt = buildPrompt(availableTags, fullText);
+        // log.info(prompt);
+        // 4. 调用AI服务
+        try {
+            Application application = new Application();
+            ApplicationParam param = ApplicationParam.builder()
+                    .apiKey(apiKeyForTagRecommend)
+                    .appId(appIdForTagRecommend)
+                    .prompt(prompt)
+                    .build();
+            ApplicationResult result = application.call(param);
+            String aiResponse = result.getOutput().getText();
+            log.info("服务层：AI大模型返回的原始标签推荐: {}", aiResponse);
+
+            // 5. 解析AI返回的JSON，并从数据库中找出对应的Tag实体
+            List<String> recommendedTagNames = parseAiResponse(aiResponse);
+            if (recommendedTagNames.isEmpty()) {
+                return Collections.emptyList();
+            }
+
+            List<Tag> recommendedTags = tagRepository.findByNameIn(recommendedTagNames);
+
+            // 6. 转换为DTO返回给前端
+            return recommendedTags.stream()
+                    .map(dtoConverter::convertTagToDto)
+                    .collect(Collectors.toList());
+
+        } catch (NoApiKeyException | InputRequiredException | ApiException e) {
+            log.error("服务层：调用AI打标签服务时发生严重错误！", e);
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * 私有辅助方法：构建给AI的指令
+     */
+    private String buildPrompt(String availableTags, String textToTag) {
+        return String.format(
+                """
+                        --- 可选标签列表 ---
+                        [%s]
+                        
+                        --- 需要打标签的文字 ---
+                        %s
+                        
+                        --- 你的回答 ---
+                        """,
+                availableTags, textToTag
+        );
+    }
+
+    /**
+     * 私有辅助方法：解析AI返回的JSON字符串
+     */
+    private List<String> parseAiResponse(String response) {
+        try {
+            return objectMapper.readValue(response, new TypeReference<>() {
+            });
+        } catch (Exception e) {
+            log.error("服务层：解析AI返回的JSON失败: {}", response, e);
+            // TODO: 可以尝试做一些简单的补救，比如提取[]之间的内容，但这里为了简单直接返回空
+            return Collections.emptyList();
+        }
     }
 }

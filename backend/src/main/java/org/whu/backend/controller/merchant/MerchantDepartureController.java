@@ -13,6 +13,7 @@ import org.whu.backend.common.Result;
 import org.whu.backend.common.exception.BizException;
 import org.whu.backend.dto.PageRequestDto;
 import org.whu.backend.dto.PageResponseDto;
+import org.whu.backend.dto.order.TravelOrderDetailDto;
 import org.whu.backend.dto.travelpack.DepartureCreateDto;
 import org.whu.backend.dto.travelpack.DepartureSummaryDto;
 import org.whu.backend.dto.travelpack.DepartureUpdateDto;
@@ -98,5 +99,19 @@ public class MerchantDepartureController {
         PageResponseDto<DepartureSummaryDto> resultPage = merchantDepartureService.getDeparturesForPackage(packageId, currentDealerId, pageRequestDto);
 
         return Result.success("团期列表查询成功", resultPage);
+    }
+
+    @Operation(summary = "【全新】查看指定团期的已支付订单列表（分页）", description = "让经销商了解自己某个具体团期的销售情况。")
+    @GetMapping("/departures/{departureId}/orders")
+    public Result<PageResponseDto<TravelOrderDetailDto>> getDepartureOrders(
+            @Parameter(description = "要查询的团期ID") @PathVariable String departureId,
+            @Valid @ParameterObject PageRequestDto pageRequestDto
+    ) {
+        String currentDealerId = AccountUtil.getCurrentAccountId();
+        log.info("请求日志：经销商ID '{}' 正在查询团期ID '{}' 的订单列表", currentDealerId, departureId);
+
+        PageResponseDto<TravelOrderDetailDto> resultPage = merchantDepartureService.getOrdersForDeparture(departureId, currentDealerId, pageRequestDto);
+
+        return Result.success("订单列表查询成功", resultPage);
     }
 }

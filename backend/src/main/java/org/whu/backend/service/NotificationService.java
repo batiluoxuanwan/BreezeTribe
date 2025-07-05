@@ -87,17 +87,7 @@ public class NotificationService {
 
         // 根据前端传入的类别字符串，动态构建查询所需的枚举列表
         if (StringUtils.hasText(category)) {
-            List<Notification.NotificationType> typesToQuery = switch (category.toLowerCase()) {
-                case "likes" -> List.of(Notification.NotificationType.NEW_POST_LIKE,
-                        Notification.NotificationType.NEW_POST_FAVORITE);
-                case "comments" -> List.of(Notification.NotificationType.NEW_POST_COMMENT,
-                        Notification.NotificationType.NEW_COMMENT_REPLY);
-                case "system" -> List.of(Notification.NotificationType.ORDER_CREATED,
-                        Notification.NotificationType.ORDER_PAID,
-                        Notification.NotificationType.PACKAGE_APPROVED,
-                        Notification.NotificationType.PACKAGE_REJECTED);
-                default -> throw new IllegalArgumentException("未知的通知类别: " + category);
-            };
+            List<Notification.NotificationType> typesToQuery = getTypesForCategory(category);
             notificationPage = notificationRepository.findByRecipientIdAndTypeIn(currentUserId, typesToQuery, pageable);
         } else {
             // 如果不提供类别，则查询所有通知
@@ -127,8 +117,9 @@ public class NotificationService {
             totalUnread += count;
 
             switch (type) {
-                case NEW_POST_LIKE, NEW_POST_FAVORITE -> countsByType.merge("LIKES_AND_FAVORITES", count, Long::sum);
-                case NEW_POST_COMMENT, NEW_COMMENT_REPLY ->
+                case NEW_POST_LIKE, NEW_POST_FAVORITE, NEW_PACKAGE_FAVORITE ->
+                        countsByType.merge("LIKES_AND_FAVORITES", count, Long::sum);
+                case NEW_POST_COMMENT, NEW_COMMENT_REPLY, NEW_PACKAGE_COMMENT ->
                         countsByType.merge("COMMENTS_AND_REPLIES", count, Long::sum);
                 default -> countsByType.merge("SYSTEM_AND_ORDERS", count, Long::sum);
             }
@@ -142,11 +133,20 @@ public class NotificationService {
 
     @Transactional
     public void markAsRead(String currentUserId, MarkAsReadRequestDto request) {
-        log.info("用户ID '{}' 正在将类型为 {} 的通知标记为已读", currentUserId, request.getTypes());
-        if (request.getTypes() == null || request.getTypes().isEmpty()) {
+        if (request.getCategory() == null || request.getCategory().isBlank()) {
             return;
         }
-        notificationRepository.markAsReadByRecipientIdAndTypes(currentUserId, request.getTypes());
+
+        // 【复用逻辑】我们复用查询接口里已有的分类逻辑，将字符串映射为枚举列表
+        List<Notification.NotificationType> typesToMark = getTypesForCategory(request.getCategory());
+
+        if (typesToMark.isEmpty()) {
+            log.warn("服务层：用户ID '{}' 尝试标记一个未知的通知类别 '{}'", currentUserId, request.getCategory());
+            return;
+        }
+
+        log.info("服务层：用户ID '{}' 正在将类型为 {} 的通知标记为已读", currentUserId, typesToMark);
+        notificationRepository.markAsReadByRecipientIdAndTypes(currentUserId, typesToMark);
     }
 
     public void sendNotification(Account recipient, Notification.NotificationType type,
@@ -169,5 +169,35 @@ public class NotificationService {
                 "/queue/notify",        // 目标地址
                 notification            // 推送内容
         );
+    }
+
+    /**
+     * 私有辅助方法：将类别字符串映射为枚举列表（从查询逻辑中抽离）
+     *
+     * @param category 类别字符串
+     * @return 对应的通知类型枚举列表
+     */
+    private List<Notification.NotificationType> getTypesForCategory(String category) {
+        return switch (category.toLowerCase()) {
+            case "likes" -> List.of(
+                    Notification.NotificationType.NEW_POST_LIKE,
+                    Notification.NotificationType.NEW_POST_FAVORITE,
+                    Notification.NotificationType.NEW_PACKAGE_FAVORITE
+            );
+            case "comments" -> List.of(
+                    Notification.NotificationType.NEW_POST_COMMENT,
+                    Notification.NotificationType.NEW_COMMENT_REPLY,
+                    Notification.NotificationType.NEW_PACKAGE_COMMENT
+            );
+            case "system" -> List.of(
+                    Notification.NotificationType.ORDER_CREATED,
+                    Notification.NotificationType.ORDER_PAID,
+                    Notification.NotificationType.ORDER_CANCELED,
+                    Notification.NotificationType.PACKAGE_APPROVED,
+                    Notification.NotificationType.PACKAGE_REJECTED,
+                    Notification.NotificationType.DEPARTURE_REMINDER
+            );
+            default -> List.of(); // 如果是未知类别，返回空列表
+        };
     }
 }

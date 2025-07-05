@@ -106,6 +106,19 @@
           <p class="detailed-description-text" v-html="formatDescription(travelGroupDetail.detailedDescription)"></p>
           <p v-if="!travelGroupDetail.detailedDescription" class="placeholder-text">暂无详细介绍。</p>
 
+          <div v-if="travelGroupDetail.tags && travelGroupDetail.tags.length > 0" class="tags-display-section">
+            <el-tag
+              v-for="tag in travelGroupDetail.tags"
+              :key="tag.id"
+              size="small"
+              type=""
+              effect="plain"
+              class="display-tag-item"
+            >
+              {{ tag.name }}
+            </el-tag>
+          </div>
+
           <el-divider class="section-divider"></el-divider>
 
           <h3 class="section-title">详细行程安排</h3>
@@ -955,6 +968,15 @@ watch(
   border-radius: 4px;
   height: 32px;
   line-height: 30px;
+}
+
+.tags-display-section {
+  margin-top: 20px;   /* 与上方的描述文本之间留出间距 */
+  margin-bottom: 20px; /* 与下方的分割线之间留出间距 */
+  display: flex;      /* 使用 Flexbox 布局 */
+  flex-wrap: wrap;    /* 允许标签换行 */
+  align-items: center; /* 垂直居中对齐标签和文本 */
+  gap: 10px;          /* 标签和文本之间的间距 */
 }
 
 /* 响应式调整 */

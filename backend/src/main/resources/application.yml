@@ -63,15 +63,19 @@ ai:
       name: DeepSeek-R1-Distill-Llama-8B-F16
 
 dashscope:
-  api-key: sk-98e1d9b45e064da1a03e214f7c0ff468
-  app-id: a3a0b11cce024d7b8325632b2cab6924
+  api-key:
+    package-recommend: sk-98e1d9b45e064da1a03e214f7c0ff468
+    tag-recommend: sk-98e1d9b45e064da1a03e214f7c0ff468
+  app-id:
+    package-recommend: a3a0b11cce024d7b8325632b2cab6924
+    tag-recommend: 97e384779b974d0fa66611f0cbe99319
 
 recommendation:
   weights:
     order: 10
     favorite: 5
     like: 3
-    view: 1
+#    view: 1
 
 baidu:
   map:

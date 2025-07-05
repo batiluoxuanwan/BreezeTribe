@@ -52,6 +52,8 @@ import java.time.temporal.IsoFields;
 import java.time.temporal.WeekFields;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.List;
+import java.util.Optional;
 
 import static org.whu.backend.entity.travelpac.TravelPackage.PackageStatus.*;
 import static org.whu.backend.entity.accounts.Merchant.status.APPROVED;
@@ -131,7 +133,7 @@ public class AdminService {
         travelPackageRepository.save(travelPackage);
 
         // 发送审核通过通知
-        String description = String.format("旅行团 %s 已成功通过审核", travelPackage.getTitle());
+        String description = String.format("旅行团 [%s] 已成功通过审核", travelPackage.getTitle());
         notificationService.createAndSendNotification(
                 merchant,
                 Notification.NotificationType.PACKAGE_APPROVED,
@@ -160,7 +162,7 @@ public class AdminService {
         travelPackageRepository.save(travelPackage);
 
         // 发送审核被拒绝通知
-        String description = String.format("旅行团 %s 未通过审核", travelPackage.getTitle());
+        String description = String.format("旅行团 [%s] 未通过审核", travelPackage.getTitle());
         notificationService.createAndSendNotification(
                 merchant,
                 Notification.NotificationType.PACKAGE_REJECTED,
@@ -314,14 +316,12 @@ public class AdminService {
 
         // 4️转换为 DTO 列表
         List<SpotSummaryDto> content = page.getContent().stream()
-                .map(spot -> {
-                    return new SpotSummaryDto(spot.getId(),
-                            spot.getName(),
-                            spot.getAddress(),
-                            spot.getCity(),
-                            spot.getLongitude(),
-                            spot.getLatitude());
-                })
+                .map(spot -> new SpotSummaryDto(spot.getId(),
+                        spot.getName(),
+                        spot.getAddress(),
+                        spot.getCity(),
+                        spot.getLongitude(),
+                        spot.getLatitude()))
                 .toList();
         // 5️构建 PageResponseDto
         return PageResponseDto.<SpotSummaryDto>builder()

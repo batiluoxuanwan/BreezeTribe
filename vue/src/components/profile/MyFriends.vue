@@ -27,7 +27,7 @@
 <script setup>
 import { ref } from 'vue';
 import { ChatDotRound, User } from '@element-plus/icons-vue';
-import ChatRoom from '@/components/chat/ChatRoom.vue'; // 假设的聊天模块组件
+import ChatRoom from '@/components/chat/ChatRoom.vue'; 
 //import FriendManagementModule from './FriendManagementModule.vue'; // 假设的好友管理模块组件
 
 const activeMainTab = ref('chat'); // 默认显示聊天模块

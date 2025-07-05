@@ -6,6 +6,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.whu.backend.entity.Notification;
+import org.whu.backend.entity.accounts.Merchant;
 import org.whu.backend.entity.accounts.User;
 import org.whu.backend.entity.travelpac.TravelOrder;
 import org.whu.backend.entity.travelpac.TravelPackage;
@@ -18,8 +19,9 @@ import org.whu.backend.event.travelpac.PackageCommentedEvent;
 import org.whu.backend.event.travelpac.PackageFavouredEvent;
 import org.whu.backend.repository.travelRepo.TravelPackageRepository;
 import org.whu.backend.service.NotificationService;
-import org.whu.backend.service.auth.JwtService;
 import org.whu.backend.util.JpaUtil;
+
+import java.time.format.DateTimeFormatter;
 
 @Component
 @Slf4j
@@ -29,8 +31,9 @@ public class NotificationEventListener {
     private NotificationService notificationService;
     @Autowired
     private TravelPackageRepository travelPackageRepository;
-    @Autowired
-    private JwtService jwtService;
+
+
+    // -----------------------系统通知----------------------
 
     /**
      * 监听“订单创建成功”事件
@@ -53,13 +56,17 @@ public class NotificationEventListener {
         );
     }
 
-
+    /**
+     * 监听“订单支付成功”事件
+     */
     @Async
     @EventListener
     public void handleOrderConfirmed(OrderConfirmedEvent event) {
         TravelOrder order = event.getOrder();
         User user = order.getUser();
+        Merchant merchant = order.getTravelDeparture().getTravelPackage().getDealer();
         String packageTitle = order.getTravelDeparture().getTravelPackage().getTitle();
+        // -------通知用户------
         String description = String.format("您关于旅行产品 [%s] 的订单已成功支付", packageTitle);
         notificationService.createAndSendNotification(
                 user,
@@ -69,8 +76,28 @@ public class NotificationEventListener {
                 null,
                 order.getTravelDeparture().getTravelPackage().getId()
         );
+        // -------通知有新订单------
+        // log.info("监听到订单支付事件，准备为商家 '{}' 发送新订单通知。", merchant.getUsername());
+        String descriptionToMerchant = String.format(
+                "已成功支付了您的旅行团 [%s] 的订单，团期 [%s]。联系人姓名: [%s]，联系电话: [%s])",
+                packageTitle,
+                order.getTravelDeparture().getDepartureDate().format(DateTimeFormatter.ISO_LOCAL_DATE),
+                order.getContactName(),   // 使用订单里的联系人姓名
+                order.getContactPhone()  // 使用订单里的联系人电话
+        );
+        notificationService.createAndSendNotification(
+                merchant, // 接收者是商家
+                Notification.NotificationType.USER_PAID, // 使用一个新的、专门的通知类型
+                descriptionToMerchant,
+                null,
+                user, // 触发事件的用户
+                order.getTravelDeparture().getId() // 关联团期id
+        );
     }
 
+    /**
+     * 监听“订单取消”事件
+     */
     @Async
     @EventListener
     public void handleOrderCancelled(OrderCancelledEvent event) {
@@ -88,14 +115,18 @@ public class NotificationEventListener {
         );
     }
 
+
+    // -----------------------收藏点赞通知----------------------
+
+    /**
+     * 监听“旅行团收藏”事件
+     */
     @Async
     @EventListener
     public void handlePackageFavoured(PackageFavouredEvent event) {
-
-        String userName = event.getUser().getUsername();
         TravelPackage travelPackage = JpaUtil.getOrThrow(travelPackageRepository, event.getPackageId(), "旅行团不存在");
         String packageTitle = travelPackage.getTitle();
-        String description = String.format("用户 [%s] 收藏了你的旅行团 [%s]", userName, packageTitle);
+        String description = String.format("收藏了你的旅行团 [%s]", packageTitle);
         notificationService.createAndSendNotification(
                 travelPackage.getDealer(),
                 Notification.NotificationType.NEW_PACKAGE_FAVORITE,
@@ -106,13 +137,14 @@ public class NotificationEventListener {
         );
     }
 
+    /**
+     * 监听“游记点赞”事件
+     */
     @Async
     @EventListener
     public void handlePostLiked(PostLikedEvent event) {
-
-        String userName = event.getUser().getUsername();
         String postTitle = event.getPost().getTitle();
-        String description = String.format("用户 [%s] 点赞了你的游记 [%s]", userName, postTitle);
+        String description = String.format("点赞了你的游记 [%s]", postTitle);
         notificationService.createAndSendNotification(
                 event.getPost().getAuthor(),
                 Notification.NotificationType.NEW_POST_LIKE,
@@ -123,13 +155,17 @@ public class NotificationEventListener {
         );
     }
 
+    // -----------------------评论回复通知----------------------
+
+    /**
+     * 监听“游记评论”事件
+     */
     @Async
     @EventListener
     public void handlePostCommented(PostCommentedEvent event) {
-        String userName = event.getCommentSender().getUsername();
         String postTitle = event.getPost().getTitle();
         String content = event.getContent();
-        String description = String.format("用户 [%s] 在游记 [%s] 中回复了你：[%s]", userName, postTitle, content);
+        String description = String.format("在游记 [%s] 中回复了你：[%s]", postTitle, content);
         notificationService.createAndSendNotification(
                 event.getCommentReceiver(),
                 Notification.NotificationType.NEW_POST_COMMENT,
@@ -140,13 +176,15 @@ public class NotificationEventListener {
         );
     }
 
+    /**
+     * 监听“旅行团评论”事件
+     */
     @Async
     @EventListener
     public void handlePackageCommented(PackageCommentedEvent event){
-        String userName = event.getCommentSender().getUsername();
         String packageTitle = event.getTravelPackage().getTitle();
         String content = event.getContent();
-        String description = String.format("用户 [%s] 在旅行团评价 [%s] 中回复了你：[%s]", userName, packageTitle, content);
+        String description = String.format("在旅行团评价 [%s] 中回复了你：[%s]", packageTitle, content);
         notificationService.createAndSendNotification(
                 event.getCommentReceiver(),
                 Notification.NotificationType.NEW_PACKAGE_COMMENT,

@@ -12,5 +12,6 @@ import java.time.LocalDateTime;
 public class FavouriteDetailDto {
     private String itemid;
     private InteractionItemType itemType; // 收藏的项目的类型
+    private boolean isValid;
     private LocalDateTime createdTime;
 }

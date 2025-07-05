@@ -3,6 +3,7 @@ package org.whu.backend.dto.travelpack;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.experimental.SuperBuilder;
+import org.whu.backend.dto.accounts.AuthorDto;
 import org.whu.backend.dto.route.RouteDetailDto;
 import org.whu.backend.dto.tag.TagDto;
 
@@ -27,7 +28,7 @@ public class PackageDetailDto {
     private BigDecimal price;
 
     @Schema(description = "旅行团图集")
-    private List<String> coverImageUrls;
+    private List<String> imageUrls;
 
     @Schema(description = "旅行团持续天数")
     private Integer durationInDays;
@@ -43,6 +44,9 @@ public class PackageDetailDto {
 
     @Schema(description = "旅行团的浏览量")
     private Integer viewCount;
+
+    @Schema(description = "经销商信息")
+    private AuthorDto merchant;
 
     @Schema(description = "旅行团状态")
     private String status;

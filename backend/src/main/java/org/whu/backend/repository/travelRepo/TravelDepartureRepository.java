@@ -66,4 +66,10 @@ public interface TravelDepartureRepository extends JpaRepository<TravelDeparture
         """)
     List<Object[]> countByMonth(@Param("start") LocalDateTime start,
                                 @Param("end") LocalDateTime end);
+
+    /**
+     * 【新增】查询在指定时间段内出发的所有团期（用于通知商家）
+     */
+    @Query("SELECT d FROM TravelDeparture d WHERE d.departureDate BETWEEN :start AND :end")
+    List<TravelDeparture> findDeparturesBetween(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 }

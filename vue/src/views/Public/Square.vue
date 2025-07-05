@@ -11,14 +11,8 @@
       <!-- 搜索排序栏 -->
       <el-card class="filter-card">
         <el-form :inline="true" :model="searchForm" class="search-form">
-          <el-form-item label="关键词">
-            <el-input v-model="searchForm.keyword" placeholder="搜索标题/内容" clearable></el-input>
-          </el-form-item>
-          <el-form-item label="排序">
-            <el-select v-model="searchForm.sortBy" placeholder="请选择">
-              <el-option label="最新发布" value="latest"></el-option>
-              <el-option label="最受欢迎" value="popular"></el-option>
-            </el-select>
+          <el-form-item label="搜索">
+            <el-input v-model="searchForm.keyword" placeholder="搜索标题/内容" clearable ></el-input>
           </el-form-item>
           <el-form-item>
             <el-button type="primary" @click="applyFilters">搜索</el-button>
@@ -79,8 +73,8 @@ import { ElIcon,ElTabs, ElTabPane, ElCard, ElForm, ElFormItem, ElInput, ElSelect
 import TravelGroupCard from '@/components/TravelGroupCard.vue';
 import TravelNoteCard from '@/components/TravelNoteCard.vue';
 import { useRouter, useRoute } from 'vue-router';
-import { publicAxios } from '@/utils/request'
-import { Loading } from '@element-plus/icons-vue'
+import { publicAxios } from '@/utils/request';
+import { Loading } from '@element-plus/icons-vue';
 
 const router = useRouter(); 
 const route = useRoute(); // 当前路由信息
@@ -98,9 +92,7 @@ const activeTab = ref('groups');
 
 // --- 搜索表单 ---
 const searchForm = ref({
-  destination: '',
-  keyword: '',
-  sortBy: 'latest',
+  keyword: ''
 });
 
 // --- 数据和分页 ---
@@ -127,25 +119,25 @@ const fetchTravelGroups = async () => {
         params: {
           keyword: searchKeyword.value,
           page: groupCurrentPage.value,
-          size: groupPageSize,
-          // sortBy: 'createdTime',
-          // sortDirection: 'DESC',
+          size: groupPageSize
         },
       })
     }
     else {
-      // 走普通获取广场列表接口
-      response = await publicAxios.get('/public/travel-packages', {
-        params: {
-          page: groupCurrentPage.value,
-          size: groupPageSize,
-          // destination: searchForm.value.destination,
-          // keyword: searchForm.value.keyword,
-          // sortBy: searchForm.value.sortBy,
-        },
-      })
+      const keywordToUse = searchForm.value.keyword.trim();
+      const params = {
+        page: groupCurrentPage.value,
+        size: groupPageSize
+      };
+      if (keywordToUse) { // 如果有关键词，走页内搜索接口
+        params.keyword = keywordToUse; // 添加关键词参数
+        response = await publicAxios.get('/public/travel-packages/search', { params });
+      } else{
+        // 走普通获取广场列表接口
+        response = await publicAxios.get('/public/travel-packages', {params});
+      }
+      
     }
-
     if (response.data.code === 200) {
       travelGroups.value = response.data.data.content; // 更新旅行团数据
     } else {
@@ -170,21 +162,22 @@ const fetchTravelNotes = async () => {
         params: {
           keyword: searchKeyword.value,
           page: noteCurrentPage.value,    // 当前页码
-          size: notePageSize,             // 每页数量
-          // sortBy: 'createdTime',
-          // sortDirection: 'DESC',
+          size: notePageSize              // 每页数量
         },
       })
     } 
     else{
-      response = await publicAxios.get('/public/posts', {
-      params: {
-        page: noteCurrentPage.value,    // 当前页码
-        size: notePageSize,             // 每页数量
-        // sortBy: 'createdTime',          
-        // sortDirection: 'DESC',
-      },
-    });
+      const keywordToUse = searchForm.value.keyword.trim();
+      const params = {
+        page: noteCurrentPage.value,
+        size: notePageSize
+      };
+      if (keywordToUse) { // 如果有关键词，走页内搜索接口
+        params.keyword = keywordToUse; // 添加关键词参数
+        response = await publicAxios.get('/public/posts/search', { params });
+      }else{
+        response = await publicAxios.get('/public/posts', {params});
+      }
   }
     if (response.data.code === 200) {
       travelNotes.value = response.data.data.content;  // 更新游记列表数据
@@ -230,9 +223,7 @@ const applyFilters = () => {
 // --- 重置筛选 ---
 const resetFilters = () => {
   searchForm.value = {
-    destination: '',
-    keyword: '',
-    sortBy: 'latest',
+    keyword: ''
   };
   applyFilters(); // 重置后重新加载数据
 };
