@@ -6,7 +6,6 @@ import com.alibaba.dashscope.app.ApplicationResult;
 import com.alibaba.dashscope.exception.ApiException;
 import com.alibaba.dashscope.exception.InputRequiredException;
 import com.alibaba.dashscope.exception.NoApiKeyException;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -15,15 +14,19 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.whu.backend.common.exception.BizException;
-import org.whu.backend.dto.ai.RecommendedPackageDto;
-import org.whu.backend.dto.ai.TagSuggestionRequestDto;
+import org.whu.backend.dto.ai.*;
 import org.whu.backend.dto.tag.TagDto;
+import org.whu.backend.dto.travelpack.PackageSummaryDto;
 import org.whu.backend.entity.Tag;
+import org.whu.backend.entity.travelpac.TravelPackage;
 import org.whu.backend.repository.TagRepository;
+import org.whu.backend.repository.travelRepo.TravelPackageRepository;
 import org.whu.backend.service.DtoConverter;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -49,69 +52,90 @@ public class BailianAppService {
     private TagRepository tagRepository;
     @Autowired
     private DtoConverter dtoConverter;
+    @Autowired
+    private TravelPackageRepository travelPackageRepository;
+
 
     /**
-     * 调用百炼RAG应用，并期望它返回一个包含ID的JSON字符串，然后解析它。
-     *
+     * 根据用户问题，获取包含完整详情的旅行团推荐列表
      * @param userQuery 用户的自然语言查询
-     * @return 解析后的旅行团ID列表
+     * @return 包含完整摘要信息和推荐理由的DTO列表
      */
+    @Transactional(readOnly = true)
     public List<RecommendedPackageDto> getPackageIdsFromApp(String userQuery) {
-        // 1. 创建百炼应用实例
-        Application application = new Application();
+        // 1. 调用AI的RAG应用，获取包含ID和推荐理由的JSON字符串
+        String aiResponseJson = callAiRagApp(userQuery);
+        if (aiResponseJson == null || aiResponseJson.isBlank()) {
+            return Collections.emptyList();
+        }
 
-        // 2. 构建请求参数
-        // 注意：这里的 .prompt() 就是我们精心设计的、要求返回JSON的那个Prompt模板！
-        // 百炼平台会自动把用户问题(${query})和知识库内容(${documents})填进去。
+        // 2. 解析AI返回的JSON，得到一个中间DTO列表
+        List<AiRecoIntermediateDto> intermediateRecos = parseAiRecommendResponse(aiResponseJson);
+        if (intermediateRecos.isEmpty()) {
+            return Collections.emptyList();
+        }
+        log.info("服务层：成功从AI解析出 {} 条推荐。", intermediateRecos.size());
+
+        // 3. 【性能关键】一次性从数据库中查出所有推荐的旅行团实体
+        List<String> packageIds = intermediateRecos.stream().map(AiRecoIntermediateDto::getId).collect(Collectors.toList());
+        List<TravelPackage> packages = travelPackageRepository.findAllById(packageIds);
+
+        // 为了方便快速查找，将实体列表转换为Map
+        Map<String, TravelPackage> packageMap = packages.stream()
+                .collect(Collectors.toMap(TravelPackage::getId, pkg -> pkg));
+
+        // 4. 【数据整合】遍历中间结果，组装成最终的、包含完整信息的DTO列表
+        return intermediateRecos.stream()
+                .map(reco -> {
+                    TravelPackage pkg = packageMap.get(reco.getId());
+                    if (pkg != null) {
+                        // 复用已有的转换逻辑，将实体转换为摘要DTO
+                        PackageSummaryDto summaryDto = dtoConverter.convertPackageToSummaryDto(pkg);
+                        // 构建最终的推荐DTO
+                        return RecommendedPackageDto.builder()
+                                .packageSummaryDto(summaryDto)
+                                .reason(reco.getReason())
+                                .build();
+                    }
+                    return null; // 如果根据ID找不到对应的产品，则过滤掉
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 私有辅助方法：调用阿里云百炼RAG应用
+     */
+    private String callAiRagApp(String userQuery) {
         ApplicationParam param = ApplicationParam.builder()
                 .apiKey(apiKeyForPackageRecommend)
                 .appId(appIdForPackageRecommend)
-                .prompt(userQuery) // 这里直接传入用户的原始提问
+                .prompt(userQuery)
                 .build();
 
-        log.info("正在向百炼RAG应用发送请求，AppId: {}, Query: {}", appIdForPackageRecommend, userQuery);
-
+        log.info("服务层：正在向百炼RAG应用发送请求，AppId: {}, Query: {}", appIdForPackageRecommend, userQuery);
         try {
-            // 3. 发起调用
-            ApplicationResult result = application.call(param);
+            ApplicationResult result = new Application().call(param);
             String resultText = result.getOutput().getText();
-            log.info("百炼RAG应用返回原始文本: {}", resultText);
-
-            // 4. 【最关键也最脆弱的一步】解析AI返回的文本为ID列表
-            return parseResultToDtoList(resultText);
-
+            log.info("服务层：百炼RAG应用返回原始文本: {}", resultText);
+            return resultText;
         } catch (NoApiKeyException | InputRequiredException | ApiException e) {
-            log.error("调用百炼RAG应用时发生严重错误！", e);
-            // 抛出一个业务异常，让全局异常处理器去捕获并返回统一的错误格式给前端
-            throw new BizException("AI服务调用失败，请稍后重试或联系管理员。");
+            log.error("服务层：调用百炼RAG应用时发生严重错误！", e);
+            throw new BizException("AI推荐服务暂时不可用，请稍后重试。");
         }
     }
 
     /**
-     * 私有辅助方法：尝试将AI返回的字符串解析为 List<RecommendedPackageDto>
+     * 私有辅助方法：解析AI返回的JSON字符串
      */
-    private List<RecommendedPackageDto> parseResultToDtoList(String text) {
-        if (text == null || text.isBlank() || text.contains("对不起")) {
+    private List<AiRecoIntermediateDto> parseAiRecommendResponse(String response) {
+        try {
+            return objectMapper.readValue(response, new TypeReference<>() {
+            });
+        } catch (Exception e) {
+            log.error("服务层：解析AI返回的RAG推荐JSON失败: {}", response, e);
             return Collections.emptyList();
         }
-
-        // ... (之前写的寻找'['和']'的逻辑依然有用) ...
-        int startIndex = text.indexOf('[');
-        int endIndex = text.lastIndexOf(']');
-
-        if (startIndex != -1 && endIndex != -1 && startIndex < endIndex) {
-            String jsonArrayStr = text.substring(startIndex, endIndex + 1);
-            try {
-                // 解析为DTO列表
-                return objectMapper.readValue(jsonArrayStr, new TypeReference<>() {
-                });
-            } catch (JsonProcessingException e) {
-                log.error("解析百炼返回的DTO JSON字符串失败！", e);
-                return Collections.emptyList();
-            }
-        }
-
-        return Collections.emptyList();
     }
 
     /**
@@ -171,12 +195,15 @@ public class BailianAppService {
     private String buildPrompt(String availableTags, String textToTag) {
         return String.format(
                 """
+                        你是一位经验丰富的旅游内容编辑，你的任务是从一个给定的标签列表中，为一段旅行相关的文字挑选出5到10个最贴切的标签。
+                        规则：\
+                        1. 你的回答必须是一个JSON数组格式的字符串，例如：["标签1", "标签2", "标签3"]
+                        2. 绝对不能包含任何JSON格式之外的文字、解释或代码块标记。
+                        3. 只从下面的“可选标签列表”中进行选择。
                         --- 可选标签列表 ---
                         [%s]
-                        
                         --- 需要打标签的文字 ---
                         %s
-                        
                         --- 你的回答 ---
                         """,
                 availableTags, textToTag
@@ -192,8 +219,76 @@ public class BailianAppService {
             });
         } catch (Exception e) {
             log.error("服务层：解析AI返回的JSON失败: {}", response, e);
-            // TODO: 可以尝试做一些简单的补救，比如提取[]之间的内容，但这里为了简单直接返回空
             return Collections.emptyList();
+        }
+    }
+
+
+    /**
+     * 【核心方法】根据文本和角色，请求AI生成标题和内容
+     *
+     * @param requestDto 包含核心文本和角色的请求
+     * @return 包含标题和内容的响应DTO
+     */
+    public ContentGenerationResponseDto generateContent(ContentGenerationRequestDto requestDto) {
+        // 2. 根据角色，构建新的、更开放的Prompt
+        String prompt = buildPrompt(requestDto.getRole(), requestDto.getText());
+
+        // 3. 调用AI服务
+        try {
+            Application application = new Application();
+            ApplicationParam param = ApplicationParam.builder()
+                    .apiKey(apiKeyForTagRecommend)
+                    .appId(appIdForTagRecommend)
+                    .prompt(prompt)
+                    .build();
+
+            ApplicationResult result = application.call(param);
+            String aiResponseText = result.getOutput().getText();
+            log.info("服务层：AI大模型返回的原始文案: {}", aiResponseText);
+
+            // 4. 直接将AI的原始输出设置到DTO中
+            ContentGenerationResponseDto responseDto = new ContentGenerationResponseDto();
+            responseDto.setContent(aiResponseText);
+            return responseDto;
+
+        } catch (NoApiKeyException | InputRequiredException | ApiException e) {
+            log.error("服务层：调用AI内容生成服务时发生严重错误！", e);
+            // 返回一个默认的错误提示
+            ContentGenerationResponseDto errorResponse = new ContentGenerationResponseDto();
+            errorResponse.setContent("抱歉，AI助手当前开小差了，请稍后再试。");
+            return errorResponse;
+        }
+    }
+
+    /**
+     * 私有辅助方法：根据角色构建不同的指令
+     */
+    private String buildPrompt(ContentGenerationRequestDto.RequestRole role, String text) {
+        if (role == ContentGenerationRequestDto.RequestRole.MERCHANT) {
+            // 商家需要的营销推广文案
+            return String.format(
+                    """
+                            你是一位顶级的旅游营销文案专家，你的任务是根据给定的核心信息，创作一篇吸引人的旅行团描述文案和一个旅行团的标题。
+                            请先写标题，然后换两行，再写一段大约100-300字左右的推广文案。文案要语言生动活泼，突出亮点，能激发用户的购买欲望。
+                            --- 核心信息 ---
+                            %s
+                            --- 请开始你的创作 ---
+                            """,
+                    text
+            );
+        } else { // USER
+            // 用户需要的个人游记风格
+            return String.format(
+                    """
+                            你是一位旅行博主小帮手，你的任务是根据给定的游记草稿或关键词，按照用户的要求写成一篇充满个人色彩和真情实感的游记，并起一个风格相符的标题。
+                            请先写标题，然后换两行，再写一段大约100-300字左右的游记正文。文笔按照用户的关键词来，如果用户没有给定，则选择符合草稿的语言风格。
+                            --- 游记草稿/关键词 ---
+                            %s
+                            --- 请开始你的创作 ---
+                            """,
+                    text
+            );
         }
     }
 }
