@@ -44,4 +44,7 @@ public class PackageSummaryDto {
 
     @Schema(description = "旅行团目前的状态")
     private String status;
+
+
+
 }

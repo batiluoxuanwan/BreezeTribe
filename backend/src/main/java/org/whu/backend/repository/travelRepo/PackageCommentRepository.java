@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import org.whu.backend.entity.travelpac.PackageComment;
+import org.whu.backend.entity.travelpac.TravelPackage;
 
 import java.util.List;
 import java.util.Set;
@@ -34,4 +35,6 @@ public interface PackageCommentRepository extends JpaRepository<PackageComment, 
 
     // 查询用户是否已经评价过一个旅游团
     boolean existsByAuthorIdAndTravelPackageId(String userId, String packageId);
+
+    List<PackageComment> findByTravelPackageAndParentIsNull(TravelPackage travelPackage);
 }

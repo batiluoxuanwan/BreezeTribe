@@ -226,11 +226,14 @@ public class AuthService {
             throw new BizException("RefreshToken 已过期");
         }
 
+        //TODO
         // 4. 校验 Redis 中是否存在此 refreshToken
         String redisKey = "refresh:" + userId;
         String storedToken = redisTemplate.opsForValue().get(redisKey);
         System.out.println(storedToken);
         if (storedToken == null || !storedToken.equals(refreshToken)) {
+            System.out.println("refreshToken:"+refreshToken);
+            System.out.println("storedToken:"+storedToken);
             throw new BizException("非法的 RefreshToken");
         }
 

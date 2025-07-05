@@ -24,8 +24,8 @@ spring:
 
   jwt:
     secret: ThereisnofuturethereisnopastThankGodthismomentisnotthelast
-    #expiration: 3600000 # 1h，单位毫秒
-    expiration: 20000 # 20s，单位毫秒
+    expiration: 3600000 # 1h，单位毫秒
+    #expiration: 20000 # 20s，单位毫秒
 
   mail:
     host: smtp.qq.com
