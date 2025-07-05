@@ -144,5 +144,16 @@ public class FriendController {
 
         return Result.success(finalDto);
     }
+
+    @Operation(summary = "是否为好友", description = "判断是不是用户的好友")
+    @GetMapping("/areufriend")
+    public Result<Boolean> areufriend(@RequestParam String hisid) {
+        Account currentUser = accountUtil.getCurrentAccount();
+        Account otherUser = authRepository.findById(hisid)
+                .orElseThrow(() -> new BizException("用户不存在"));
+        boolean isFriend = friendShipRepository.existsByAccount1AndAccount2(currentUser, otherUser);
+
+        return Result.success(isFriend);
+    }
 }
 

@@ -79,6 +79,10 @@ public class FriendService {
 //        if (!request.getReceiverId().equals(accountId)) {
 //            throw new BizException("无权接受该好友请求");
 //        }
+        // 校验不能加自己为好友
+        if (request.getId().equals(request.getFrom().getId())) {
+            throw new BizException("不能添加自己为好友");
+        }
         Account currentAccount = accountUtil.getCurrentAccount();
         //String currentAccountId = AccountUtil.getCurrentAccountId();
         request.setStatus(FriendRequest.RequestStatus.ACCEPTED);
@@ -87,9 +91,9 @@ public class FriendService {
         // 创建双向好友记录
         Friendship friend1 = new Friendship();
         friend1.setAccount1(currentAccount);
-        friend1.setAccount2(request.getTo());
+        friend1.setAccount2(request.getFrom());
         Friendship friend2 = new Friendship();
-        friend2.setAccount1(request.getTo());
+        friend2.setAccount1(request.getFrom());
         friend2.setAccount2(currentAccount);
         friendShipRepository.save(friend1);
         friendShipRepository.save(friend2);
