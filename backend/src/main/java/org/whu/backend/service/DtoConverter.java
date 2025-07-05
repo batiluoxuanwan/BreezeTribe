@@ -607,6 +607,20 @@ public class DtoConverter {
                 .map(this::convertTagToDto)
                 .collect(Collectors.toList());
 
+        // 2.1 imageId -> url的映射列表
+        // 转换图片URL列表
+        Map<String, String> imageIdAndUrls = entity.getImages().stream()
+                .collect(Collectors.toMap(
+                        // 第一个参数：告诉它用什么做Map的Key
+                        image -> image.getMediaFile().getId(),
+                        // 第二个参数：告诉它用什么做Map的Value
+                        image -> AliyunOssUtil.generatePresignedGetUrl(
+                                image.getMediaFile().getObjectKey(),
+                                EXPIRE_TIME,
+                                IMAGE_PROCESS
+                        )
+                ));
+
         // 3. 使用 @SuperBuilder 构建最终的DTO
         return PackageDetailForMerchantDto.builder()
                 // 填充父类字段
@@ -620,6 +634,7 @@ public class DtoConverter {
                 .viewCount(entity.getViewCount())
                 .status(entity.getStatus().name())
                 .tags(tagDtos)
+                .imageIdAndUrls(imageIdAndUrls)
                 .routes(routeDtos)
                 // 填充子类特有字段
                 .departures(departureDtos)
