@@ -3,6 +3,7 @@ package org.whu.backend.entity.travelpac;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.Formula;
 import org.hibernate.annotations.SoftDelete;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.whu.backend.entity.accounts.User;
@@ -65,6 +66,21 @@ public class TravelOrder {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_account_id", referencedColumnName = "id", nullable = false)
     private User user;
+
+    /**
+     * 这是一个“虚拟”字段，它不存在于数据库的物理表中。
+     * Hibernate会根据这个公式，在每次查询时动态计算出这个字段的值。
+     * 我们用CASE语句为不同的订单状态赋予一个优先级数字。
+     */
+    @Formula("CASE " +
+            "  WHEN status = 'PAID' THEN 1 " +
+            "  WHEN status = 'PENDING_PAYMENT' THEN 2 " +
+            "  WHEN status = 'ONGOING' THEN 3 " +
+            "  WHEN status = 'COMPLETED' THEN 4 " +
+            "  WHEN status = 'CANCELED' THEN 5 " +
+            "  ELSE 99 " +
+            "END")
+    private int statusPriority;
 
     @PrePersist
     protected void onPrePersist() {
