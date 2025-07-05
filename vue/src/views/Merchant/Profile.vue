@@ -143,11 +143,12 @@
         </el-row>
       </div>
 
+      <!-- 我的旅行团 -->
       <div v-if="activeTab === 'tourManagement'">
         <el-table :data="myTours" v-loading="tourLoading" style="width: 100%" class="admin-table">
           <el-table-column prop="title" label="团名"></el-table-column>
           <el-table-column prop="description" label="详细描述"></el-table-column>
-          <el-table-column prop="startDate" label="出发日期" width="120"></el-table-column>
+          <el-table-column prop="durationInDays" label="天数" width="120"></el-table-column>
           <el-table-column prop="price" label="价格" width="100"></el-table-column>
           <el-table-column prop="status" label="状态" width="100">
             <template #default="{ row }">
@@ -220,15 +221,13 @@
     <el-dialog v-model="tourDetailsDialog" :title="`旅行团详情: ${selectedTour.title}`" width="800px">
       <el-descriptions border :column="2" class="detail-descriptions">
         <el-descriptions-item label="团名">{{ selectedTour.title }}</el-descriptions-item>
-        <el-descriptions-item label="地点">{{ selectedTour.location }}</el-descriptions-item>
         <el-descriptions-item label="价格">{{ selectedTour.price }}</el-descriptions-item>
-        <el-descriptions-item label="天数">{{ selectedTour.duration }}</el-descriptions-item>
-        <el-descriptions-item label="出发日期">{{ selectedTour.startDate }}</el-descriptions-item>
+        <el-descriptions-item label="天数">{{ selectedTour.durationInDays }}</el-descriptions-item>
         <el-descriptions-item label="状态">
           <el-tag :type="getTourStatusType(selectedTour.status)">{{ getTourStatusText(selectedTour.status) }}</el-tag>
         </el-descriptions-item>
         <el-descriptions-item label="封面图" :span="2">
-          <img :src="selectedTour.image" alt="封面" style="width: 100%; max-height: 250px; object-fit: cover; border-radius: 8px;">
+          <img :src="selectedTour.coverImageUrl" alt="封面" style="width: 100%; max-height: 250px; object-fit: cover; border-radius: 8px;">
         </el-descriptions-item>
         <el-descriptions-item label="详情描述" :span="2">
           <p>{{ selectedTour.description }}</p>
@@ -236,10 +235,6 @@
       </el-descriptions>
       <template #footer>
         <el-button @click="tourDetailsDialog = false">关闭</el-button>
-        <el-button type="warning" @click="editTour(selectedTour)">编辑</el-button>
-        <el-button :type="selectedTour.status === 'PUBLISHED' ? 'danger' : 'success'" @click="toggleTourStatus(selectedTour)">
-          {{ selectedTour.status === 'PUBLISHED' ? '下架' : '上架' }}
-        </el-button>
       </template>
     </el-dialog>
 
@@ -269,49 +264,20 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="travelPackageOrdersDialog" :title="`旅行团订单列表: ${selectedTour.title}`" width="80%">
-      <el-table :data="ordersForSelectedPackage.content" v-loading="ordersForSelectedPackage.loading" style="width: 100%" max-height="400">
-        <el-table-column prop="id" label="订单号" width="150"></el-table-column>
-        <el-table-column prop="contactName" label="客户名称" width="120"></el-table-column>
-        <el-table-column prop="contactPhone" label="客户电话" width="150"></el-table-column>
-        <el-table-column prop="travelerCount" label="预订人数" width="100"></el-table-column>
-        <el-table-column prop="totalPrice" label="总金额" width="100"></el-table-column>
-        <el-table-column prop="orderTime" label="下单日期" width="150">
-          <template #default="{ row }">
-            {{ formatTime(row.orderTime) }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="status" label="订单状态" width="120">
-          <template #default="{ row }">
-            <el-tag :type="getOrderStatusType(row.status)">{{ getOrderStatusText(row.status) }}</el-tag>
-          </template>
-        </el-table-column>
-      </el-table>
-      <el-pagination
-        v-if="ordersForSelectedPackage.totalElements > 0"
-        background
-        layout="prev, pager, next"
-        :total="ordersForSelectedPackage.totalElements"
-        :page-size="ordersForSelectedPackage.pageSize"
-        v-model:current-page="ordersForSelectedPackage.pageNumber"
-        @current-change="fetchTravelPackageOrders"
-        class="pagination-bottom"
-      />
-      <el-empty v-if="!ordersForSelectedPackage.loading && ordersForSelectedPackage.content.length === 0" description="该旅行团暂无订单" :image-size="50"></el-empty>
-    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick,reactive } from 'vue';
+import { ref, onMounted, nextTick,reactive,watch } from 'vue';
 import { Monitor, Compass, Plus, Tickets, Comment, Message, Setting, DocumentCopy, Calendar, TrendCharts, StarFilled ,ArrowLeft} from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { authAxios } from '@/utils/request';
-import { useRouter } from 'vue-router';
+import { useRouter,useRoute } from 'vue-router';
 import AccountOverview from '@/components/AccountOverview.vue' 
 import MyNotifications from '@/components/profile/MyNotifications.vue';
 
 const router = useRouter();
+const route = useRoute();
 
 // --- 团长信息及侧边栏数据 ---
 const merchantProfile = reactive({
@@ -516,7 +482,7 @@ const editTour = (tourRow) => {
   router.push({
     name: '发布新团', 
     query: {
-      tourData: JSON.stringify(tourRow)
+      tourId: tourRow.id
     }
   });
 };
@@ -610,49 +576,22 @@ const viewReviewDetails = (reviewRow) => {
 
 // 查看指定旅行团的订单列表
 const viewOrders = (tourRow) => {
-  selectedTour.value = { ...tourRow }; // 存储当前选中的旅行团信息，方便弹窗标题显示
-  ordersForSelectedPackage.pageNumber = 1; // 重置分页到第一页
-  travelPackageOrdersDialog.value = true; // 打开弹窗
-  fetchTravelPackageOrders(); // 调用新的函数来获取订单数据
-};
-
-// 获取订单数据
-const fetchTravelPackageOrders = async () => {
-  if (!selectedTour.value || !selectedTour.value.id) {
-    console.warn('该旅行团不存在');
-    return;
-  }
-  ordersForSelectedPackage.loading = true;
-  try {
-    const response = await authAxios.get(`/dealer/travel-packages/${selectedTour.value.id}/orders`, {
-      params: {
-        page: ordersForSelectedPackage.pageNumber,
-        size: ordersForSelectedPackage.pageSize
-      }
-    });
-    if (response.data.code === 200 && response.data.data) {
-      ordersForSelectedPackage.content = response.data.data.content;
-      ordersForSelectedPackage.totalElements = response.data.data.totalElements;
-      console.log(`获取旅行团 ${selectedTour.value.id}的订单:`, ordersForSelectedPackage.content);
-    } else {
-      ElMessage.error(response.data.message || '获取旅行团订单失败');
-      ordersForSelectedPackage.content = []; 
-      ordersForSelectedPackage.totalElements = 0;
+  router.push({
+    name: 'TourOrderManagement',
+    params: {
+      tourId: tourRow.id 
+    },
+    query: {
+      tourTitle: tourRow.title 
     }
-  } catch (error) {
-    console.error(`获取旅行团 ${selectedTour.value.title} 的订单时发生错误:`, error);
-    ElMessage.error('加载旅行团订单失败。');
-    ordersForSelectedPackage.content = []; 
-    ordersForSelectedPackage.totalElements = 0;
-  } finally {
-    ordersForSelectedPackage.loading = false;
-  }
+  });
 };
 
 // 跳转发布旅行团页
 const goToNewGroupPage = () => {
   router.push('/merchant/newgroup');
 };
+
 //跳转添加团期页
 const goToAddSchedulePage = () => {
   router.push('/merchant/addschedule');
@@ -662,6 +601,13 @@ const goToAddSchedulePage = () => {
 const goToHome = () => {
   router.push('/')
 }
+
+watch(() => route.query.activeTab, (newTab) => {
+  if (newTab) {
+    activeTab.value = newTab;
+  }
+  console.log('activeTab.value',activeTab.value)
+});
 
 
 // --- 辅助函数：状态标签和文本 ---
@@ -756,6 +702,50 @@ onMounted(() => {
   // fetchReviews();
   // fetchMessages();
 });
+
+// 根据activeTab加载对应数据
+const loadDataForActiveTab = (tab) => {
+  switch (tab) {
+    case 'overview':
+      fetchMerchantOverview();
+      fetchRecentTourReviews();
+      fetchRecentOrders();
+      break;
+    case 'tourManagement':
+      fetchMyTours();
+      break;
+    case 'reviewManagement':
+      fetchReviews();
+      break;
+    case 'messageCenter':
+      break;
+    case 'accountSettings':
+      break;
+    default:
+      break;
+  }
+};
+
+const setActiveTab = (tabName) => {
+  activeTab.value = tabName;
+  router.replace({ query: { ...route.query, activeTab: tabName } }).catch(() => { });
+};
+
+watch(
+  () => route.query.activeTab,
+  (newVal) => {
+    if (newVal && activeTab.value !== newVal) {
+      activeTab.value = newVal; 
+      loadDataForActiveTab(newVal); 
+    } else if (!newVal && activeTab.value !== 'overview') {
+      activeTab.value = 'overview';
+      loadDataForActiveTab('overview');
+    }
+    console.log('watch route.query.activeTab triggered, activeTab.value:', activeTab.value);
+  },
+  { immediate: true } 
+);
+
 
 </script>
 

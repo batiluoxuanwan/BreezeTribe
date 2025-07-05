@@ -3,12 +3,12 @@
     <div class="create-tour-package-page">
       <div class="header-section">
         <h2 class="page-title">
-          <el-icon><Plus /></el-icon> {{ tourId ? '编辑旅行团' : '发布新的旅行团' }}
+          <el-icon><Plus /></el-icon> {{ isEditMode ? '编辑旅行团' : '发布新的旅行团' }}
         </h2>
         <p class="page-subtitle">
-          {{ tourId ? '在这里更新您的旅行团行程，让信息保持最新！' : '在这里创建您独一无二的旅行团行程，让更多人发现精彩！' }}
+          {{ isEditMode ? '在这里更新您的旅行团行程，让信息保持最新！' : '在这里创建您独一无二的旅行团行程，让更多人发现精彩！' }}
         </p>
-        <el-button type="info" :icon="ArrowLeft" class="back-to-profile-btn" @click="goToProfile">
+        <el-button type="info" :icon="ArrowLeft" class="back-to-profile-btn" @click="goBack">
           返回
         </el-button>
       </div>
@@ -23,20 +23,20 @@
           </template>
           <div>
             <div class="tag-button-wrapper">
-            <el-button type = text @click="toggleTagSelector">{{ showSelector ? '完成添加' : '快来为你的旅行团添加标签吧！' }}</el-button>
+              <el-button type="text" @click="toggleTagSelector">{{ showSelector ? '完成添加' : '快来为你的旅行团添加标签吧！' }}</el-button>
             </div>
 
             <div v-if="showSelector" class="tag-selector">
-              <div class="search-and-category-row"> <el-input v-model="searchName" placeholder="搜索标签" @input="fetchTags" clearable class="search-input">
-                <template #prefix> <el-icon><Search /></el-icon>
-                </template>
-              </el-input>
-              <el-select v-model="category" placeholder="选择分类" @change="fetchTags" clearable class="category-select">
-                <el-option label="主题" value="THEME" />
-                <el-option label="受众" value="TARGET_AUDIENCE" />
-                <el-option label="目的地" value="DESTINATION" />
-                <el-option label="特色" value="FEATURE" />
-              </el-select>
+              <div class="search-and-category-row">
+                <el-input v-model="searchName" placeholder="搜索标签" @input="fetchTags" clearable class="search-input">
+                  <template #prefix> <el-icon><Search /></el-icon> </template>
+                </el-input>
+                <el-select v-model="category" placeholder="选择分类" @change="fetchTags" clearable class="category-select">
+                  <el-option label="主题" value="THEME" />
+                  <el-option label="受众" value="TARGET_AUDIENCE" />
+                  <el-option label="目的地" value="DESTINATION" />
+                  <el-option label="特色" value="FEATURE" />
+                </el-select>
               </div>
 
               <div class="tag-list">
@@ -89,6 +89,7 @@
                 :max="365"
                 placeholder="输入旅行天数"
                 style="width: 100%;"
+                @change="onTravelDaysChange"
               ></el-input-number>
             </el-form-item>
 
@@ -106,12 +107,12 @@
                 action="#"
                 list-type="picture-card"
                 :auto-upload="false"
-                :on-change="handleTourImageUpload"
+                :on-change="handleTourImageChange"
                 :on-remove="handleTourImageRemove"
-                :file-list="tourImageUrls.map(url => ({
-                  url: url
-                }))"
-                :limit="5" accept="image/jpeg,image/png"
+                :file-list="imageFileList"
+                :limit="5"
+                accept="image/jpeg,image/png"
+                :multiple="true"
               >
                 <el-icon><Plus /></el-icon>
                 <template #tip>
@@ -162,14 +163,14 @@
 
             <div class="spot-list">
               <el-empty
-                v-if="day.length === 0"
+                v-if="day.spots.length === 0"
                 description="点击右上方按钮，为这一天添加精彩的地点或活动！"
                 :image-size="60"
                 class="empty-spot-list"
               ></el-empty>
               <el-card
-                v-for="(spot, i) in day"
-                :key="i"
+                v-for="(spot, i) in day.spots"
+                :key="spot.uid"
                 class="spot-card"
                 shadow="hover"
               >
@@ -187,7 +188,7 @@
 
         <div class="submit-section" v-if="dailySchedules.length > 0">
           <el-button type="success" size="large" :icon="Check" class="submit-button" @click="submitTourPackage">
-            {{ tourId ? '更新旅行团' : '发布旅行团' }}
+            {{ isEditMode ? '更新旅行团' : '发布旅行团' }}
           </el-button>
         </div>
       </div>
@@ -240,47 +241,164 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch, onMounted } from 'vue'
-import { Search, Edit, Upload, Plus, InfoFilled, Calendar, List, Location, Check, Clock, Delete, ArrowLeft } from '@element-plus/icons-vue'
-import { publicAxios,authAxios } from '@/utils/request'
-import { ElMessage,ElMessageBox } from 'element-plus'
-import { useRouter,useRoute } from 'vue-router'
+import { ref, reactive, watch, onMounted, computed } from 'vue';
+import { Search, Plus, InfoFilled, Calendar, List, Location, Check, Delete, ArrowLeft } from '@element-plus/icons-vue';
+import { publicAxios, authAxios } from '@/utils/request';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { useRouter, useRoute } from 'vue-router';
 
-const router = useRouter()
-const route = useRoute()
+const router = useRouter();
+const route = useRoute();
 
-const goToProfile = () => {
-  router.push('/merchant/me')
-}
+// --- 响应式数据 ---
+const tourId = ref(null); // 如果有值，表示编辑模式
+const title = ref('');
+const travelDays = ref(1);
+const dailySchedules = ref([]); // 存储每日行程，每个元素包含 { routeName, routeDescription, spots: [] }
+const detailDescription = ref('');
 
-// 旅行团整体信息
-const tourId = ref(null); // 用于存储旅行团ID，如果是在编辑现有旅行团
-const title = ref('')
-const travelDays = ref(1) 
-const dailySchedules = ref([]) 
-const detailDescription = ref(null) 
-const activeDayIndex = ref(null) 
-const tourImageUrls = reactive([]);
-const uploadedBackendFileIds = reactive([]); 
+// 图片管理
+const imageFileList = reactive([]); // Element Plus el-upload 绑定的文件列表
+const existingTourImageFileIds = reactive([]); // 存储从后端加载的图片ID
+const newlyUploadedTourImageFileIds = reactive([]); // 存储用户本次会话新上传的图片ID
+
+// 标签相关
+const showSelector = ref(false);
+const searchName = ref('');
+const category = ref('');
+const page = ref(1);
+const size = 10;
+const total = ref(0);
+const tagList = ref([]);
+const selectedTags = ref([]);
+
 // 景点搜索弹窗相关
-const spotDialogVisible = ref(false)
-const spotKeyword = ref('')
-const spotResults = ref([])
-const loading = ref(false)
+const spotDialogVisible = ref(false);
+const spotKeyword = ref('');
+const spotResults = ref([]);
+const loading = ref(false);
+const activeDayIndex = ref(null); // 记录当前操作是哪一天
 
-const showSelector = ref(false)
-const searchName = ref('')
-const category = ref('')
-const page = ref(1)
-const size = 10
-const total = ref(0)
-const tagList = ref([])
-const selectedTags = ref([])
+// --- 计算属性 ---
+const isEditMode = computed(() => !!tourId.value); // 判断是否为编辑模式
 
+// --- 生命周期钩子 ---
+onMounted(() => {
+  if (route.query.tourId) {
+    const tourId = route.query.tourId;
+    console.log("正在加载要编辑的旅行团 ID:", tourId);
+    fetchTourForEditing(tourId);
+  } else {
+    // 新建旅行团模式
+    generateDays();
+  }
+});
+
+// --- 监听器 ---
+watch(travelDays, (newVal, oldVal) => {
+  // 只有在天数发生有效变化时才重新生成行程框架
+  if (newVal > 0 && newVal !== oldVal) {
+    generateDays();
+  }
+});
+
+// 返回按钮逻辑
+const goBack = () => {
+  ElMessageBox.confirm('您确定要放弃当前编辑/发布吗？未保存的内容将会丢失。', '提示', {
+    confirmButtonText: '确定放弃',
+    cancelButtonText: '取消',
+    type: 'warning',
+  }).then(() => {
+    router.push({ path: '/merchant/me', query: { activeTab: 'tourManagement' } }); 
+  }).catch(() => {
+    // 用户点击取消
+  });
+};
+
+const fetchTourForEditing = async (id) => {
+  if (!id) {
+    ElMessage.error('缺少旅行团ID，无法加载详情。');
+    // 确保至少生成1天的行程框架
+    generateDays(); 
+    return;
+  }
+
+  try {
+    const response = await authAxios.get(`/dealer/travel-packages/travel-packages/${id}`); 
+    if (response.data.code === 200 && response.data.data) {
+      const tourToEdit = response.data.data;
+
+      console.log('获取旅行团详情成功',tourToEdit)
+      tourId.value = tourToEdit.id;
+      title.value = tourToEdit.title;
+      travelDays.value = tourToEdit.durationInDays;
+      detailDescription.value = tourToEdit.detailedDescription;
+
+      // 填充标签
+      selectedTags.value = []; 
+      if (tourToEdit.tags && Array.isArray(tourToEdit.tags)) {
+        selectedTags.value.push(...tourToEdit.tags); 
+      }
+
+      // 填充图片信息
+      //imageFileList.splice(0); // 清空文件列表
+      //existingTourImageFileIds.splice(0); // 清空现有图片ID
+      //newlyUploadedTourImageFileIds.splice(0); // 清空新上传图片ID
+
+      if (tourToEdit.imageUrls && Array.isArray(tourToEdit.imageUrls)) {
+        tourToEdit.imageUrls.forEach((imgUrl, index) => {
+          imageFileList.push({
+            name: `existing-image-${index + 1}`,
+            url: imgUrl,
+            status: 'success',
+            uid: imgUrl // 使用URL作为uid，或者您后端返回的图片唯一标识
+          });
+        });
+      }
+      // 填充后端图片ID (假设后端返回的imgIds是原始图片ID的数组)
+      if (tourToEdit.imgIds && Array.isArray(tourToEdit.imgIds)) {
+        existingTourImageFileIds.push(...tourToEdit.imgIds);
+      }
+
+      // 填充每日行程
+      dailySchedules.value.splice(0); // 清空现有行程
+      if (tourToEdit.routes && Array.isArray(tourToEdit.routes)) {
+        tourToEdit.routes.forEach(day => {
+          dailySchedules.value.push({
+            routeName: day.name || '',
+            routeDescription: day.description || '',
+            spots: day.spots && Array.isArray(day.spots) ? day.spots.map(spot => ({
+              id: spot.uid,
+              latitude: spot.latitude,
+              longitude: spot.longititude,
+              name: spot.name,
+            })) : []
+          });
+        });
+      } else {
+        // 如果后端没有返回行程数据，但有天数，则生成空框架
+        generateDays();
+      }
+
+      ElMessage.success('旅行团详情加载成功，可开始编辑！');
+    } else {
+      ElMessage.error(response.data.message || '获取旅行团详情失败！');
+      generateDays(); // 失败也生成空框架
+    }
+  } catch (error) {
+    console.error('获取旅行团详情时发生错误:', error);
+    ElMessage.error('网络请求失败，无法加载旅行团详情。');
+    generateDays(); // 失败也生成空框架
+  }
+};
+
+
+
+// --- 标签相关方法 ---
 const toggleTagSelector = () => {
-  showSelector.value = !showSelector.value
-  if (showSelector.value) fetchTags()
-}
+  showSelector.value = !showSelector.value;
+  if (showSelector.value) fetchTags();
+};
 
 const fetchTags = async () => {
   const params = {
@@ -290,162 +408,158 @@ const fetchTags = async () => {
     size,
     sortBy: 'createdTime',
     sortDirection: 'DESC'
+  };
+  try {
+    const res = await publicAxios.get('/public/tags', { params }); 
+    if (res.data.code === 200) {
+      tagList.value = res.data.data.content;
+      total.value = res.data.data.totalElements;
+    }
+  } catch (error) {
+    console.error('获取标签失败:', error);
+    ElMessage.error('获取标签失败，请重试。');
   }
-
-  const res = await publicAxios.get('/public', { params })
-  if (res.data.code === 200) {
-    tagList.value = res.data.data.content
-    total.value = res.data.data.totalElements
-    console.log('标签数据：', res.data)
-  }
-}
+};
 
 const handlePageChange = (val) => {
-  page.value = val
-  fetchTags()
-}
+  page.value = val;
+  fetchTags();
+};
 
 const toggleTag = (tag) => {
-  const index = selectedTags.value.findIndex(t => t.id === tag.id)
+  const index = selectedTags.value.findIndex(t => t.id === tag.id);
   if (index >= 0) {
-    selectedTags.value.splice(index, 1)
+    selectedTags.value.splice(index, 1);
   } else {
-    selectedTags.value.push(tag)
+    selectedTags.value.push(tag);
   }
-}
+};
 
 const removeTag = (tag) => {
-  selectedTags.value = selectedTags.value.filter(t => t.id !== tag.id)
-}
+  selectedTags.value = selectedTags.value.filter(t => t.id !== tag.id);
+};
 
 const isSelected = (tag) => {
-  return selectedTags.value.some(t => t.id === tag.id)
-}
+  return selectedTags.value.some(t => t.id === tag.id);
+};
 
 // --- 图片上传处理 ---
-const handleTourImageUpload = async (file) => {
-  // 基本文件类型和大小校验
+const handleTourImageChange = async (file, fileList) => {
+  // 检查是否超出最大限制
+  if (fileList.length > 5) {
+    ElMessage.warning(`最多只能上传 ${5} 张图片`);
+    imageFileList.splice(fileList.indexOf(file), 1); // 移除当前添加的文件
+    return false;
+  }
+
   const isJPGPNG = file.raw.type === 'image/jpeg' || file.raw.type === 'image/png';
   const isLt1000K = file.raw.size / 1024 < 1000; 
 
   if (!isJPGPNG) {
     ElMessage.error('图片只能是 JPG 或 PNG 格式！');
+    imageFileList.splice(fileList.indexOf(file), 1); // 移除不符合要求的文件
     return false;
   }
   if (!isLt1000K) {
     ElMessage.error('图片大小不能超过 1MB！');
+    imageFileList.splice(fileList.indexOf(file), 1); // 移除不符合要求的文件
     return false;
   }
 
-  // 生成前端预览URL (异步操作)
-  let previewUrl = '';
-  try {
-    previewUrl = await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => resolve(e.target.result);
-      reader.onerror = (error) => reject(error);
-      reader.readAsDataURL(file.raw);
-    });
-  } catch (error) {
-    console.error('读取文件进行预览失败:', error);
-    ElMessage.error('无法读取图片文件进行预览。');
-    return false;
-  }
+  // 立即将文件添加到 Element Plus 的 fileList 中，以便显示预览
+  // file.url 已经是 Element Plus 生成的本地预览 URL
+  // 这里不需要手动 push 到 tourImageUrls，因为 imageFileList 已经包含了
 
-  // 准备 FormData
+  ElMessage.info(`正在上传文件: ${file.name}...`);
   const formData = new FormData();
   formData.append('file', file.raw);
 
-  // 发送文件到后端
   try {
-    const response = await authAxios.post('/user/media/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
+    const res = await authAxios.post('/user/media/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      onUploadProgress: (progressEvent) => {
+        file.percentage = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+        file.status = 'uploading';
       }
     });
 
-    // 处理后端响应
-    if (response.data.code === 200) {
-      const uploadedId = response.data.data.fileId; 
-      tourImageUrls.push(previewUrl); 
-      uploadedBackendFileIds.push(uploadedId);
-      console.log(tourImageUrls)
-
-      ElMessage.success('图片上传成功！');
-      return true;
+    if (res.data.code === 200 && res.data.data && res.data.data.fileId) {
+      const newFileId = res.data.data.fileId;
+      newlyUploadedTourImageFileIds.push(newFileId); // 记录新上传的图片ID
+      file.status = 'success'; // 更新文件状态
+      file.response = res.data; // 存储后端响应
+      ElMessage.success(`${file.name} 上传成功！`);
     } else {
-      ElMessage.error(response.data.message || '图片上传失败，请重试。');
-      return false;
+      file.status = 'fail'; // 更新文件状态
+      ElMessage.error(`${file.name} 上传失败: ${res.data.message || '服务器返回错误'}`);
+      // 从 Element Plus 文件列表中移除失败的文件
+      const indexToRemove = imageFileList.findIndex(item => item.uid === file.uid);
+      if (indexToRemove !== -1) {
+        imageFileList.splice(indexToRemove, 1);
+      }
     }
-  } catch (error) {
-    console.error('图片上传失败:', error);
-    if (error.response && error.response.data && error.response.data.message) {
-      ElMessage.error(`上传失败: ${error.response.data.message}`);
-    } else {
-      ElMessage.error('网络错误或服务器问题，图片上传失败。');
+  } catch (err) {
+    file.status = 'fail'; // 更新文件状态
+    console.error('文件上传失败:', err);
+    ElMessage.error(`${file.name} 上传失败: ${err.response?.data?.message || '网络或服务器错误'}`);
+    // 从 Element Plus 文件列表中移除失败的文件
+    const indexToRemove = imageFileList.findIndex(item => item.uid === file.uid);
+    if (indexToRemove !== -1) {
+      imageFileList.splice(indexToRemove, 1);
     }
-    return false;
   }
 };
 
-// --- 图片删除处理 ---
 const handleTourImageRemove = async (file) => {
-  // 查找要删除的预览图片在 tourImageUrls 中的索引
-  const index = tourImageUrls.findIndex(url => url === file.url);
-  if (index === -1) {
-    ElMessage.error('未找到要移除的图片。');
-    return false;
-  }
+  // 判断是已存在的图片还是新上传的图片
+  const fileIdToRemove = file.response?.data?.fileId || null; // 获取新上传图片对应的后端ID
 
-  // 根据索引获取对应的后端文件ID
-  const fileIdToRemove = uploadedBackendFileIds[index]; 
-
-  // 弹出确认框
+  const isExistingImage = existingTourImageFileIds.some(id => file.uid === id || file.url.includes(id)); 
+  // 询问用户是否确认删除
   try {
-    await ElMessageBox.confirm(
-      `确定要删除此图片吗？`,
-      '删除确认',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning',
-      }
-    );
+    await ElMessageBox.confirm('确定要删除此图片吗？', '删除确认', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    });
 
-    // 用户点击确定，执行后端删除操作
-    if (fileIdToRemove) { 
+    if (isExistingImage) {
+      // 如果是已存在的图片，只从 existingTourImageFileIds 中移除
+      const index = existingTourImageFileIds.findIndex(id => file.uid === id || file.url.includes(id));
+      if (index !== -1) {
+        existingTourImageFileIds.splice(index, 1);
+        ElMessage.success('图片已标记为移除，将在更新旅行团后生效。');
+      }
+    } else if (fileIdToRemove) {
+      // 如果是新上传的图片且有后端ID，则调用后端删除接口
+      ElMessage.info('正在删除上传文件...');
       try {
         const response = await authAxios.delete(`/user/media/${fileIdToRemove}`);
         if (response.data.code === 200) {
+          const index = newlyUploadedTourImageFileIds.findIndex(id => id === fileIdToRemove);
+          if (index !== -1) {
+            newlyUploadedTourImageFileIds.splice(index, 1); // 从新上传列表中移除
+          }
           ElMessage.success('图片已从服务器移除！');
-          // 从前端预览列表和后端ID列表中移除
-          tourImageUrls.splice(index, 1);
-          uploadedBackendFileIds.splice(index, 1); // **同步移除对应的后端ID**
-          return true;
         } else {
           ElMessage.error(response.data.message || '从服务器删除图片失败。');
-          return false;
         }
       } catch (error) {
         console.error('调用删除接口失败:', error);
-        if (error.response && error.response.data && error.response.data.message) {
-            ElMessage.error(`删除失败: ${error.response.data.message}`);
-        } else {
-            ElMessage.error('网络错误或服务器问题，图片删除失败。');
-        }
-        return false;
+        ElMessage.error(`删除失败: ${error.response?.data?.message || '网络错误或服务器问题。'}`);
       }
     } else {
-      tourImageUrls.splice(index, 1); // 仅从前端移除
-      ElMessage.info('图片已从预览移除，但未与后端文件关联。');
-      return true;
+      // 本地文件或没有后端ID的新文件，直接移除
+      ElMessage.info('本地图片已移除。');
     }
+
+    return true; 
   } catch (cancel) {
-    // 用户点击了取消，不执行任何操作
     ElMessage.info('已取消删除操作。');
-    return false;
+    return false; 
   }
 };
+
 
 // --- 行程生成 ---
 const generateDays = () => {
@@ -453,8 +567,21 @@ const generateDays = () => {
     ElMessage.warning('请输入有效的旅行天数。');
     return;
   }
-  dailySchedules.value = Array.from({ length: travelDays.value }, () => ([]));
-  ElMessage.success(`已为您生成 ${travelDays} 天的行程框架！现在可以开始添加内容了。`);
+  // 根据 travelDays.value 创建相应数量的空行程日对象
+  const newSchedules = Array.from({ length: travelDays.value }, (_, index) => {
+    // 尽量保留已有的数据
+    if (dailySchedules.value[index]) {
+      return dailySchedules.value[index];
+    } else {
+      return {
+        routeName: '',
+        routeDescription: '',
+        spots: []
+      };
+    }
+  });
+  dailySchedules.value = newSchedules;
+  ElMessage.success(`已为您生成 ${travelDays.value} 天的行程框架！现在可以开始添加内容了。`);
 };
 
 // --- 景点搜索与管理 ---
@@ -465,31 +592,32 @@ const openSpotDialog = (dayIndex) => {
   spotDialogVisible.value = true;
 };
 
-const querySearchSpots =async (queryString, cb) => {
-  if (!queryString) return cb([])
+const querySearchSpots = async (queryString, cb) => {
+  if (!queryString) return cb([]);
   try {
     const res = await publicAxios.get('/public/spots/suggestions', {
       params: {
         keyword: queryString,
-        region: '全球' 
+        region: '全球' // 或者可以根据需要设置特定区域
       }
-    })
-    const results = res.data?.data || []
-    cb(results.map(item => ({ ...item, value: item.name })))
+    });
+    const results = res.data?.data || [];
+    cb(results.map(item => ({ ...item, value: item.name }))); // value 属性用于 Element Plus Autocomplete 显示
   } catch (err) {
-    console.error('获取目的地建议失败', err)
-    cb([])
+    console.error('获取目的地建议失败', err);
+    cb([]);
   }
 };
 
 const handleSpotSelect = (item) => {
-  if (activeDayIndex.value === null) {
-    ElMessage.error('请先点击某天的“添加地点/活动”按钮来选择日期。');
+  if (activeDayIndex.value === null || activeDayIndex.value < 0 || activeDayIndex.value >= dailySchedules.value.length) {
+    ElMessage.error('内部错误：无法确定要添加地点的日期。');
     return;
   }
 
-  // 检查是否已添加重复景点
-  const existingSpot = dailySchedules.value[activeDayIndex.value].find(s => s.name === item.name);
+  // 检查是否已添加重复景点 (通过uid判断唯一性)
+  const currentDaySpots = dailySchedules.value[activeDayIndex.value].spots;
+  const existingSpot = currentDaySpots.find(s => s.uid === item.uid);
   if (existingSpot) {
     ElMessage.warning(`"${item.name}" 已经添加到 DAY ${activeDayIndex.value + 1} 了，请勿重复添加。`);
     spotDialogVisible.value = false;
@@ -498,11 +626,12 @@ const handleSpotSelect = (item) => {
     return;
   }
 
-  dailySchedules.value[activeDayIndex.value].push({
+  currentDaySpots.push({
     name: item.name,
-    uid: item.uid
+    uid: item.uid,
+    // 如果需要，可以在这里添加更多景点信息，如 location, description 等
   });
-  console.log(item)
+  
   ElMessage.success(`已将 "${item.name}" 添加到 DAY ${activeDayIndex.value + 1}。`);
   spotDialogVisible.value = false; // 关闭搜索弹窗
   spotKeyword.value = ''; 
@@ -510,8 +639,8 @@ const handleSpotSelect = (item) => {
 };
 
 const removeSpot = (dayIndex, spotIndex) => {
-  const spotName = dailySchedules.value[dayIndex][spotIndex].name;
-  dailySchedules.value[dayIndex].splice(spotIndex, 1);
+  const spotName = dailySchedules.value[dayIndex].spots[spotIndex].name;
+  dailySchedules.value[dayIndex].spots.splice(spotIndex, 1);
   ElMessage.info(`已将 "${spotName}" 从行程中移除。`);
 };
 
@@ -520,12 +649,19 @@ const removeSpot = (dayIndex, spotIndex) => {
 const submitTourPackage = async () => {
   // 数据校验
   if (!title.value) { ElMessage.error('请输入旅行团标题。'); return; }
-  if (!travelDays.value) { ElMessage.error('请输入旅行天数。'); return; }
+  if (!travelDays.value || travelDays.value <= 0) { ElMessage.error('请输入有效的旅行天数。'); return; }
   if (!detailDescription.value) { ElMessage.error('请写入详细描述。'); return; }
   if (dailySchedules.value.length === 0) { ElMessage.error('请生成行程框架并添加行程。'); return; }
-  if (uploadedBackendFileIds.length === 0) { ElMessage.error('请上传至少一张团主图。'); return; }
 
-  // 获取选中的标签ID列表 (即使为空数组也会正常提交)
+  // 合并所有图片ID
+  const allImageIds = [
+    ...existingTourImageFileIds,
+    ...newlyUploadedTourImageFileIds
+  ];
+
+  if (allImageIds.length === 0) { ElMessage.error('请上传至少一张团主图。'); return; }
+
+  // 获取选中的标签ID列表
   const selectedTagIds = selectedTags.value.map(tag => tag.id);
 
   // 构建要提交的 dailySchedules 数组
@@ -533,122 +669,53 @@ const submitTourPackage = async () => {
     dayNumber: index + 1,
     routeName: day.routeName || '',
     routeDescription: day.routeDescription || '',
-    spotUids: day.map(spot => spot.uid) 
+    spotUids: day.spots.map(spot => spot.uid) // 只提交景点UID
   }));
 
-    // 构建提交数据对象
+  // 构建提交数据对象
   const tourPackageData = {
     title: title.value,
     durationInDays: travelDays.value,
     dailySchedules: formattedDailySchedules,
-    imgIds: uploadedBackendFileIds, 
+    imgIds: allImageIds, 
     tagIds: selectedTagIds,
+    description: detailDescription.value, // 确保描述字段被包含
   };
 
   console.log('即将提交的旅行团数据:', JSON.stringify(tourPackageData, null, 2));
 
   try {
-    const response = await authAxios.post('/dealer/travel-packages', tourPackageData);
+    let response;
+    if (isEditMode.value) {
+      ElMessage.info('正在更新旅行团...');
+      response = await authAxios.put(`/dealer/travel-packages/${tourId.value}`, tourPackageData);
+    } else {
+      ElMessage.info('正在发布旅行团...');
+      response = await authAxios.post('/dealer/travel-packages', tourPackageData);
+    }
 
     if (response.data.code === 200) {
-      ElMessage.success('恭喜！您的旅行团已成功发布！请耐心等待审核吧🎉');
-      router.push('/merchant/me'); 
+      ElMessage.success(`${isEditMode.value ? '旅行团更新' : '旅行团发布'}成功！🎉`);
+      // 清空所有表单数据
+      title.value = '';
+      travelDays.value = 1;
+      detailDescription.value = '';
+      dailySchedules.value = [];
+      imageFileList.splice(0);
+      existingTourImageFileIds.splice(0);
+      newlyUploadedTourImageFileIds.splice(0);
+      selectedTags.splice(0);
+      tourId.value = null; // 重置 tourId 为 null，回到发布模式
+      
+      router.push('/merchant/me'); // 跳转到商家个人中心
     } else {
-      ElMessage.error(response.data.message || '旅行团发布失败，请重试。');
+      ElMessage.error(response.data.message || `${isEditMode.value ? '旅行团更新' : '旅行团发布'}失败，请重试。`);
     }
   } catch (error) {
-    console.error('发布旅行团时发生错误:', error);
-    if (error.response && error.response.data && error.response.data.message) {
-        ElMessage.error(`发布失败: ${error.response.data.message}`);
-    } else {
-        ElMessage.error('网络错误或服务器问题，请稍后再试。');
-    }
+    console.error('操作旅行团时发生错误:', error);
+    ElMessage.error(`操作失败: ${error.response?.data?.message || '网络错误或服务器异常'}`);
   }
 };
-
-onMounted(() => {
-  // 检查路由查询参数中是否存在 tourData（用于编辑模式）
-  if (route.query.tourData) {
-    try {
-      const tourToEdit = JSON.parse(route.query.tourData);
-      console.log("正在加载要编辑的旅行团:", tourToEdit);
-
-      // 填充基本信息
-      tourId.value = tourToEdit.id;
-      title.value = tourToEdit.title;
-      travelDays.value = tourToEdit.durationInDays;
-      detailDescription.value = tourToEdit.description;
-
-      // 填充图片信息
-      tourImageUrls.splice(0); // 清空现有图片
-      uploadedBackendFileIds.splice(0); // 清空现有文件ID
-      imageFileList.splice(0); // 清空 Element Plus 文件列表
-
-      if (tourToEdit.imageUrls && Array.isArray(tourToEdit.imageUrls)) {
-        tourToEdit.imageUrls.forEach((imgUrl, index) => {
-          tourImageUrls.push(imgUrl);
-          // 假设后端返回的图片 URL 已经可以直接使用，并且有一个对应的 ID
-          // 这里需要一个逻辑来获取这些图片的 fileId，如果后端返回了
-          // 暂时用一个虚拟的uid和name，实际中应根据后端数据调整
-          imageFileList.push({
-            name: `image-${index + 1}.jpg`, // 假定文件名
-            url: imgUrl,
-            uid: Date.now() + index, // 确保UID唯一
-            status: 'success'
-          });
-        });
-      }
-      
-      // 注意：如果您的后端返回的是 image IDs 而不是直接 URL，您需要：
-      // 1. 在这里填充 uploadedBackendFileIds
-      // 2. 对于 imageFileList，您可能需要一个 API 调用来根据这些 ID 获取实际的图片 URL
-      if (tourToEdit.imgIds && Array.isArray(tourToEdit.imgIds)) {
-        uploadedBackendFileIds.push(...tourToEdit.imgIds);
-      } else if (tourToEdit.imageUrls && Array.isArray(tourToEdit.imageUrls)) {
-        // 如果后端在编辑时只返回 URL 没有 ID，您可能需要考虑如何处理
-        // 例如，如果这些图片是不能删除的，或者删除逻辑需要在后端通过 URL 识别
-        // 或者您在后端获取到编辑数据时，也一并返回这些图片的 fileId
-      }
-
-
-      // 填充标签
-      selectedTags.splice(0); // 清空现有标签
-      if (tourToEdit.tags && Array.isArray(tourToEdit.tags)) {
-        selectedTags.push(...tourToEdit.tags);
-      }
-
-      // 填充每日行程
-      dailySchedules.splice(0); // 清空现有行程
-      if (tourToEdit.dailySchedules && Array.isArray(tourToEdit.dailySchedules)) {
-        tourToEdit.dailySchedules.forEach(day => {
-          dailySchedules.push({
-            routeName: day.routeName || '',
-            routeDescription: day.routeDescription || '',
-            spots: day.spots && Array.isArray(day.spots) ? day.spots.map(spot => ({
-              uid: spot.uid, // 确保这里有景点UID
-              name: spot.name,
-              location: spot.location || '', // 假设后端返回 location
-              note: spot.note || '',
-              timeRange: spot.startTime && spot.endTime ? [spot.startTime, spot.endTime] : [],
-              imageUrl: spot.imageUrl || ''
-            })) : []
-          });
-        });
-      } else {
-        // 如果没有行程数据，根据 travelDays 生成空的每日行程框架
-        generateDays();
-      }
-
-      ElMessage.info('已载入旅行团数据，请进行编辑。');
-    } catch (e) {
-      console.error("解析路由中的 tourData 失败:", e);
-      ElMessage.error('加载旅行团数据失败。');
-    }
-  } else {
-    // 如果没有 tourData，确保 dailySchedules 为新团正确初始化
-    generateDays(); // 根据 travelDays.value 的初始值或默认值初始化（默认1天）
-  }
-});
 </script>
 
 <style scoped>

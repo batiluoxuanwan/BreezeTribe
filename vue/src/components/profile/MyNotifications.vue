@@ -277,8 +277,9 @@ const NOTIFICATION_TYPE_MAP = {
   ORDER_CREATED: { category: 'system', sourceText: '订单创建', pathPrefix: '/merchant/dashboard?tab=orderManagement&orderId=' },
   ORDER_PAID: { category: 'system', sourceText: '订单支付', pathPrefix: '/merchant/dashboard?tab=orderManagement&orderId=' },
   ORDER_CANCELED: { category: 'system', sourceText: '订单取消', pathPrefix: '/merchant/dashboard?tab=orderManagement&orderId=' },
-  PACKAGE_APPROVED: { category: 'system', sourceText: '旅行团审核通过', pathPrefix: '/merchant/dashboard?tab=tourManagement&tourId=' }, // 假设跳转到旅行团管理页
-  PACKAGE_REJECTED: { category: 'system', sourceText: '旅行团审核驳回', pathPrefix: '/merchant/dashboard?tab=tourManagement&tourId=' }, // 假设跳转到旅行团管理页
+  PACKAGE_APPROVED: { category: 'system', sourceText: '旅行团审核通过', pathPrefix: '/merchant/dashboard?tab=tourManagement&tourId=' },
+  PACKAGE_REJECTED: { category: 'system', sourceText: '旅行团审核驳回', pathPrefix: '/merchant/dashboard?tab=tourManagement&tourId=' }, 
+  USER_PAID:{category: 'system', sourceText: '用户已支付一笔订单', pathPrefix: '/merchant/me'},
 
   DEPARTURE_REMINDER: { category: 'system', sourceText: '临行提醒', pathPrefix: null  },
 };
