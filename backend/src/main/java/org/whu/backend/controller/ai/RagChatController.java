@@ -2,6 +2,7 @@ package org.whu.backend.controller.ai;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -11,12 +12,13 @@ import org.springframework.web.bind.annotation.RestController;
 import org.whu.backend.common.Result;
 import org.whu.backend.common.exception.BizException;
 import org.whu.backend.dto.ai.RecommendedPackageDto;
+import org.whu.backend.dto.ai.TagSuggestionRequestDto;
+import org.whu.backend.dto.tag.TagDto;
 import org.whu.backend.service.ai.BailianAppService;
-
 import java.util.Collections;
 import java.util.List;
 
-@Tag(name = "AI智能问答", description = "提供基于RAG的智能旅行推荐")
+@Tag(name = "AI智能问答", description = "提供基于RAG的智能旅行推荐，提供标签智能推荐")
 @RestController
 @PreAuthorize("hasRole('USER')")
 @RequestMapping("/api/chat") // 你可以定义一个更合适的路径
@@ -40,5 +42,12 @@ public class RagChatController {
         }
 
         return Result.success("成功检索到相关旅行团ID", packageIds);
+    }
+
+    @Operation(summary = "智能推荐标签", description = "根据输入的标题和内容，由AI推荐一批合适的标签。")
+    @PostMapping("/suggest-tags")
+    public Result<List<TagDto>> suggestTags(@Valid @RequestBody TagSuggestionRequestDto requestDto) {
+        List<TagDto> suggestedTags = bailianAppService.suggestTagsForText(requestDto);
+        return Result.success("标签推荐成功", suggestedTags);
     }
 }
