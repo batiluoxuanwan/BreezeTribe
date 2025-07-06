@@ -195,7 +195,20 @@ public class NotificationService {
                     Notification.NotificationType.ORDER_CANCELED,
                     Notification.NotificationType.PACKAGE_APPROVED,
                     Notification.NotificationType.PACKAGE_REJECTED,
-                    Notification.NotificationType.DEPARTURE_REMINDER
+                    Notification.NotificationType.DEPARTURE_REMINDER,
+                    Notification.NotificationType.USER_PAID,
+
+                    // 管理员操作导致的
+                    Notification.NotificationType.POST_DELETED,           // 游记被删除
+                    Notification.NotificationType.PACKAGE_BLOCKED,        // 旅行团被屏蔽
+                    Notification.NotificationType.POST_COMMENT_DELETED,   // 游记评论被删除
+                    Notification.NotificationType.PACKAGE_COMMENT_DELETED,// 旅行团评论被删除
+
+                    // 举报通过和驳回
+                    Notification.NotificationType.REPORT_CREATED,         // 举报已提交
+                    Notification.NotificationType.REPORT_ACCEPTED,        // 举报已受理
+                    Notification.NotificationType.REPORT_REJECTED         // 举报被驳回
+
             );
             default -> List.of(); // 如果是未知类别，返回空列表
         };

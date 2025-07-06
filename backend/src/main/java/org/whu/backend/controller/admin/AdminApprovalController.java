@@ -69,5 +69,4 @@ public class AdminApprovalController {
         JpaUtil.isTrue(adminService.rejectMerchants(packageId, rejectionDto), "操作失败");
         return Result.success("操作成功");
     }
-
 }

@@ -44,6 +44,8 @@ import java.util.*;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static org.whu.backend.service.DtoConverter.IMAGE_PROCESS;
+
 @Slf4j
 @Service
 @Transactional(readOnly = true)
@@ -303,7 +305,7 @@ public class PublicService {
         dto.setId(account.getId());
         dto.setRole(account.getRole());
         dto.setUsername(account.getUsername());
-        dto.setAvatarUrl(AliyunOssUtil.generatePresignedGetUrl(account.getAvatarUrl(),36000));
+        dto.setAvatarUrl(AliyunOssUtil.generatePresignedGetUrl(account.getAvatarUrl(), 36000, IMAGE_PROCESS));
         dto.setActive(account.isActive());
 
         return dto;
@@ -317,11 +319,12 @@ public class PublicService {
             return false;
         }
     }
+
     private ShareDto toShareDto(Account user) {
         ShareDto dto = new ShareDto();
         dto.setId(user.getId());
         dto.setUsername(user.getUsername());
-        dto.setAvatarUrl(AliyunOssUtil.generatePresignedGetUrl(user.getAvatarUrl(),36000));
+        dto.setAvatarUrl(AliyunOssUtil.generatePresignedGetUrl(user.getAvatarUrl(), 36000, IMAGE_PROCESS));
         dto.setRole(user.getRole());
         dto.setActive(user.isActive());
         return dto;
@@ -330,7 +333,7 @@ public class PublicService {
     public List<ShareDto> searchUsers(String keyword) {
         Set<String> seenIds = new HashSet<>();
         List<ShareDto> results = new ArrayList<>();
-        String currentUserId=AccountUtil.getCurrentAccountId();
+        String currentUserId = AccountUtil.getCurrentAccountId();
 
         if (isUUID(keyword)) {
             authRepository.findById(keyword).ifPresent(user -> {

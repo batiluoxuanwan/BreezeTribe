@@ -25,6 +25,7 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import static org.whu.backend.entity.accounts.Merchant.status.PENDING;
+import static org.whu.backend.service.DtoConverter.IMAGE_PROCESS;
 
 @Service
 public class AuthService {
@@ -33,7 +34,7 @@ public class AuthService {
     private final CaptchaService captchaService;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
-    private final RedisTemplate<String,String> redisTemplate;
+    private final RedisTemplate<String, String> redisTemplate;
     @Autowired
     private AccountUtil accountUtil;
 
@@ -41,13 +42,13 @@ public class AuthService {
                        CaptchaService captchaService,
                        PasswordEncoder passwordEncoder,
                        JwtService jwtService,
-                       RedisTemplate<String,String> redisTemplate
+                       RedisTemplate<String, String> redisTemplate
     ) {
         this.authRepository = authRepository;
         this.captchaService = captchaService;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
-        this.redisTemplate=redisTemplate;
+        this.redisTemplate = redisTemplate;
     }
 
     // 生成名字后缀
@@ -73,11 +74,11 @@ public class AuthService {
 
         boolean exists = false;
         if (email != null && !email.isBlank()) {
-            if(!captchaService.verifyEmailCode(email, code))
+            if (!captchaService.verifyEmailCode(email, code))
                 throw new BizException("邮箱验证码错误");
             exists = authRepository.existsByEmailAndRole(email, role);
         } else {
-            if(!captchaService.verifySmsCode(phone, code))
+            if (!captchaService.verifySmsCode(phone, code))
                 throw new BizException("手机验证码错误");
             exists = authRepository.existsByPhoneAndRole(phone, role);
         }
@@ -90,7 +91,7 @@ public class AuthService {
             case ROLE_USER:
                 User user = new User();
                 user.setRole(Role.ROLE_USER);
-                user.setUsername("新用户"+generatename());
+                user.setUsername("新用户" + generatename());
                 //user.setEnabled(true);
                 user.setBanDurationDays(0);
                 account = user;
@@ -98,7 +99,7 @@ public class AuthService {
             case ROLE_MERCHANT:
                 Merchant merchant = new Merchant();
                 merchant.setRole(Role.ROLE_MERCHANT);
-                merchant.setUsername("新商家"+generatename());
+                merchant.setUsername("新商家" + generatename());
                 //merchant.setEnabled(false);
                 merchant.setBanDurationDays(-1);
                 merchant.setApproval(PENDING);
@@ -108,7 +109,7 @@ public class AuthService {
             case ROLE_ADMIN:
                 Admin admin = new Admin();
                 admin.setRole(Role.ROLE_ADMIN);
-                admin.setUsername("管理员"+generatename());
+                admin.setUsername("管理员" + generatename());
                 //admin.setEnabled(false);
                 admin.setBanDurationDays(-1);
                 // 特有字段暂时不填，后续用接口补充
@@ -154,7 +155,7 @@ public class AuthService {
         Account account = optionalAccount.get();
 
         if (account.getBanDurationDays() != 0) {
-            if(account.getBanDurationDays()==-1)
+            if (account.getBanDurationDays() == -1)
                 throw new BizException("账号已被永久封禁，如有疑问请联系管理员");
             LocalDateTime banEndTime = account.getBanStartTime().plusDays(account.getBanDurationDays());
             if (LocalDateTime.now().isAfter(banEndTime)) {
@@ -181,9 +182,10 @@ public class AuthService {
         authRepository.save(account);
         return Result.success(new LoginResponse(tokens));
     }
+
     // 登出
     public Result<?> logout(HttpServletRequest request) {
-        Account account =accountUtil.getCurrentAccount();
+        Account account = accountUtil.getCurrentAccount();
         account.setActive(false);
         authRepository.save(account);
         //拉黑token
@@ -225,17 +227,17 @@ public class AuthService {
 
         //TODO
         // 4. 校验 Redis 中是否存在此 refreshToken
-        String redisKey = "refresh:" + userId;
-//        List<String> tokenList = redisTemplate.opsForList().range(redisKey, 0, -1);
-//        if(!(tokenList != null && tokenList.contains(refreshToken)))
-//            throw new BizException("非法的 RefreshToken");
-        String storedToken = redisTemplate.opsForValue().get(redisKey);
-        System.out.println(storedToken);
-        if (storedToken == null || !storedToken.equals(refreshToken)) {
-            System.out.println("refreshToken:"+refreshToken);
-            System.out.println("storedToken:"+storedToken);
+        String redisKey = "refreshlist:" + userId;
+        List<String> tokenList = redisTemplate.opsForList().range(redisKey, 0, -1);
+        if (!(tokenList != null && tokenList.contains(refreshToken)))
             throw new BizException("非法的 RefreshToken");
-        }
+//        String storedToken = redisTemplate.opsForValue().get(redisKey);
+//        System.out.println(storedToken);
+//        if (storedToken == null || !storedToken.equals(refreshToken)) {
+//            System.out.println("refreshToken:"+refreshToken);
+//            System.out.println("storedToken:"+storedToken);
+//            throw new BizException("非法的 RefreshToken");
+//        }
 
         // 5. 生成新的 accessToken
         Account account = authRepository.findById(userId).orElseThrow(() -> new BizException("账户不存在"));
@@ -262,13 +264,13 @@ public class AuthService {
             throw new BizException("账号必须是有效的邮箱或手机号");
         }
 
-        Optional<Account> exists ;
+        Optional<Account> exists;
         if (email != null && !email.isBlank()) {
-            if(!captchaService.verifyEmailCode(email, code))
+            if (!captchaService.verifyEmailCode(email, code))
                 throw new BizException("邮箱验证码错误");
             exists = authRepository.findByEmailAndRole(email, role);
         } else {
-            if(!captchaService.verifySmsCode(phone, code))
+            if (!captchaService.verifySmsCode(phone, code))
                 throw new BizException("手机验证码错误");
             exists = authRepository.findByPhoneAndRole(phone, role);
         }
@@ -279,47 +281,48 @@ public class AuthService {
         authRepository.save(exists.get());
         // 创建 JWT
         //String token = jwtService.generateToken(account);
-        Account account =accountUtil.getCurrentAccount();
+        Account account = accountUtil.getCurrentAccount();
         Map<String, String> tokens = jwtService.generateTokens(account); // ⬅️ 在这里调用！
         authRepository.save(account);
         return Result.success(new LoginResponse(tokens));
     }
-    public Result<?> updateUsername(UpdateUsernameRequest request)  {
-        Account account =accountUtil.getCurrentAccount();
+
+    public Result<?> updateUsername(UpdateUsernameRequest request) {
+        Account account = accountUtil.getCurrentAccount();
         account.setUsername(request.getNewusername());
         authRepository.save(account);
         return Result.success("修改成功");
     }
-    public Result<?> updateAvatar(MultipartFile avatarFile)
-    {
+
+    public Result<?> updateAvatar(MultipartFile avatarFile) {
         if (avatarFile.isEmpty())
             throw new BizException("文件不能为空");
         // 获取当前登录账号ID
         String accountId = AccountUtil.getCurrentAccountId();
-        Account account= accountUtil.getCurrentAccount();
+        Account account = accountUtil.getCurrentAccount();
         // 检查文件类型
         String contentType = avatarFile.getContentType();
         if (contentType == null ||
                 !(contentType.equals("image/jpeg") || contentType.equals("image/png") || contentType.equals("image/gif"))) {
             throw new BizException("只支持 JPEG、PNG、GIF 格式的头像");
         }
-        String objectkey= "avatar/"+accountId+"/"+avatarFile.getOriginalFilename();
+        String objectkey = "avatar/" + accountId + "/" + avatarFile.getOriginalFilename();
         //String objectkey= "avatar/public/nailong.gif";
         try {
             AliyunOssUtil.delete(account.getAvatarUrl());
-            AliyunOssUtil.upload(objectkey,avatarFile.getInputStream());
+            AliyunOssUtil.upload(objectkey, avatarFile.getInputStream());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
         account.setAvatarUrl(objectkey);
         // 调用 Service 完成保存头像操作
         authRepository.save(account);
-        return Result.success("修改成功",AliyunOssUtil.generatePresignedGetUrl(account.getAvatarUrl(), 3600));
+        return Result.success("修改成功", AliyunOssUtil.generatePresignedGetUrl(account.getAvatarUrl(), 3600, IMAGE_PROCESS));
     }
-    public Medto me()
-    {
-        Account account= accountUtil.getCurrentAccount();
-        Medto dto=new Medto();
+
+    public Medto me() {
+        Account account = accountUtil.getCurrentAccount();
+        Medto dto = new Medto();
         dto.setId(account.getId());
         dto.setUsername(account.getUsername());
         dto.setEmail(account.getEmail());
@@ -327,7 +330,7 @@ public class AuthService {
         dto.setCreatedAt(account.getCreatedAt());
         dto.setUpdatedAt(account.getUpdatedAt());
         dto.setRole(account.getRole());
-        dto.setAvatarUrl(AliyunOssUtil.generatePresignedGetUrl(account.getAvatarUrl(), 3600));
+        dto.setAvatarUrl(AliyunOssUtil.generatePresignedGetUrl(account.getAvatarUrl(), 3600, IMAGE_PROCESS));
         return dto;
     }
 
@@ -341,35 +344,35 @@ public class AuthService {
     }
 
     public Result<?> rebind(RebindRequest request) {
-            String email = request.getNewEmail();
-            String phone = request.getNewPhone();
-            Role role = request.getRole();
-            String code = request.getCode();
+        String email = request.getNewEmail();
+        String phone = request.getNewPhone();
+        Role role = request.getRole();
+        String code = request.getCode();
 
-            if ((email == null || email.isBlank()) && (phone == null || phone.isBlank())) {
-                throw new BizException("邮箱或手机号必须提供其中之一");
-            }
+        if ((email == null || email.isBlank()) && (phone == null || phone.isBlank())) {
+            throw new BizException("邮箱或手机号必须提供其中之一");
+        }
 
-            Account account = accountUtil.getCurrentAccount();
-            boolean exists;
+        Account account = accountUtil.getCurrentAccount();
+        boolean exists;
 
-            if (email != null && !email.isBlank()) {
-                if (!isValidEmail(email)) throw new BizException("邮箱格式错误");
-                if (!captchaService.verifyEmailCode(email, code)) throw new BizException("邮箱验证码错误");
-                exists = authRepository.existsByEmailAndRoleAndIdNot(email, role, account.getId());
-                if (exists) throw new BizException("该邮箱已被注册");
-                account.setEmail(email);
-            }
+        if (email != null && !email.isBlank()) {
+            if (!isValidEmail(email)) throw new BizException("邮箱格式错误");
+            if (!captchaService.verifyEmailCode(email, code)) throw new BizException("邮箱验证码错误");
+            exists = authRepository.existsByEmailAndRoleAndIdNot(email, role, account.getId());
+            if (exists) throw new BizException("该邮箱已被注册");
+            account.setEmail(email);
+        }
 
-            if (phone != null && !phone.isBlank()) {
-                if (!isValidPhone(phone)) throw new BizException("手机号格式错误");
-                if (!captchaService.verifySmsCode(phone, code)) throw new BizException("手机验证码错误");
-                exists = authRepository.existsByPhoneAndRoleAndIdNot(phone, role, account.getId());
-                if (exists) throw new BizException("该手机号已被注册");
-                account.setPhone(phone);
-            }
+        if (phone != null && !phone.isBlank()) {
+            if (!isValidPhone(phone)) throw new BizException("手机号格式错误");
+            if (!captchaService.verifySmsCode(phone, code)) throw new BizException("手机验证码错误");
+            exists = authRepository.existsByPhoneAndRoleAndIdNot(phone, role, account.getId());
+            if (exists) throw new BizException("该手机号已被注册");
+            account.setPhone(phone);
+        }
 
-            authRepository.save(account);
-            return Result.success("修改成功");
+        authRepository.save(account);
+        return Result.success("修改成功");
     }
 }

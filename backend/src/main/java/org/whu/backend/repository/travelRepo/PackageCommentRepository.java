@@ -24,6 +24,7 @@ public interface PackageCommentRepository extends JpaRepository<PackageComment, 
     long countByParentId(String parentId);
 
     Page<PackageComment> findByParentId(String commentId, Pageable repliesPageable);
+    List<PackageComment> findByParentId(String commentId);
 
     // 一次性查询出某个用户评价过的所有旅行团的ID
     @Query("SELECT pc.travelPackage.id FROM PackageComment pc WHERE pc.author.id = :userId")

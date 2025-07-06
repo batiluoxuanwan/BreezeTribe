@@ -22,12 +22,13 @@ import org.whu.backend.dto.like.LikeRequestDto;
 import org.whu.backend.dto.order.OrderCreateRequestDto;
 import org.whu.backend.dto.order.OrderForReviewDto;
 import org.whu.backend.dto.order.TravelOrderDetailDto;
+import org.whu.backend.dto.report.ReportCreateDto;
 import org.whu.backend.dto.user.InteractionStatusRequestDto;
 import org.whu.backend.dto.user.InteractionStatusResponseDto;
 import org.whu.backend.service.user.UserService;
 import org.whu.backend.util.AccountUtil;
 
-@Tag(name = "用户-订单与收藏", description = "登录用户进行报名、收藏等各种交互操作的API")
+@Tag(name = "用户-各种交互操作，订单收藏点赞举报等", description = "登录用户进行报名、收藏等各种交互操作的API")
 @RestController
 @RequestMapping("/api/user")
 @PreAuthorize("hasRole('USER')") // 在类级别上统一进行权限控制
@@ -163,5 +164,14 @@ public class UserActionController {
         InteractionStatusResponseDto response = userService.getInteractionStatus(request, currentUserId);
 
         return Result.success(response);
+    }
+
+    @Operation(summary = "提交一个举报",description = "同时用户会得到一条类型为REPORT_CREATED的通知，通知关联的实体id为举报内容的id" +
+            "但是因为不知道是什么类型的，所以通知的content会填入举报项目的类型。具体的枚举值请点击Request body下面，Example Value旁边的Schema按钮查看")
+    @PostMapping("/report")
+    public Result<?> createReport(@Valid @RequestBody ReportCreateDto createDto) {
+        String currentUserId = AccountUtil.getCurrentAccountId();
+        userService.createReport(createDto, currentUserId);
+        return Result.success("举报已提交，感谢您的反馈！");
     }
 }
