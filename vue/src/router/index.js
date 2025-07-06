@@ -40,22 +40,28 @@ const routes =[
         meta: { requiresAuth: true }
     },
     {
-        path: '/review/:orderId', 
+        path: '/review/:packageId', 
         name: 'SubmitReviewPage', 
         component:() =>import('../views/User/SubmitReviewPage.vue'),
         props: true 
     },
     {
+        path: '/review/comment/:packageCommentId',
+        name: 'ViewReviewPage', 
+        component:() =>import('../views/User/SubmitReviewPage.vue'),
+        props: true
+    },
+    {
         path:'/merchant/me',
         name:'团长个人主页',
         component:() =>import('../views/Merchant/Profile.vue'),
-        props: route => ({activeTab: route.query.activeTab || 'overview' }),
+        props: route => ({activeTab: route.query.activeTab || 'overview' ,fromPage: route.query.fromPage}),
     },
     {
         path: '/merchant/orders/:tourId', 
         name: 'TourOrderManagement',
         component:() =>import('../views/Merchant/TourOrderManagement.vue'),
-        props: (route) => ({ tourId: route.params.tourId, tourTitle: route.query.tourTitle }), 
+        props: (route) => ({ tourId: route.params.tourId, tourTitle: route.query.tourTitle, fromPage: route.query.fromPage}), 
         meta: { requiresAuth: true }
     },
     {

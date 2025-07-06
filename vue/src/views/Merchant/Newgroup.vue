@@ -1028,66 +1028,6 @@ const submitTourPackage = async () => {
   background-color: #fef0f0;
 }
 
-/* .note-preview {
-  display: flex;
-  align-items: flex-start; 
-  gap: 10px;
-  background-color: #f9fbfb; 
-  padding: 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  border: 1px dashed #e0e0e0;
-  min-height: 70px; 
-  transition: all 0.2s ease;
-}
-
-.note-preview:hover {
-  background-color: #e0f2f1; 
-  border-color: #b2dfdb;
-}
-
-.note-preview .el-icon {
-  font-size: 1.2rem;
-  color: #909399; 
-  margin-top: 2px;
-}
-
-.note-content {
-  flex: 1;
-  font-size: 0.9rem;
-  color: #666;
-  line-height: 1.4;
-  word-break: break-word; 
-}
-
-.time-range-display {
-  font-weight: 500;
-  color: #333;
-  margin-bottom: 5px;
-  display: flex;
-  align-items: center;
-}
-
-.time-range-display .el-icon {
-  font-size: 0.9rem;
-  margin-right: 5px;
-  color: #606266;
-}
-
-.actual-note {
-  margin-bottom: 5px;
-}
-
-.spot-image-preview {
-  width: 80px;
-  height: 80px;
-  border-radius: 6px;
-  margin-top: 8px;
-  object-fit: cover;
-  border: 1px solid #eee;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
-} */
-
 /* 提交按钮区域 */
 .submit-section {
   text-align: center;
@@ -1107,8 +1047,8 @@ const submitTourPackage = async () => {
 }
 
 .submit-button:hover {
-  background-color: #1976D2;
-  border-color: #1976D2;
+  background-color: #41b394;
+  border-color: #5fbba5;
   transform: translateY(-3px);
   box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
 }
@@ -1194,7 +1134,7 @@ const submitTourPackage = async () => {
   transition: border-color 00.3s ease;
 }
 .image-uploader:hover {
-  border-color: #409eff;
+  border-color: #53bcaa;
 }
 .uploader-icon {
   font-size: 28px;

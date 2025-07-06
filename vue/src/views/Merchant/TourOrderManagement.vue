@@ -122,6 +122,7 @@ const router = useRouter();
 
 const tourId = ref(null);
 const tourTitle = ref('');
+const fromPage = ref(1);
 const schedules = ref([]);
 const loadingSchedules = ref(false);
 const selectedScheduleId = ref(null);
@@ -145,6 +146,7 @@ const orderDetailDialogVisible = ref(false);
 onMounted(() => {
   tourId.value = route.params.tourId;
   tourTitle.value = route.query.tourTitle || '未知旅行团';
+  fromPage.value = route.query.fromPage;
 
   if (!tourId.value) {
     ElMessage.error('缺少旅行团 ID，无法加载订单信息。');
@@ -235,7 +237,8 @@ const viewOrderDetail = (orderRow) => {
 };
 
 const goBackToDashboard = () => {
-  router.push({ path: '/merchant/me', query: { activeTab: 'tourManagement' } }); 
+  router.push({ path: '/merchant/me', query: { activeTab: 'tourManagement' ,fromPage: fromPage.value} }); 
+  console.log('跳转回旅行团页面，传入的参数：',router)
 };
 
 // 辅助函数：格式化团期显示

@@ -41,7 +41,7 @@
         >
           <el-icon><Message /></el-icon>
           <span>消息中心</span>
-          <el-badge v-if="merchantOverview.unreadMessages > 0" :value="merchantOverview.unreadMessages" class="notification-badge" />
+          <el-badge :value="notificationStore.unreadCounts.all" v-if="notificationStore.unreadCounts.all > 0" class="notification-badge" />
         </div>
         <div
           :class="{ 'menu-item': true, 'active': activeTab === 'accountSettings' }"
@@ -182,31 +182,7 @@
       </div>
 
       <div v-if="activeTab === 'reviewManagement'">
-        <el-table :data="reviews" v-loading="reviewLoading" style="width: 100%" class="admin-table">
-          <el-table-column prop="tourTitle" label="旅行团"></el-table-column>
-          <el-table-column prop="userName" label="评价用户"></el-table-column>
-          <el-table-column prop="rating" label="评分" width="100">
-            <template #default="{ row }">
-              <el-rate v-model="row.rating" disabled show-score text-color="#ff9900" score-template="{value} 星"></el-rate>
-            </template>
-          </el-table-column>
-          <el-table-column prop="comment" label="评价内容" show-tooltip-when-overflow></el-table-column>
-          <el-table-column prop="reviewDate" label="评价日期" width="120"></el-table-column>
-          <el-table-column label="操作" width="100">
-            <template #default="{ row }">
-              <el-button link type="primary" size="small" @click="viewReviewDetails(row)">详情</el-button>
-              </template>
-          </el-table-column>
-        </el-table>
-        <el-pagination
-          background
-          layout="prev, pager, next"
-          :total="reviewsTotal"
-          :page-size="reviewsPageSize"
-          v-model:current-page="reviewsCurrentPage"
-          @current-change="fetchReviews"
-          class="pagination-bottom"
-        />
+        <MerchantReviews/>
       </div>
 
       <div v-if="activeTab === 'messageCenter'">
@@ -252,17 +228,6 @@
         <el-button @click="reviewDetailsDialog = false">关闭</el-button>
         </template>
     </el-dialog>
-
-    <el-dialog v-model="messageDetailsDialog" :title="`消息详情: ${selectedMessage.title}`" width="600px">
-      <el-descriptions border :column="1">
-        <el-descriptions-item label="发送者">{{ selectedMessage.sender }}</el-descriptions-item>
-        <el-descriptions-item label="发送日期">{{ selectedMessage.sendDate }}</el-descriptions-item>
-        <el-descriptions-item label="内容">{{ selectedMessage.content }}</el-descriptions-item>
-        </el-descriptions>
-      <template #footer>
-        <el-button @click="messageDetailsDialog = false">关闭</el-button>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
@@ -272,11 +237,14 @@ import { Monitor, Compass, Plus, Tickets, Comment, Message, Setting, DocumentCop
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { authAxios } from '@/utils/request';
 import { useRouter,useRoute } from 'vue-router';
+import { useNotificationStore } from '@/stores/notificationStore';
 import AccountOverview from '@/components/AccountOverview.vue' 
 import MyNotifications from '@/components/profile/MyNotifications.vue';
+import MerchantReviews from '@/components/profile/MerchantReviews.vue'; 
 
 const router = useRouter();
 const route = useRoute();
+const notificationStore = useNotificationStore();
 
 // --- 团长信息及侧边栏数据 ---
 const merchantProfile = reactive({
@@ -345,16 +313,6 @@ const reviewsCurrentPage = ref(1);
 const reviewsPageSize = 10;
 const selectedReview = ref({});
 const reviewDetailsDialog = ref(false);
-
-// --- 消息中心数据 ---
-const messages = ref([]);
-const messageLoading = ref(false);
-const messagesTotal = ref(0);
-const messagesCurrentPage = ref(1);
-const messagesPageSize = 10;
-const selectedMessage = ref({});
-const messageDetailsDialog = ref(false);
-
 
 // --- 账户设置数据 ---
 const passwordForm = ref({
@@ -585,9 +543,11 @@ const viewOrders = (tourRow) => {
       tourId: tourRow.id 
     },
     query: {
-      tourTitle: tourRow.title 
+      tourTitle: tourRow.title,
+      fromPage: myToursCurrentPage.value
     }
   });
+  console.log('跳转至订单页面，传入参数为：',router)
 };
 
 // 获取订单数据
@@ -763,10 +723,15 @@ onMounted(() => {
   // fetchRecentTourReviews(); // 获取近期旅行团审核状态
   // fetchRecentOrders();      // 获取近期订单概览
 
+  if (route.query.activeTab === 'tourManagement' && route.query.fromPage) {
+    myToursCurrentPage.value = parseInt(route.query.fromPage);
+  }
   fetchMyTours();
   // fetchOrders();
   // fetchReviews();
   // fetchMessages();
+
+  notificationStore.fetchUnreadCounts();
 });
 
 // 根据activeTab加载对应数据
