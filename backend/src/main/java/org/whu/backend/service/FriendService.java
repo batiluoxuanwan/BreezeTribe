@@ -46,6 +46,8 @@ public class FriendService {
     private AuthRepository accountRepository;
     @Autowired
     private PublicService publicService;
+    @Autowired
+    private DtoConverter dtoConverter;
 
     public void sendRequest(String toAccountId) {
         String currentAccountId = AccountUtil.getCurrentAccountId();
@@ -54,6 +56,16 @@ public class FriendService {
             throw new BizException("用户不存在");
         Account currentAccount = accountUtil.getCurrentAccount();
         // 检查是否已是好友，是否已发送请求等等...
+        // 2. 检查是否已发送过好友请求
+        boolean alreadyRequested = friendRequestRepository.existsByFromAndTo(currentAccount, toAccount.get());
+        if (alreadyRequested) {
+            throw new BizException("你已经发送过好友请求了");
+        }
+        // 3. （可选）检查是否已是好友
+        boolean alreadyFriend = friendShipRepository.existsByAccount1AndAccount2(currentAccount, toAccount.get());
+        if (alreadyFriend) {
+            throw new BizException("你们已经是好友了");
+        }
         FriendRequest request = new FriendRequest();
         request.setId(UUID.randomUUID().toString());
         request.setFrom(currentAccount);
@@ -67,6 +79,10 @@ public class FriendService {
 //        if (!request.getReceiverId().equals(accountId)) {
 //            throw new BizException("无权接受该好友请求");
 //        }
+        // 校验不能加自己为好友
+        if (request.getId().equals(request.getFrom().getId())) {
+            throw new BizException("不能添加自己为好友");
+        }
         Account currentAccount = accountUtil.getCurrentAccount();
         //String currentAccountId = AccountUtil.getCurrentAccountId();
         request.setStatus(FriendRequest.RequestStatus.ACCEPTED);
@@ -75,9 +91,9 @@ public class FriendService {
         // 创建双向好友记录
         Friendship friend1 = new Friendship();
         friend1.setAccount1(currentAccount);
-        friend1.setAccount2(request.getTo());
+        friend1.setAccount2(request.getFrom());
         Friendship friend2 = new Friendship();
-        friend2.setAccount1(request.getTo());
+        friend2.setAccount1(request.getFrom());
         friend2.setAccount2(currentAccount);
         friendShipRepository.save(friend1);
         friendShipRepository.save(friend2);
@@ -159,15 +175,15 @@ public class FriendService {
         Pageable pageable = PageRequest.of(pageRequestDto.getPage() - 1, pageRequestDto.getSize(),
                 Sort.by(direction, pageRequestDto.getSortBy()));
         // 2️获取 Page<FriendRequest> 实体
-        Page<FriendRequest> page = friendRequestRepository.findByTo(accountId, pageable);
+        Page<FriendRequest> page = friendRequestRepository.findByTo_Id(accountId, pageable);
 
         // 3️转换为 DTO
         List<FriendRequestDto> content = page.getContent().stream()
                 .map(request -> {
                     FriendRequestDto dto = new FriendRequestDto();
                     dto.setId(request.getId());
-                    dto.setFrom(request.getFrom());           // 请求发起方
-                    dto.setTo(request.getTo());               // 请求接收方
+                    dto.setFrom(dtoConverter.ConvertUserToAuthorDto(request.getFrom()));           // 请求发起方
+                    dto.setTo(dtoConverter.ConvertUserToAuthorDto(request.getTo()));               // 请求接收方
                     dto.setStatus(request.getStatus());       // 请求状态
                     dto.setCreatedAt(request.getCreatedAt()); // 创建时间
                     return dto;
@@ -188,20 +204,21 @@ public class FriendService {
     }
     public PageResponseDto<FriendRequestDto> getSentFriendRequests(PageRequestDto pageRequestDto) {
         String accountId = AccountUtil.getCurrentAccountId();
+        pageRequestDto.setSortBy("createdAt");
         // 1️创建 Pageable
         Sort.Direction direction = Sort.Direction.fromString(pageRequestDto.getSortDirection());
         Pageable pageable = PageRequest.of(pageRequestDto.getPage() - 1, pageRequestDto.getSize(),
                 Sort.by(direction, pageRequestDto.getSortBy()));
         // 2️获取 Page<FriendRequest> 实体
-        Page<FriendRequest> page = friendRequestRepository.findByFrom(accountId, pageable);
+        Page<FriendRequest> page = friendRequestRepository.findByFrom_Id(accountId, pageable);
 
         // 3️转换为 DTO
         List<FriendRequestDto> content = page.getContent().stream()
                 .map(request -> {
                     FriendRequestDto dto = new FriendRequestDto();
                     dto.setId(request.getId());
-                    dto.setFrom(request.getFrom());           // 请求发起方
-                    dto.setTo(request.getTo());               // 请求接收方
+                    dto.setFrom(dtoConverter.ConvertUserToAuthorDto(request.getFrom()));           // 请求发起方
+                    dto.setTo(dtoConverter.ConvertUserToAuthorDto(request.getTo()));               // 请求接收方
                     dto.setStatus(request.getStatus());       // 请求状态
                     dto.setCreatedAt(request.getCreatedAt()); // 创建时间
                     return dto;

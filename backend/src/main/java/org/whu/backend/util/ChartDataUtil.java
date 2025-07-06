@@ -1,0 +1,156 @@
+package org.whu.backend.util;
+
+import org.apache.commons.lang3.tuple.Pair;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.YearMonth;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
+
+/**
+ * 工具类：用于构造趋势统计图所需的数据格式
+ *
+ * 特别适用于：
+ *  - 用户增长趋势图
+ *  - 旅行团增长趋势图
+ *  - 订单增长趋势图
+ *  - 任意基于时间维度的折线图/柱状图统计需求
+ */
+public class ChartDataUtil {
+
+    /**
+     * 构造图表数据
+     *
+     * @param period     时间粒度：支持 "day" | "week" | "month"
+     * @param startDate  起始日期（含）
+     * @param endDate    结束日期（含）
+     * @param rawData    原始查询结果，每一项是 Object[]{时间分组值, 数量}
+     * @param label      附加信息的字段名（如 "role"、"type"）
+     * @param typeLabel  附加信息字段的值
+     * @return 标准格式的折线图/柱状图数据：包含 xAxis、yAxis、总计等字段
+     */
+    public static Map<String, Object> buildChartData(
+            String period,
+            LocalDate startDate,
+            LocalDate endDate,
+            List<Object[]> rawData,
+            String label,
+            String typeLabel
+    ) {
+        // 将原始数据库结果转为 Map<时间分组, 数量>
+        Map<String, Long> countMap = new HashMap<>();
+        for (Object[] entry : rawData) {
+            String key = entry[0].toString(); // 防止 java.sql.Date -> String 的类型转换异常
+            Long count = (Long) entry[1];
+            countMap.put(key, count);
+        }
+
+        List<String> xAxis = new ArrayList<>(); // 横坐标：日期、周、月
+        List<Long> yAxis = new ArrayList<>();   // 纵坐标：数量值
+
+        switch (period.toLowerCase()) {
+            case "day" -> {
+                for (LocalDate d = startDate; !d.isAfter(endDate); d = d.plusDays(1)) {
+                    String key = d.toString(); // yyyy-MM-dd
+                    xAxis.add(key);
+                    yAxis.add(countMap.getOrDefault(key, 0L));
+                }
+            }
+            case "week" -> {
+                LocalDate startOfWeek = startDate.with(java.time.DayOfWeek.MONDAY);
+                LocalDate endOfWeek = endDate.with(java.time.DayOfWeek.MONDAY);
+                for (LocalDate d = startOfWeek; !d.isAfter(endOfWeek); d = d.plusWeeks(1)) {
+                    String key = d.getYear() + "-W" + String.format("%02d", d.get(java.time.temporal.WeekFields.ISO.weekOfWeekBasedYear()));
+                    xAxis.add(key);
+                    yAxis.add(countMap.getOrDefault(key, 0L));
+                }
+            }
+            case "month" -> {
+                YearMonth startMonth = YearMonth.from(startDate);
+                YearMonth endMonth = YearMonth.from(endDate);
+                for (YearMonth ym = startMonth; !ym.isAfter(endMonth); ym = ym.plusMonths(1)) {
+                    String key = ym.toString(); // yyyy-MM
+                    xAxis.add(key);
+                    yAxis.add(countMap.getOrDefault(key, 0L));
+                }
+            }
+            default -> throw new IllegalArgumentException("不支持的 period 类型: " + period);
+        }
+
+        // 构造结果
+        Map<String, Object> res = new HashMap<>();
+        res.put("xAxis", xAxis);
+        res.put("yAxis", yAxis);
+        res.put("total", yAxis.stream().mapToLong(Long::longValue).sum()); // 求和
+        res.put("period", period); // 用于前端标记
+        res.put(label, typeLabel); // 附加信息（如 role, type 等）
+        res.put("startDate", startDate.toString());
+        res.put("endDate", endDate.toString());
+
+        return res;
+    }
+
+    /**
+     * 根据 period 类型生成默认的时间范围。左闭右开区间）
+     */
+    public static Pair<LocalDate, LocalDate> resolveRange(String period, LocalDate startDate, LocalDate endDate) {
+
+        LocalDate today = LocalDate.now();
+
+        if (startDate != null && endDate != null) {
+            ChartDataUtil.validateRange(period, startDate, endDate);
+            return Pair.of(startDate, endDate);
+        }
+
+        switch (period.toLowerCase()) {
+            case "day" -> {
+                endDate = today;
+                startDate = endDate.minusDays(30);
+            }
+            case "week" -> {
+                endDate = today;
+                startDate = endDate.minusWeeks(12);
+            }
+            case "month" -> {
+                YearMonth ym = YearMonth.from(today);
+                endDate = ym.atEndOfMonth();
+                startDate = ym.minusMonths(11).atDay(1);
+            }
+            default -> throw new IllegalArgumentException("不支持的 period 类型: " + period);
+        }
+
+        return Pair.of(startDate, endDate);
+    }
+
+    /**
+     * 将 LocalDate 转为 LocalDateTime 范围（闭区间）
+     */
+    public static Pair<LocalDateTime, LocalDateTime> toDateTimeRange(LocalDate startDate, LocalDate endDate) {
+        return Pair.of(
+                startDate.atStartOfDay(),
+                endDate.plusDays(1).atStartOfDay() // exclusive ending
+        );
+    }
+
+
+    //检验
+    public static void validateRange(String period, LocalDate start, LocalDate end) {
+        long days = ChronoUnit.DAYS.between(start, end);
+        switch (period.toLowerCase()) {
+            case "day" -> {
+                if (days > 31) throw new IllegalArgumentException("按天最多31天");
+            }
+            case "week" -> {
+                if (days > 90) throw new IllegalArgumentException("按周最多3个月");
+            }
+            case "month" -> {
+                if (ChronoUnit.MONTHS.between(YearMonth.from(start), YearMonth.from(end)) > 11)
+                    throw new IllegalArgumentException("按月最多12个月");
+            }
+            default -> throw new IllegalArgumentException("不支持的 period 类型");
+        }
+    }
+
+}
+

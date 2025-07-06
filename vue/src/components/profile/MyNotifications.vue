@@ -49,7 +49,7 @@
           type="primary"
           plain
           size="small"
-          @click="activeNotificationTab === 'all' ? markAllNotificationsAsRead() : markCurrentCategoryAsRead()"
+          @click="markCurrentCategoryAsRead()"
           class="mark-read-btn"
         >
           <el-icon><Bell /></el-icon>
@@ -63,12 +63,12 @@
             v-for="notification in notifications"
             :key="notification.id"
             class="notification-item hover-card"
-            :class="{ 'is-read': notification.isRead }"
+            :class="{ 'is_read': notification.read }"
             @click="markAsReadAndNavigate(notification)"
           >
             <div class="notification-item-header">
               <span class="notification-source">{{ getNotificationSource(notification.type) }}</span>
-              <span v-if="!notification.isRead" class="unread-dot" title="未读"></span>
+              <span v-if="!notification.read" class="unread-dot" title="未读"></span>
             </div>
             <p class="notification-title">{{ notification.title }}</p>
             <p class="notification-text">{{ notification.message }}</p>
@@ -166,7 +166,7 @@ const fetchNotifications = async (category, reset = false) => {
       // 数据转换与格式化
       const formattedNewNotifications = newNotificationsRaw.map(item => ({
         id: item.id,
-        isRead: item.isRead,
+        read: item.read,
         title: item.description || '无标题',
         message: item.content || '无内容',
         date: new Date(item.createdTime).toLocaleString(),
@@ -179,6 +179,8 @@ const fetchNotifications = async (category, reset = false) => {
       } else {
         notifications.value = [...notifications.value, ...formattedNewNotifications];
       }
+
+      console.log('所有消息',notifications)
 
       currentPage.value = nextPage; // 更新当前页码
 
@@ -214,6 +216,27 @@ const fetchUnreadCounts = async () => {
     }
 };
 
+const markCurrentCategoryAsRead = async () => {
+  const currentCategory = activeNotificationTab.value;
+
+  ElMessage.info(`正在将 ${currentCategory} 类别通知标记为已读...`);
+  try {
+    const response = await authAxios.post('/notifications/mark-as-read', {
+      category: currentCategory, 
+    });
+
+    if (response.data.code === 200) {
+      ElMessage.success(response.data.message || `“${currentCategory}”类别通知已标记为已读！`);
+      await fetchNotifications(activeNotificationTab.value,true);
+      notificationStore.fetchUnreadCounts(); 
+    } else {
+      ElMessage.error(response.data.message || `标记“${currentCategory}”类别通知为已读失败。`);
+    }
+  } catch (error) {
+    console.error(`标记“${currentCategory}”类别通知为已读失败:`, error);
+    ElMessage.error(`操作失败: ${error.response?.data?.message || '网络错误或服务器问题。'}`);
+  }
+};
 
 const markAsReadAndNavigate = async (notification) => {
   if (!notification.isRead) {
