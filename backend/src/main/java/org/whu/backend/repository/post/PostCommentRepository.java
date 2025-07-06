@@ -92,4 +92,8 @@ public interface PostCommentRepository extends JpaRepository<Comment, String> {
     @Modifying
     @Query("UPDATE Comment c SET c.deleted = true WHERE c.id IN :ids")
     void softDeleteAllByIds(Set<String> ids);
+
+    List<Comment> findByParentId(String id);
+
+    long deleteByTravelPostId(String postId);
 }

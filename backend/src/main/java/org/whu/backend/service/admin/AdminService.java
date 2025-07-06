@@ -58,6 +58,7 @@ import java.util.Optional;
 import static org.whu.backend.entity.travelpac.TravelPackage.PackageStatus.*;
 import static org.whu.backend.entity.accounts.Merchant.status.APPROVED;
 import static org.whu.backend.entity.accounts.Merchant.status.PENDING;
+import static org.whu.backend.service.DtoConverter.IMAGE_PROCESS;
 
 @Slf4j
 @Service
@@ -482,7 +483,7 @@ public class AdminService {
     /**
      * 获取基于时间粒度的出发团期增长统计数据
      *
-     * @param period 时间粒度，支持 "day"、"week"、"month"
+     * @param period    时间粒度，支持 "day"、"week"、"month"
      * @param startDate 起始日期（包含）
      * @param endDate   结束日期（包含）
      * @return 统计结果，包含 xAxis、yAxis、total 等字段
@@ -576,6 +577,7 @@ public class AdminService {
     private static final String REDIS_KEY_K = "hidden_score:k";
     private static final double FALLBACK_K = 1000.0;
     private static final double LAMBDA = 0.03; // 时间衰减参数
+
     /**
      * 每天凌晨 2 点更新归一化参数 k（使用 P95 分位数）
      */
@@ -600,6 +602,7 @@ public class AdminService {
 
         redisTemplate.opsForValue().set(REDIS_KEY_K, String.valueOf(k));
     }
+
     /**
      * 每天凌晨 2:10 执行评分刷新
      */
@@ -680,14 +683,16 @@ public class AdminService {
         merchantRepository.saveAll(merchants);
         log.info("✅ 已更新所有商家的大众评分。");
     }
+
     private MerchantrankDto toDto(Merchant merchant) {
         MerchantrankDto dto = new MerchantrankDto();
         dto.setId(merchant.getId());
         dto.setName(merchant.getUsername());
-        dto.setAvatarUrl(AliyunOssUtil.generatePresignedGetUrl(merchant.getAvatarUrl(),36000)); // 假设继承自 Account
+        dto.setAvatarUrl(AliyunOssUtil.generatePresignedGetUrl(merchant.getAvatarUrl(), 36000, IMAGE_PROCESS)); // 假设继承自 Account
         dto.setAverageRating(merchant.getAverageRating());
         return dto;
     }
+
     public PageResponseDto<MerchantrankDto> getMerchantRank(@Valid PageRequestDto dto) {
         // 排序
         Sort.Direction direction = Sort.Direction.fromString(dto.getSortDirection());

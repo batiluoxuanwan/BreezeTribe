@@ -141,7 +141,7 @@ public interface TravelOrderRepository extends JpaRepository<TravelOrder, String
 
     /**
      * /*
-     * 【新增】根据团期ID和订单状态，分页查询订单
+     * 【新增】根据团期ID，分页查询订单
      */
     Page<TravelOrder> findByTravelDeparture_Id(String departureId, Pageable pageable);
 

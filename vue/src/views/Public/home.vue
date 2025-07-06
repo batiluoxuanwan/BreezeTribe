@@ -149,13 +149,51 @@ const handleLogout = () => {
     });
 };
 
-// 获取所有旅行团数据并随机选择4个
-const fetchAndSelectRandomTours = async () => {
+// 获取所有旅行团数据并选择4个
+const fetchTours = async () => {
+  try {
+    if (isLoggedIn) {
+      // 用户已登录：获取个性化推荐旅行团
+      console.log('用户已登录，获取个性化推荐旅行团...');
+      try {
+        const response = await authAxios.get('/user/recommendations/packages', {
+          params: {
+            totalNum: 20, 
+            recommendNum: 4 
+          }
+        });
+
+        if (response.data.code === 200 && response.data.data) {
+          tours.value = response.data.data; 
+          console.log('个性化推荐旅行团获取成功:', tours.value);
+        } else {
+          ElMessage.warning(response.data.message || '获取个性化推荐旅行团失败，尝试随机推荐。');
+          await fetchAndSelectRandomToursFallback();
+        }
+      } catch (recommendError) {
+        console.error('获取个性化推荐旅行团时发生错误:', recommendError);
+        ElMessage.error('加载个性化推荐旅行团失败，尝试随机推荐。');
+        await fetchAndSelectRandomToursFallback();
+      }
+    } else {
+      // 用户未登录：获取所有旅行团并随机选择4个
+      console.log('用户未登录，获取随机旅行团...');
+      await fetchAndSelectRandomToursFallback();
+    }
+  } catch (initialCheckError) {
+    console.error('检查登录状态或初始化旅行团推荐时发生错误:', initialCheckError);
+    ElMessage.error('加载旅行团失败，请稍后再试。');
+    await fetchAndSelectRandomToursFallback();
+  }
+};
+
+//推荐失败时的回退或未登录时的默认行为
+const fetchAndSelectRandomToursFallback = async () => {
   try {
     const response = await publicAxios.get('/public/travel-packages', {
       params: {
-        page: 1, // 从第一页开始
-        size: 20 // 尝试获取足够多的旅行团，以便从中随机选择4个
+        page: 1, 
+        size: 20 
       }
     });
 
@@ -163,21 +201,20 @@ const fetchAndSelectRandomTours = async () => {
       const allTours = response.data.data.content;
       
       if (allTours.length > 0) {
-        // 如果旅行团数量小于或等于4，直接全部显示
         if (allTours.length <= 4) {
-          tours.value = allTours;
+          recommendedTours.value = allTours;
         } else {
-          // 随机选择4个旅行团
           const selectedTours = [];
-          const tempTours = [...allTours]; // 创建一个临时数组，避免修改原始数据
+          const tempTours = [...allTours]; 
 
           for (let i = 0; i < 4; i++) {
             const randomIndex = Math.floor(Math.random() * tempTours.length);
             selectedTours.push(tempTours[randomIndex]);
-            tempTours.splice(randomIndex, 1); // 移除已选择的，避免重复
+            tempTours.splice(randomIndex, 1); 
           }
           tours.value = selectedTours;
         }
+        console.log('随机旅行团获取成功:', tours.value);
       } else {
         ElMessage.warning('未获取到任何旅行团数据。');
       }
@@ -185,20 +222,59 @@ const fetchAndSelectRandomTours = async () => {
       ElMessage.error(response.data.message || '获取旅行团数据失败。');
     }
   } catch (error) {
-    console.error('获取旅行团数据时发生错误:', error);
+    console.error('获取随机旅行团数据时发生错误:', error);
     ElMessage.error('加载热门旅行团失败，请稍后再试。');
   }
 };
 
-// 获取所有游记并随机选择4个
-const fetchAndSelectRandomNotes = async () => {
+// 获取所有游记并选择4个
+const fetchNotes = async () => {
+  try {
+    if (isLoggedIn) {
+      // 用户已登录：获取个性化推荐游记
+      console.log('用户已登录，获取个性化推荐游记...');
+      try {
+        const response = await authAxios.get('/user/recommendations/posts', {
+          params: {
+            totalNum: 20, // 拿到的候选推荐对象的数量
+            recommendNum: 4 // 从候选对象中最终选择的数量
+          }
+        });
+
+        if (response.data.code === 200 && response.data.data) {
+          notes.value = response.data.data; // 直接使用推荐结果
+          console.log('个性化推荐游记获取成功:', notes.value);
+        } else {
+          ElMessage.warning(response.data.message || '获取个性化推荐游记失败，尝试随机推荐。');
+          // 如果推荐失败，则回退到随机推荐
+          await fetchAndSelectRandomNotesFallback();
+        }
+      } catch (recommendError) {
+        console.error('获取个性化推荐游记时发生错误:', recommendError);
+        ElMessage.error('加载个性化推荐游记失败，尝试随机推荐。');
+        // 如果请求失败，也回退到随机推荐
+        await fetchAndSelectRandomNotesFallback();
+      }
+    } else {
+      // 用户未登录：获取所有游记并随机选择4个（原有的逻辑）
+      console.log('用户未登录，获取随机游记...');
+      await fetchAndSelectRandomNotesFallback();
+    }
+  } catch (initialCheckError) {
+    console.error('检查登录状态或初始化推荐时发生错误:', initialCheckError);
+    ElMessage.error('加载游记失败，请稍后再试。');
+    // 即使登录状态检查失败，也尝试回退到随机推荐
+    await fetchAndSelectRandomNotesFallback();
+  }
+};
+
+// 推荐失败时的回退或未登录时的默认行为
+const fetchAndSelectRandomNotesFallback = async () => {
   try {
     const response = await publicAxios.get('/public/posts', {
       params: {
-        page: 1,       // 从第一页获取
-        size: 20,      // 获取足够多的数据
-        // sortBy: 'createdTime',
-        // sortDirection: 'DESC'
+        page: 1,
+        size: 20, // 获取足够多的数据
       }
     });
 
@@ -214,16 +290,17 @@ const fetchAndSelectRandomNotes = async () => {
         for (let i = 0; i < 4; i++) {
           const randomIndex = Math.floor(Math.random() * tempNotes.length);
           selectedNotes.push(tempNotes[randomIndex]);
-          tempNotes.splice(randomIndex, 1);
+          tempNotes.splice(randomIndex, 1); // 确保不重复选择
         }
 
         notes.value = selectedNotes;
       }
+      console.log('随机游记获取成功:', notes.value);
     } else {
       ElMessage.error(response.data.message || '获取游记数据失败。');
     }
   } catch (error) {
-    console.error('获取游记数据时发生错误:', error);
+    console.error('获取随机游记数据时发生错误:', error);
     ElMessage.error('加载热门游记失败，请稍后再试。');
   }
 };
@@ -231,8 +308,8 @@ const fetchAndSelectRandomNotes = async () => {
 
 // 在组件挂载时调用获取数据的方法
 onMounted(() => {
-  fetchAndSelectRandomTours();
-  fetchAndSelectRandomNotes();
+  fetchTours();
+  fetchNotes();
 });
 
 //搜索

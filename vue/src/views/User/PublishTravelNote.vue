@@ -605,7 +605,7 @@ const fetchTags = async () => {
     sortDirection: 'DESC'
   }
 
-  const res = await publicAxios.get('/public', { params })
+  const res = await publicAxios.get('/public/tags', { params })
   if (res.data.code === 200) {
     tagList.value = res.data.data.content
     total.value = res.data.data.totalElements

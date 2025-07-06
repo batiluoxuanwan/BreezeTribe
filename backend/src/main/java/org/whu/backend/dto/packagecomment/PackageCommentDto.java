@@ -21,4 +21,6 @@ public class PackageCommentDto {
     private LocalDateTime createdTime;
     private List<PackageCommentDto> repliesPreview; // 回复预览
     private long totalReplies; // 回复总数
+    private String packageTitle;
+    private String packageId;
 }

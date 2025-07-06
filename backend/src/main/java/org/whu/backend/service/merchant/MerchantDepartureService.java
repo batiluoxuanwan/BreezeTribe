@@ -159,29 +159,25 @@ public class MerchantDepartureService {
     public PageResponseDto<TravelOrderDetailDto> getOrdersForDeparture(String departureId, String currentDealerId, PageRequestDto pageRequestDto) {
         log.info("服务层：经销商ID '{}' 正在获取团期ID '{}'的订单列表, 分页参数: {}", currentDealerId, departureId, pageRequestDto);
 
-        // 1. 验证团期是否存在且属于当前经销商
+        // 1. 验证该团期是否存在，并且是否属于当前经销商
         findDepartureByIdAndVerifyOwnership(departureId, currentDealerId);
 
-        // 2. 创建分页和排序对象
-        Sort sort = Sort.by(Sort.Direction.fromString(pageRequestDto.getSortDirection()), pageRequestDto.getSortBy());
-        Pageable pageable = PageRequest.of(pageRequestDto.getPage() - 1, pageRequestDto.getSize(), sort);
+        // 2. 【核心改变】构建一个包含多重排序规则的Sort对象
+        // a. 主排序规则：按照我们新增的 statusPriority 字段升序排
+        Sort primarySort = Sort.by(Sort.Direction.ASC, "statusPriority");
+        // b. 次排序规则：使用前端传入的排序规则
+        Sort secondarySort = Sort.by(Sort.Direction.fromString(pageRequestDto.getSortDirection()), pageRequestDto.getSortBy());
+        // c. 将两个排序规则合并起来
+        Sort finalSort = primarySort.and(secondarySort);
+        // 3. 创建分页对象，并传入我们全新的、强大的排序规则
+        Pageable pageable = PageRequest.of(pageRequestDto.getPage() - 1, pageRequestDto.getSize(), finalSort);
 
-        // 3. 【重大改变】查询逻辑变更
-        // 现在我们精确地查询关联到这个departureId的、已支付的订单
-        Page<TravelOrder> orderPage = travelOrderRepository.findByTravelDeparture_IdAndStatus(
-                departureId,
-                TravelOrder.OrderStatus.PAID, // 只查询已支付的订单
-                pageable
-        );
-        log.info("服务层：为团期ID '{}' 查询到 {} 条已支付订单", departureId, orderPage.getTotalElements());
+        // 4. 查询逻辑变更：现在查询所有状态的订单
+        Page<TravelOrder> orderPage = travelOrderRepository.findByTravelDeparture_Id(departureId, pageable);
+        log.info("服务层：为团期ID '{}' 查询到 {} 条订单", departureId, orderPage.getTotalElements());
 
-        // 4. 将实体列表转换为对经销商安全的DTO列表
-        List<TravelOrderDetailDto> dtos = orderPage.getContent().stream()
-                .map(dtoConverter::convertTravelOrderToDetailDto) // 使用新的转换方法
-                .collect(Collectors.toList());
-
-        // 5. 封装并返回分页结果
-        return dtoConverter.convertPageToDto(orderPage, dtos);
+        // 5. 将实体列表转换为DTO列表（逻辑不变）
+        return dtoConverter.convertPageToDto(orderPage,dtoConverter::convertTravelOrderToDetailDto);
     }
 
     // 一个私有辅助方法，用于查找旅行团并验证所有权

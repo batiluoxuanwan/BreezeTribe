@@ -6,7 +6,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.whu.backend.common.exception.BizException;
 import org.whu.backend.dto.post.PostSummaryDto;
+import org.whu.backend.dto.recommend.RecommendRequestDto;
 import org.whu.backend.dto.travelpack.PackageSummaryDto;
 import org.whu.backend.entity.Tag;
 import org.whu.backend.entity.accounts.User;
@@ -44,8 +46,8 @@ public class RecommendationService {
     @Autowired
     private DtoConverter dtoConverter; // 注入通用的DTO转换器
 
-    public static final int MAX_SIZE = 3;
-    public static final int CANDIDATES_NUM = 8;
+//    public static final int MAX_SIZE = 3;
+//    public static final int CANDIDATES_NUM = 8;
 
     /**
      * 【新增】为指定用户推荐【旅游团】
@@ -53,8 +55,11 @@ public class RecommendationService {
      * @return 推荐的旅游团摘要DTO列表
      */
     @Transactional(readOnly = true)
-    public List<PackageSummaryDto> getRecommendedPackages(String userId) {
+    public List<PackageSummaryDto> getRecommendedPackages(String userId, RecommendRequestDto requestDto) {
         log.info("服务层：开始为用户ID '{}' 生成个性化【旅游团】推荐...", userId);
+        if (requestDto.getTotalNum()<requestDto.getRecommendNum()){
+            throw new BizException("推荐数量不能小于总数");
+        }
         Map<String, Integer> userProfile = getUserProfile(userId);
 
         if (userProfile.isEmpty()) {
@@ -78,7 +83,7 @@ public class RecommendationService {
         // 4. 【新增】多样性与随机性处理
         List<TravelPackage> topCandidates = itemScores.entrySet().stream()
                 .sorted(Map.Entry.<TravelPackage, Double>comparingByValue().reversed())
-                .limit(CANDIDATES_NUM) // 先取出排名靠前的若干个作为“优质候选池”
+                .limit(requestDto.getTotalNum()) // 先取出排名靠前的若干个作为“优质候选池”
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toList());
 
@@ -86,7 +91,7 @@ public class RecommendationService {
 
         // 5. 取最终结果并转换
         return topCandidates.stream()
-                .limit(MAX_SIZE) // 从打乱的池中取最终的10个
+                .limit(requestDto.getRecommendNum()) // 从打乱的池中取最终的10个
                 .map(dtoConverter::convertPackageToSummaryDto)
                 .collect(Collectors.toList());
     }
@@ -97,7 +102,7 @@ public class RecommendationService {
      * @return 推荐的游记摘要DTO列表
      */
     @Transactional(readOnly = true)
-    public List<PostSummaryDto> getRecommendedPosts(String userId) {
+    public List<PostSummaryDto> getRecommendedPosts(String userId,RecommendRequestDto requestDto) {
         log.info("服务层：开始为用户ID '{}' 生成个性化【游记】推荐...", userId);
         Map<String, Integer> userProfile = getUserProfile(userId);
 
@@ -114,14 +119,14 @@ public class RecommendationService {
         // 增加多样性处理
         List<TravelPost> topCandidates = itemScores.entrySet().stream()
                 .sorted(Map.Entry.<TravelPost, Double>comparingByValue().reversed())
-                .limit(CANDIDATES_NUM)
+                .limit(requestDto.getTotalNum())
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toList());
 
         Collections.shuffle(topCandidates);
 
         return topCandidates.stream()
-                .limit(MAX_SIZE)
+                .limit(requestDto.getRecommendNum())
                 .map(dtoConverter::convertPostToSummaryDto)
                 .collect(Collectors.toList());
     }
@@ -135,7 +140,8 @@ public class RecommendationService {
                 .filter(profileJson -> !profileJson.isBlank())
                 .map(profileJson -> {
                     try {
-                        return objectMapper.readValue(profileJson, new TypeReference<Map<String, Integer>>() {});
+                        return objectMapper.readValue(profileJson, new TypeReference<>() {
+                        });
                     } catch (IOException e) {
                         log.error("服务层：解析用户ID '{}' 的兴趣画像JSON失败。", userId, e);
                         return Collections.<String, Integer>emptyMap();
@@ -164,7 +170,7 @@ public class RecommendationService {
     }
 
     /**
-     * 降级策略：返回通用热门【旅游团】
+     * 降级策略：返回通用最新【旅游团】
      */
     public List<PackageSummaryDto> getGenericPackageRecommendations() {
         return packageRepository.findTop10ByOrderByCreatedTimeDesc().stream()
@@ -173,7 +179,7 @@ public class RecommendationService {
     }
 
     /**
-     * 降级策略：返回通用热门【游记】
+     * 降级策略：返回通用最新【游记】
      */
     public List<PostSummaryDto> getGenericPostRecommendations() {
         return postRepository.findTop10ByOrderByCreatedTimeDesc().stream()
