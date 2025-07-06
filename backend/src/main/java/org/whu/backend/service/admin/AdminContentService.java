@@ -276,7 +276,7 @@ public class AdminContentService {
         reportRepository.save(report);
 
         // 发送通知给举报人
-        String description = "您好，经核实，您举报的内容暂未发现明显违规。感谢您对社区的关注与支持！";
+        String description = String.format("经核实，您举报的内容 [%s] 暂未发现明显违规。感谢您对社区的关注与支持！",report.getSummary());
         notificationService.createAndSendNotification(
                 report.getReporter(),
                 Notification.NotificationType.REPORT_REJECTED,

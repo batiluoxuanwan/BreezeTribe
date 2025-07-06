@@ -65,7 +65,11 @@ public class AdminContentController {
     }
 
     // --- 举报受理与驳回操作 ----
-    @Operation(summary = "获取举报列表（分页）", description = "可以按状态筛选，留空则查询全部。")
+    @Operation(summary = "获取举报列表（分页）", description = """
+            可以按状态筛选，留空则查询全部。-----\
+            举报类型：TRAVEL_PACKAGE(旅行团)/TRAVEL_POST(游记)/PACKAGE_COMMENT(旅行团评论)/POST_COMMENT(游记评论)---------
+            举报原因：SPAM_AD(垃圾广告)/PORNOGRAPHIC(色情内容)/ILLEGAL_CONTENT(违法内容)/PERSONAL_ATTACK(人身攻击)/OTHER(其他)--------
+            处理状态：PENDING(待处理)/ACCEPTED(已受理)/REJECTED(已驳回)""")
     @GetMapping
     public Result<PageResponseDto<ReportDto>> getReports(
             @Parameter(description = "按状态筛选（可选），如 PENDING, ACCEPTED, REJECTED")
