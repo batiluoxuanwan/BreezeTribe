@@ -57,6 +57,13 @@
           <span>我的好友</span>
         </div>
         <div
+          :class="{ 'menu-item': true, 'active': activeTab === 'images' }"
+          @click="activeTab = 'images'"
+        >
+          <el-icon><PictureFilled /></el-icon>
+          <span>我的素材库</span>
+        </div>
+        <div
           :class="{ 'menu-item': true, 'active': activeTab === 'systemSettings' }"
           @click="activeTab = 'systemSettings'"
         >
@@ -78,6 +85,8 @@
       <MyNotifications v-if="activeTab === 'notifications'" />
 
       <MyFriends v-if="activeTab === 'friends'" />
+
+      <MyMediaLibrary v-if="activeTab === 'images'" />
 
       <div v-if="activeTab === 'systemSettings'" class="settings-section">
         <AccountOverview @userUpdated="handleUserUpdated" />
@@ -103,6 +112,7 @@ import MyNotifications from '@/components/profile/MyNotifications.vue';
 import MyFriends from '@/components/profile/MyFriends.vue' 
 import MyReviews from '@/components/profile/MyReviews.vue' 
 import AccountOverview from '@/components/AccountOverview.vue' 
+import MyMediaLibrary from '@/components/profile/MyMediaLibrary.vue' 
 const router = useRouter();
 const route = useRoute();
 const notificationStore = useNotificationStore();

@@ -36,6 +36,13 @@
           <span>评价管理</span>
         </div>
         <div
+          :class="{ 'menu-item': true, 'active': activeTab === 'images' }"
+          @click="activeTab = 'images'"
+        >
+          <el-icon><PictureFilled /></el-icon>
+          <span>我的素材库</span>
+        </div>
+        <div
           :class="{ 'menu-item': true, 'active': activeTab === 'messageCenter' }"
           @click="activeTab = 'messageCenter'"
         >
@@ -192,6 +199,10 @@
       <div v-if="activeTab === 'accountSettings'" class="settings-section">
         <AccountOverview @userUpdated="handleUserUpdated"/>
       </div>
+
+      <div v-if="activeTab === 'images'" class="settings-section">
+        <MyMediaLibrary/>
+      </div>
     </main>
 
     <el-dialog v-model="tourDetailsDialog" :title="`旅行团详情: ${selectedTour.title}`" width="800px">
@@ -241,6 +252,7 @@ import { useNotificationStore } from '@/stores/notificationStore';
 import AccountOverview from '@/components/AccountOverview.vue' 
 import MyNotifications from '@/components/profile/MyNotifications.vue';
 import MerchantReviews from '@/components/profile/MerchantReviews.vue'; 
+import MyMediaLibrary from '@/components/profile/MyMediaLibrary.vue' 
 
 const router = useRouter();
 const route = useRoute();
