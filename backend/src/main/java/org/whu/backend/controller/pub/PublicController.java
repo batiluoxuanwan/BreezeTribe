@@ -171,6 +171,16 @@ public class PublicController {
         return Result.success(resultPage);
     }
 
+    @Operation(summary = "获取对旅行团的评价的详细信息")
+    @GetMapping("/packages/comments/detail/{packageCommentId}")
+    public Result<PackageCommentDto> getPackageComments(
+            @PathVariable String packageCommentId
+    ) {
+        log.info("正在获取ID为 '{}' 的旅行团评价详细信息...", packageCommentId);
+         PackageCommentDto packageCommentDto = userPackageCommentService.getPackageCommentDetail(packageCommentId);
+        return Result.success(packageCommentDto);
+    }
+
     // 获取单条旅行团评价的直接回复列表（分页）
     @Operation(summary = "获取单条旅行团评价的直接回复列表（分页）")
     @GetMapping("/package-comments/{commentId}/replies")

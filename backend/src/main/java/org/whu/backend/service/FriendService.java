@@ -32,6 +32,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.whu.backend.service.DtoConverter.IMAGE_PROCESS;
+
 @Service
 public class FriendService {
     @Autowired
@@ -52,7 +54,7 @@ public class FriendService {
     public void sendRequest(String toAccountId) {
         String currentAccountId = AccountUtil.getCurrentAccountId();
         Optional<Account> toAccount = accountRepository.findById(toAccountId);
-        if(toAccount.isEmpty())
+        if (toAccount.isEmpty())
             throw new BizException("用户不存在");
         Account currentAccount = accountUtil.getCurrentAccount();
         // 检查是否已是好友，是否已发送请求等等...
@@ -118,7 +120,7 @@ public class FriendService {
         friendShipRepository.deleteByAccount1AndAccount2(friend, account);
     }
 
-//    public List<FriendDTO> getFriends(String accountId) {
+    //    public List<FriendDTO> getFriends(String accountId) {
 //        return friendRepository.findByAccountId(accountId).stream()
 //                .map(friend -> new FriendDTO(friend.getFriendId()))
 //                .toList();
@@ -142,8 +144,8 @@ public class FriendService {
 
                     Account Account1 = friend.getAccount1();
                     Account Account2 = friend.getAccount2();
-                    Account1.setAvatarUrl(AliyunOssUtil.generatePresignedGetUrl(Account1.getAvatarUrl(),36000)); // 替换或设置
-                    Account2.setAvatarUrl(AliyunOssUtil.generatePresignedGetUrl(Account2.getAvatarUrl(),36000)); // 替换或设置
+                    Account1.setAvatarUrl(AliyunOssUtil.generatePresignedGetUrl(Account1.getAvatarUrl(), 36000, IMAGE_PROCESS)); // 替换或设置
+                    Account2.setAvatarUrl(AliyunOssUtil.generatePresignedGetUrl(Account2.getAvatarUrl(), 36000, IMAGE_PROCESS)); // 替换或设置
                     dto.setAccount1(Account1);
                     dto.setAccount2(Account2);
                     dto.setCreatedAt(friend.getCreatedAt());
@@ -163,7 +165,8 @@ public class FriendService {
                 .numberOfElements(page.getNumberOfElements())
                 .build();
     }
-//    public List<FriendRequestDTO> getFriendRequests(String accountId) {
+
+    //    public List<FriendRequestDTO> getFriendRequests(String accountId) {
 //        return friendRequestRepository.findByReceiverId(accountId).stream()
 //                .map(request -> new FriendRequestDTO(request.getId(), request.getSenderId(), request.getCreatedAt()))
 //                .toList();
@@ -202,6 +205,7 @@ public class FriendService {
                 .numberOfElements(page.getNumberOfElements())
                 .build();
     }
+
     public PageResponseDto<FriendRequestDto> getSentFriendRequests(PageRequestDto pageRequestDto) {
         String accountId = AccountUtil.getCurrentAccountId();
         pageRequestDto.setSortBy("createdAt");

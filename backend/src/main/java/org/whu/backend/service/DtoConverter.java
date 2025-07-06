@@ -248,6 +248,8 @@ public class DtoConverter {
                 .createdTime(comment.getCreatedTime())
                 .repliesPreview(repliesPreview)
                 .totalReplies(totalReplies)
+                .packageTitle(comment.getTravelPackage().getTitle())
+                .packageId(comment.getTravelPackage().getId())
                 .build();
     }
 
@@ -262,6 +264,8 @@ public class DtoConverter {
                 .author(ConvertUserToAuthorDto(comment.getAuthor()))
                 .replyToUsername(comment.getParent() != null ? comment.getParent().getAuthor().getUsername() : null)
                 .createdTime(comment.getCreatedTime())
+                .packageTitle(comment.getTravelPackage().getTitle())
+                .packageId(comment.getTravelPackage().getId())
                 .build();
     }
 

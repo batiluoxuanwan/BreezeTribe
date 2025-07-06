@@ -25,6 +25,7 @@ import org.whu.backend.repository.travelRepo.PackageCommentRepository;
 import org.whu.backend.repository.travelRepo.TravelOrderRepository;
 import org.whu.backend.repository.travelRepo.TravelPackageRepository;
 import org.whu.backend.service.DtoConverter;
+import org.whu.backend.util.JpaUtil;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -176,6 +177,15 @@ public class UserPackageCommentService {
                 .collect(Collectors.toList());
 
         return dtoConverter.convertPageToDto(commentPage, dtos);
+    }
+
+    // 获取指定旅行团的评价列表（分页）
+    public PackageCommentDto getPackageCommentDetail(String packageId) {
+        log.info("正在获取旅行团ID '{}' 的评价列表...", packageId);
+
+        PackageComment packageComment =  JpaUtil.getOrThrow(packageCommentRepository,packageId,"找不到ID为 "+packageId+" 的评价");
+
+        return dtoConverter.convertPackageCommentToSimpleDto(packageComment);
     }
 
     /**
