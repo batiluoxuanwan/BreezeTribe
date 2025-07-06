@@ -6,15 +6,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.whu.backend.common.exception.BizException;
 import org.whu.backend.entity.InteractionItemType;
+import org.whu.backend.entity.Notification;
 import org.whu.backend.entity.travelpac.PackageComment;
 import org.whu.backend.entity.travelpac.TravelPackage;
 import org.whu.backend.entity.travelpost.Comment;
+import org.whu.backend.entity.travelpost.TravelPost;
 import org.whu.backend.repository.FavoriteRepository;
 import org.whu.backend.repository.LikeRepository;
 import org.whu.backend.repository.post.PostCommentRepository;
 import org.whu.backend.repository.post.TravelPostRepository;
 import org.whu.backend.repository.travelRepo.PackageCommentRepository;
 import org.whu.backend.repository.travelRepo.TravelPackageRepository;
+import org.whu.backend.service.NotificationService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,6 +41,8 @@ public class AdminContentService {
     private LikeRepository likeRepository;
     @Autowired
     private FavoriteRepository favoriteRepository;
+    @Autowired
+    private NotificationService notificationService;
 
     /**
      * 删除一条对旅行团的评论
@@ -71,9 +76,23 @@ public class AdminContentService {
             log.info("服务层：产品ID '{}' 的评论总数已减少 {}", packageId, deleteCount);
         }
 
-        // 如果是游记评论，也需要类似地更新游记的评论数
-        // if (rootComment.getTravelPost() != null) { ... }
+        // 更新旅行团的评论数
+         if (rootComment.getTravelPackage() != null) {
+             travelPackageRepository.decrementCommentCount(rootComment.getTravelPackage().getId(), allCommentIdsToDelete.size());
+         }
 
+         // 发送通知
+        if (rootComment.getTravelPackage() != null) {
+            String  description = String.format("您在旅行团 [%s] 下的评论涉嫌违规，已被管理员移除，请您遵守社区规范，文明发言。", rootComment.getTravelPackage().getTitle());
+            notificationService.createAndSendNotification(
+                    rootComment.getAuthor(),
+                    Notification.NotificationType.PACKAGE_COMMENT_DELETED,
+                    description,
+                    null,
+                    null,
+                    rootComment.getTravelPackage().getId()
+            );
+        }
         log.info("服务层：评论ID '{}' 及其所有子评论已成功删除。", commentId);
     }
 
@@ -93,7 +112,20 @@ public class AdminContentService {
         postCommentRepository.deleteAllByIdInBatch(allCommentIdsToDelete);
 
         if (rootComment.getTravelPost() != null) {
-            travelPostRepository.decrementCommentCount(rootComment.getTravelPost().getId(), (long) allCommentIdsToDelete.size());
+            travelPostRepository.decrementCommentCount(rootComment.getTravelPost().getId(), allCommentIdsToDelete.size());
+        }
+
+        // 发送通知
+        if (rootComment.getTravelPost() != null) {
+            String  description = String.format("您在游记 [%s] 下的评论涉嫌违规，已被管理员移除，请您遵守社区规范，文明发言。", rootComment.getTravelPost().getTitle());
+            notificationService.createAndSendNotification(
+                    rootComment.getAuthor(),
+                    Notification.NotificationType.POST_COMMENT_DELETED,
+                    description,
+                    null,
+                    null,
+                    rootComment.getTravelPost().getId()
+            );
         }
         log.info("服务层：游记评论ID '{}' 及其 {} 条子评论已成功删除。", commentId, allCommentIdsToDelete.size() - 1);
     }
@@ -104,9 +136,8 @@ public class AdminContentService {
     @Transactional
     public void deleteTravelPost(String postId) {
         log.info("服务层：开始删除游记ID '{}'及其所有关联数据...", postId);
-        if (!travelPostRepository.existsById(postId)) {
-            throw new BizException("找不到ID为 " + postId + " 的游记");
-        }
+        TravelPost travelPost = travelPostRepository.findById(postId)
+                .orElseThrow(() -> new BizException("找不到ID为 " + postId + " 的游记"));
         // 1. 删除所有关联的评论
         long deletedComments = postCommentRepository.deleteByTravelPostId(postId);
         log.info("服务层：删除了 {} 条与该游记关联的评论。", deletedComments);
@@ -117,6 +148,17 @@ public class AdminContentService {
 
         // 3. 最后删除游记本身
         travelPostRepository.deleteById(postId);
+
+
+        String  description = String.format("您的游记 [%s] 涉嫌违规，已被管理员移除，请您遵守社区规范，文明发言。", travelPost.getTitle());
+        notificationService.createAndSendNotification(
+                travelPost.getAuthor(),
+                Notification.NotificationType.POST_DELETED,
+                description,
+                null,
+                null,
+                null
+        );
         log.info("服务层：游记ID '{}' 已成功删除。", postId);
     }
 
@@ -128,6 +170,15 @@ public class AdminContentService {
         TravelPackage pkg = travelPackageRepository.findById(packageId).orElseThrow(() -> new BizException("找不到该旅行团"));
         pkg.setStatus(TravelPackage.PackageStatus.REJECTED);
         travelPackageRepository.save(pkg);
+        String  description = String.format("您的旅游团 [%s] 涉嫌违规，已被管理员屏蔽，请您编辑合规后再次申请上架。", pkg.getTitle());
+        notificationService.createAndSendNotification(
+                pkg.getDealer(),
+                Notification.NotificationType.PACKAGE_BLOCKED,
+                description,
+                null,
+                null,
+                packageId
+        );
         log.info("服务层：管理员已屏蔽旅行团ID '{}'", packageId);
     }
 

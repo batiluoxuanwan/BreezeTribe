@@ -104,6 +104,13 @@ public class Notification {
         PACKAGE_REJECTED,       // 旅行团审核被驳回
         USER_PAID,              // 用户支付成功
         // 对商家和用户
-        DEPARTURE_REMINDER      // 临行时通知（对商户和对用户）
+        DEPARTURE_REMINDER,     // 临行时通知（对商户和对用户）
+
+        // 管理员操作导致的
+        POST_DELETED,           // 游记被删除
+        PACKAGE_BLOCKED,        // 旅行团被屏蔽
+
+        POST_COMMENT_DELETED,   // 游记评论被删除
+        PACKAGE_COMMENT_DELETED // 旅行团评论被删除
     }
 }
