@@ -2,25 +2,37 @@ package org.whu.backend.service.admin;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.whu.backend.common.exception.BizException;
+import org.whu.backend.dto.PageRequestDto;
+import org.whu.backend.dto.PageResponseDto;
+import org.whu.backend.dto.report.ReportDto;
 import org.whu.backend.entity.InteractionItemType;
 import org.whu.backend.entity.Notification;
+import org.whu.backend.entity.Report;
 import org.whu.backend.entity.travelpac.PackageComment;
 import org.whu.backend.entity.travelpac.TravelPackage;
 import org.whu.backend.entity.travelpost.Comment;
 import org.whu.backend.entity.travelpost.TravelPost;
 import org.whu.backend.repository.FavoriteRepository;
 import org.whu.backend.repository.LikeRepository;
+import org.whu.backend.repository.ReportRepository;
 import org.whu.backend.repository.post.PostCommentRepository;
 import org.whu.backend.repository.post.TravelPostRepository;
 import org.whu.backend.repository.travelRepo.PackageCommentRepository;
 import org.whu.backend.repository.travelRepo.TravelPackageRepository;
+import org.whu.backend.service.DtoConverter;
 import org.whu.backend.service.NotificationService;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static org.apache.commons.lang3.StringUtils.truncate;
 
 /**
  * 管理员内容管理服务
@@ -43,6 +55,10 @@ public class AdminContentService {
     private FavoriteRepository favoriteRepository;
     @Autowired
     private NotificationService notificationService;
+    @Autowired
+    private ReportRepository reportRepository;
+    @Autowired
+    private DtoConverter dtoConverter;
 
     /**
      * 删除一条对旅行团的评论
@@ -77,13 +93,13 @@ public class AdminContentService {
         }
 
         // 更新旅行团的评论数
-         if (rootComment.getTravelPackage() != null) {
-             travelPackageRepository.decrementCommentCount(rootComment.getTravelPackage().getId(), allCommentIdsToDelete.size());
-         }
-
-         // 发送通知
         if (rootComment.getTravelPackage() != null) {
-            String  description = String.format("您在旅行团 [%s] 下的评论涉嫌违规，已被管理员移除，请您遵守社区规范，文明发言。", rootComment.getTravelPackage().getTitle());
+            travelPackageRepository.decrementCommentCount(rootComment.getTravelPackage().getId(), allCommentIdsToDelete.size());
+        }
+
+        // 发送通知
+        if (rootComment.getTravelPackage() != null) {
+            String description = String.format("您在旅行团 [%s] 下的评论涉嫌违规，已被管理员移除，请您遵守社区规范，文明发言。", rootComment.getTravelPackage().getTitle());
             notificationService.createAndSendNotification(
                     rootComment.getAuthor(),
                     Notification.NotificationType.PACKAGE_COMMENT_DELETED,
@@ -117,7 +133,7 @@ public class AdminContentService {
 
         // 发送通知
         if (rootComment.getTravelPost() != null) {
-            String  description = String.format("您在游记 [%s] 下的评论涉嫌违规，已被管理员移除，请您遵守社区规范，文明发言。", rootComment.getTravelPost().getTitle());
+            String description = String.format("您在游记 [%s] 下的评论涉嫌违规，已被管理员移除，请您遵守社区规范，文明发言。", rootComment.getTravelPost().getTitle());
             notificationService.createAndSendNotification(
                     rootComment.getAuthor(),
                     Notification.NotificationType.POST_COMMENT_DELETED,
@@ -150,7 +166,7 @@ public class AdminContentService {
         travelPostRepository.deleteById(postId);
 
 
-        String  description = String.format("您的游记 [%s] 涉嫌违规，已被管理员移除，请您遵守社区规范，文明发言。", travelPost.getTitle());
+        String description = String.format("您的游记 [%s] 涉嫌违规，已被管理员移除，请您遵守社区规范，文明发言。", travelPost.getTitle());
         notificationService.createAndSendNotification(
                 travelPost.getAuthor(),
                 Notification.NotificationType.POST_DELETED,
@@ -170,7 +186,7 @@ public class AdminContentService {
         TravelPackage pkg = travelPackageRepository.findById(packageId).orElseThrow(() -> new BizException("找不到该旅行团"));
         pkg.setStatus(TravelPackage.PackageStatus.REJECTED);
         travelPackageRepository.save(pkg);
-        String  description = String.format("您的旅游团 [%s] 涉嫌违规，已被管理员屏蔽，请您编辑合规后再次申请上架。", pkg.getTitle());
+        String description = String.format("您的旅游团 [%s] 涉嫌违规，已被管理员屏蔽，请您编辑合规后再次申请上架。", pkg.getTitle());
         notificationService.createAndSendNotification(
                 pkg.getDealer(),
                 Notification.NotificationType.PACKAGE_BLOCKED,
@@ -180,6 +196,97 @@ public class AdminContentService {
                 packageId
         );
         log.info("服务层：管理员已屏蔽旅行团ID '{}'", packageId);
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponseDto<ReportDto> getReportsByStatus(Report.ReportStatus status, PageRequestDto pageRequestDto) {
+        log.info("服务层：开始查询状态为 '{}' 的举报列表...", status);
+        Pageable pageable = PageRequest.of(pageRequestDto.getPage() - 1, pageRequestDto.getSize(),
+                Sort.by(Sort.Direction.DESC, pageRequestDto.getSortBy()));
+
+        Page<Report> reportPage;
+        if (status != null) {
+            reportPage = reportRepository.findByStatus(status, pageable);
+        } else {
+            // 如果不提供状态，默认查询全部
+            reportPage = reportRepository.findAll(pageable);
+        }
+        return dtoConverter.convertPageToDto(reportPage, dtoConverter::convertReportToDto);
+    }
+
+    @Transactional
+    public void acceptReport(String reportId) {
+        Report report = reportRepository.findById(reportId).orElseThrow(() -> new BizException("找不到该举报"));
+        if (report.getStatus() != Report.ReportStatus.PENDING) {
+            throw new BizException("该举报已被处理");
+        }
+
+        String description = "您好，您提交的举报已被管理员受理，相关内容已处理。感谢您为维护社区环境做出的贡献！";
+        String itemTitle = "相关内容"; // 默认标题
+
+        // 根据举报类型，调用相应的删除方法，并获取内容标题用于通知
+        switch (report.getItemType()) {
+            case TRAVEL_POST -> {
+                itemTitle = travelPostRepository.findById(report.getReportedItemId()).map(TravelPost::getTitle).orElse("一篇已删除的游记");
+                deleteTravelPost(report.getReportedItemId());
+                description = String.format("您对游记 [%s] 的举报已被受理，相关内容已处理。感谢您为维护社区环境做出的贡献！", itemTitle);
+            }
+            case POST_COMMENT -> {
+                Comment comment = postCommentRepository.findById(report.getReportedItemId()).orElse(null);
+                if(comment != null) itemTitle = comment.getContent();
+                deletePostComment(report.getReportedItemId());
+                description = String.format("您对一条游记评论（内容：“%s...”）的举报已被受理，感谢您为维护社区环境做出的贡献！", truncate(itemTitle, 15));
+            }
+            case PACKAGE_COMMENT -> {
+                PackageComment comment = packageCommentRepository.findById(report.getReportedItemId()).orElse(null);
+                if(comment != null) itemTitle = comment.getContent();
+                deletePackageComment(report.getReportedItemId());
+                description = String.format("您对一条旅游团评论（内容：“%s...”）的举报已被受理，感谢您为维护社区环境做出的贡献！", truncate(itemTitle, 15));
+            }
+            case TRAVEL_PACKAGE -> {
+                itemTitle = travelPackageRepository.findById(report.getReportedItemId()).map(TravelPackage::getTitle).orElse("一个已下架的产品");
+                blockTravelPackage(report.getReportedItemId());
+                description = String.format("您对旅行团 [%s] 的举报已被受理，相关内容已处理。感谢您为维护社区环境做出的贡献！", itemTitle);
+            }
+        }
+
+        report.setStatus(Report.ReportStatus.ACCEPTED);
+        reportRepository.save(report);
+
+        // 发送通知给举报人
+        notificationService.createAndSendNotification(
+                report.getReporter(),
+                Notification.NotificationType.REPORT_ACCEPTED,
+                description,
+                null,
+                null,
+                report.getReportedItemId()
+        );
+
+        log.info("服务层：已受理举报ID '{}'，并处理了相关内容。", reportId);
+    }
+
+    @Transactional
+    public void rejectReport(String reportId) {
+        Report report = reportRepository.findById(reportId).orElseThrow(() -> new BizException("找不到该举报"));
+        if (report.getStatus() != Report.ReportStatus.PENDING) {
+            throw new BizException("该举报已被处理");
+        }
+        report.setStatus(Report.ReportStatus.REJECTED);
+        reportRepository.save(report);
+
+        // 发送通知给举报人
+        String description = "您好，经核实，您举报的内容暂未发现明显违规。感谢您对社区的关注与支持！";
+        notificationService.createAndSendNotification(
+                report.getReporter(),
+                Notification.NotificationType.REPORT_REJECTED,
+                description,
+                report.getItemType().toString(),
+                null,
+                report.getReportedItemId()
+        );
+
+        log.info("服务层：已驳回举报ID '{}'。", reportId);
     }
 
 

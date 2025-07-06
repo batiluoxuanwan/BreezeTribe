@@ -20,6 +20,7 @@ import org.whu.backend.dto.post.PostDetailToOwnerDto;
 import org.whu.backend.dto.post.PostSummaryDto;
 import org.whu.backend.dto.postcomment.PostCommentDto;
 import org.whu.backend.dto.postcomment.PostCommentWithRepliesDto;
+import org.whu.backend.dto.report.ReportDto;
 import org.whu.backend.dto.route.RouteDetailDto;
 import org.whu.backend.dto.route.RouteSummaryDto;
 import org.whu.backend.dto.spot.SpotDetailDto;
@@ -686,5 +687,19 @@ public class DtoConverter {
                     .packageTitle(departure.getTravelPackage().getTitle());
         }
         return builder.build();
+    }
+
+    public ReportDto convertReportToDto(Report report) {
+        return ReportDto.builder()
+                .id(report.getId())
+                .reportedItemId(report.getReportedItemId())
+                .itemType(report.getItemType())
+                .reason(report.getReason())
+                .additionalInfo(report.getAdditionalInfo())
+                .status(report.getStatus())
+                .reporter(ConvertUserToAuthorDto(report.getReporter()))
+                .summary(report.getSummary())
+                .createdTime(report.getCreatedTime())
+                .build();
     }
 }

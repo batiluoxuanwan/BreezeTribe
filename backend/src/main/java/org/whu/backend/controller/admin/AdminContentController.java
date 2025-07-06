@@ -3,11 +3,17 @@ package org.whu.backend.controller.admin;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.whu.backend.common.Result;
+import org.whu.backend.dto.PageRequestDto;
+import org.whu.backend.dto.PageResponseDto;
+import org.whu.backend.dto.report.ReportDto;
+import org.whu.backend.entity.Report;
 import org.whu.backend.service.admin.AdminContentService;
 
 @Tag(name = "管理员-内容管理", description = "提供对平台用户生成内容（如评论、游记）进行管理的接口")
@@ -56,6 +62,34 @@ public class AdminContentController {
         log.info("请求日志：管理员正在屏蔽旅行团ID '{}'", packageId);
         adminContentService.blockTravelPackage(packageId);
         return Result.success("旅行团屏蔽成功");
+    }
+
+    // --- 举报受理与驳回操作 ----
+    @Operation(summary = "获取举报列表（分页）", description = "可以按状态筛选，留空则查询全部。")
+    @GetMapping
+    public Result<PageResponseDto<ReportDto>> getReports(
+            @Parameter(description = "按状态筛选（可选），如 PENDING, ACCEPTED, REJECTED")
+            @RequestParam(required = false) Report.ReportStatus status,
+            @Valid @ParameterObject PageRequestDto pageRequestDto) {
+        PageResponseDto<ReportDto> reports = adminContentService.getReportsByStatus(status, pageRequestDto);
+        return Result.success("查询成功", reports);
+    }
+
+    @Operation(summary = "受理一个举报", description = "将举报标记为已处理，并删除相应的违规内容，同时给举报用户发送举报已受理通知。" +
+            "通知的类型为REPORT_ACCEPTED，关联的实体为举报对象的id（不过意义好像不大）")
+    @PostMapping("/reports/{reportId}/accept")
+    public Result<?> acceptReport(@PathVariable String reportId) {
+        adminContentService.acceptReport(reportId);
+        return Result.success("举报已受理");
+    }
+
+    @Operation(summary = "驳回一个举报", description = "将举报标记为不成立，同时给举报用户发送举报被驳回的通知。" +
+            "通知的类型为REPORT_REJECTED，关联的实体为举报对象的id，因为无法判断是什么类型，所以会在通知的content部分返回举报对象的类型" +
+            "( TRAVEL_PACKAGE, TRAVEL_POST, PACKAGE_COMMENT, POST_COMMENT )")
+    @PostMapping("/reports/{reportId}/reject")
+    public Result<?> rejectReport(@PathVariable String reportId) {
+        adminContentService.rejectReport(reportId);
+        return Result.success("举报已驳回");
     }
 
 }
