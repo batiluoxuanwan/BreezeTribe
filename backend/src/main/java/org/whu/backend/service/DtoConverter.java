@@ -527,6 +527,7 @@ public class DtoConverter {
                 .viewCount(entity.getViewCount())
                 .status(entity.getStatus().toString())
                 .merchant(ConvertUserToAuthorDto(entity.getDealer()))
+                .averageRating(entity.getAverageRating())
                 .build();
     }
 
@@ -578,6 +579,7 @@ public class DtoConverter {
                 .merchant(ConvertUserToAuthorDto(entity.getDealer()))
                 .tags(tagDtos)
                 .routes(routeDtos)
+                .averageRating(entity.getAverageRating())
                 .build();
     }
 
