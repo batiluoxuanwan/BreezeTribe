@@ -83,5 +83,14 @@ public interface TravelDepartureRepository extends JpaRepository<TravelDeparture
     @Query("SELECT d FROM TravelDeparture d WHERE d.departureDate BETWEEN :start AND :end")
     List<TravelDeparture> findDeparturesBetween(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
-
+    /**
+     * 【新增】将所有已过期（出发时间早于当前时间）且状态仍为OPEN或CLOSED的团期，
+     * 批量更新其状态为FINISHED。
+     * @param now 当前时间
+     * @return 更新的记录数
+     */
+    @Modifying
+    @Query("UPDATE TravelDeparture d SET d.status = 'FINISHED' " +
+            "WHERE d.departureDate < :now AND d.status IN ('OPEN', 'CLOSED')")
+    int updateStatusToFinishedForExpiredDepartures(@Param("now") LocalDateTime now);
 }
