@@ -22,7 +22,7 @@
             </div>
             </template>
 
-            <v-chart :option="chartOption" autoresize v-if="!loading" style="height: 360px;" />
+            <v-chart :option="userChartOption" autoresize v-if="!userLoading" style="height: 360px;" />
             <div v-else class="loading-container">
             <el-icon class="is-loading"><Loading /></el-icon> 正在加载中...
             </div>
@@ -42,7 +42,7 @@
             </div>
             </template>
 
-            <v-chart :option="chartOption" autoresize v-if="!loading" style="height: 360px;" />
+            <v-chart :option="tripChartOption" autoresize v-if="!tripLoading" style="height: 360px;" />
             <div v-else class="loading-container">
             <el-icon class="is-loading"><Loading /></el-icon> 正在加载中...
             </div>
@@ -55,13 +55,42 @@
     </div>
 
     <div class="full-row">
-      <OrderStatsChart />
+    <!--参与人数数量与收入流水统计-->
+      <el-card shadow="hover" class="order-stats-card">
+        <template #header>
+          <div class="card-header">
+            <div class="filters">
+                <span>📊 订单统计概览</span>
+                <el-select v-model="orderStatsPeriod" placeholder="选择周期" size="small" style="width: 120px" @change="fetchOrderStatsData">
+                <el-option label="日" value="day" />
+                <el-option label="周" value="week" />
+                <el-option label="月" value="month" />
+              </el-select>
+              </div>
+          </div>
+        </template>
+
+        <div v-if="orderStatsLoading" class="loading-container">
+          <el-icon class="is-loading"><Loading /></el-icon> 正在加载中...
+        </div>
+        <div v-else class="stats-content">
+          <div class="stat-item">
+            <span class="stat-label">总参与人数：</span>
+            <span class="stat-value">{{ totalParticipants }} <span class="unit">人</span></span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">总收入流水：</span>
+            <span class="stat-value">¥ {{ totalRevenue.toFixed(2) }} <span class="unit">元</span></span>
+          </div>
+          <el-empty v-if="!hasOrderStatsData" description="暂无统计数据" :image-size="50"></el-empty>
+        </div>
+      </el-card>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { ElCard, ElSelect, ElOption, ElIcon, ElMessage } from 'element-plus';
 import { Loading } from '@element-plus/icons-vue';
 import { use } from 'echarts/core';
@@ -73,14 +102,26 @@ import { authAxios } from '@/utils/request';
 
 use([LineChart, TitleComponent, TooltipComponent, GridComponent, LegendComponent, CanvasRenderer]);
 
+// 用户增长图表
 const selectedPeriodUser = ref('month');
-const selectedPeriodTrip = ref('month');
 const selectedRole = ref('ROLE_USER');
-const chartOption = ref({});
-const loading = ref(false);
+const userChartOption = ref({});
+const userLoading = ref(false); 
+// 旅行团增长图表
+const selectedPeriodTrip = ref('month');
+const tripChartOption = ref({});
+const tripLoading = ref(false); 
+//参与人数数量与收入流水统计
+const totalParticipants = ref(0); // 订单统计：总参与人数
+const totalRevenue = ref(0.0);   // 订单统计：总收入流水
+const orderStatsPeriod = ref('month'); // 订单统计：选择的周期
+const orderStatsMerchantId = ref(''); // 订单统计：商家ID
+const orderStatsDateRange = ref([]); // 订单统计：日期范围
+const orderStatsLoading = ref(false); // 订单统计：加载状态
+
 //用户增长趋势
 const fetchUserData = async () => {
-  loading.value = true;
+  userLoading.value = true;
   try {
     const res = await authAxios.get('/admin/data/user-growth', {
       params: {
@@ -97,11 +138,11 @@ const fetchUserData = async () => {
       // 额外的检查：确保数据存在且长度匹配
       if (!xData || !yData || xData.length === 0 || xData.length !== yData.length) {
           ElMessage.warning('用户增长数据不完整或为空。');
-          chartOption.value = {}; // 清空图表配置，显示空白
+          userChartOption.value = {}; // 清空图表配置，显示空白
           return;
       }
 
-      chartOption.value = {
+      userChartOption.value = {
         tooltip: { trigger: 'axis' },
         xAxis: { type: 'category', data: xData }, 
         yAxis: { type: 'value' },
@@ -119,7 +160,7 @@ const fetchUserData = async () => {
     ElMessage.error('网络错误，无法获取用户增长数据');
     console.error(err);
   } finally {
-    loading.value = false;
+    userLoading.value = false;
   }
 };
 
@@ -129,7 +170,7 @@ const fetchData = () => {
 };
 
 const fetchTripData = async () => {
-  loading.value = true;
+  tripLoading.value = true;
   try {
     const params = {
       period: selectedPeriodTrip.value,
@@ -151,23 +192,20 @@ const fetchTripData = async () => {
 
       if (!xData || xData.length === 0 || xData.length !== yData.length) {
         ElMessage.warning('旅行团增长数据不完整或为空。');
-        chartOption.value = {}; // 清空图表配置，显示空白
+        tripChartOption.value = {}; // 清空图表配置，显示空白
         return;
       }
 
-      chartOption.value = {
+      tripChartOption.value = {
         tooltip: { trigger: 'axis' },
         xAxis: {
           type: 'category',
           data: xData,
           axisLabel: {
             formatter: function (value) {
-              // 根据周期格式化 X 轴标签，例如：
-              // 如果是月份，显示 'YYYY-MM'
-              // 如果是日期，显示 'MM-DD'
-              if (selectedPeriod.value === 'day') {
+              if (selectedPeriodTrip.value === 'day') {
                 return value.substring(5); // 截取 MM-DD
-              } else if (selectedPeriod.value === 'week') {
+              } else if (selectedPeriodTrip.value === 'week') {
                  return value.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3'); // 假设周是 YYYYWW 格式，这里需要后端提供更友好的周格式
               }
               return value; // 默认返回原始值（如 YYYY-MM）
@@ -192,13 +230,54 @@ const fetchTripData = async () => {
     ElMessage.error('网络错误，无法获取旅行团增长数据');
     console.error(err);
   } finally {
-    loading.value = false;
+    tripLoading.value = false;
+  }
+};
+
+// 计算属性，用于判断订单统计是否有数据
+const hasOrderStatsData = computed(() => totalParticipants.value >= 0 || totalRevenue.value >= 0);
+
+// 获取订单统计数据
+const fetchOrderStatsData = async () => {
+  orderStatsLoading.value = true;
+  try {
+    const params = {
+      period: orderStatsPeriod.value,
+    };
+
+    if (orderStatsMerchantId.value) {
+      params.merchantId = orderStatsMerchantId.value;
+    }
+
+    if (orderStatsDateRange.value && orderStatsDateRange.value.length === 2) {
+      params.startDate = orderStatsDateRange.value[0];
+      params.endDate = orderStatsDateRange.value[1];
+    }
+
+    const res = await authAxios.get('/admin/data/orders-stats', { params });
+
+    if (res.data.code === 200) {
+      totalParticipants.value = res.data.data.totalParticipants || 0;
+      totalRevenue.value = res.data.data.totalRevenue || 0.0;
+    } else {
+      ElMessage.error(res.data.message || '获取订单统计失败');
+      totalParticipants.value = 0;
+      totalRevenue.value = 0.0;
+    }
+  } catch (error) {
+    ElMessage.error('网络错误，无法获取订单统计数据');
+    console.error('Error fetching order stats:', error);
+    totalParticipants.value = 0;
+    totalRevenue.value = 0.0;
+  } finally {
+    orderStatsLoading.value = false;
   }
 };
 
 onMounted(() => {
   fetchUserData();
   fetchTripData();
+  fetchOrderStatsData();
 });
 </script>
 
@@ -218,7 +297,7 @@ onMounted(() => {
 .full-row {
   margin-top: 32px;
 }
-/*用户增长趋势*/
+/*公用样式*/
 .chart-card {
   width: 100%;
   height: 100%;
@@ -238,6 +317,63 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   height: 300px;
+  color: #999;
+}
+
+/* --- 订单统计概览特有样式 --- */
+.order-stats-card .card-header {
+  font-weight: bold;
+  font-size: 1.1em;
+  color: #333;
+  border-radius: 12px;
+}
+
+.order-stats-card .card-header .filters {
+  display: flex; 
+  flex-grow: 1;  
+  align-items: center; 
+  justify-content: space-between; 
+}
+
+.order-stats-card .loading-container {
+  min-height: 120px; /* 确保订单统计加载时也有一定高度 */
+  font-size: 0.9em;
+}
+.order-stats-card .loading-container .el-icon {
+  margin-right: 8px;
+  font-size: 1.2em;
+}
+
+.stats-content {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  padding: 10px 0;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  font-size: 1.2em;
+  color: #555;
+}
+
+.stat-label {
+  font-weight: 500;
+  color: #777;
+  min-width: 120px;
+}
+
+.stat-value {
+  font-weight: bold;
+  color: #6da0b1;
+  font-size: 1.4em;
+}
+
+.stat-value .unit {
+  font-size: 0.7em;
+  font-weight: normal;
+  margin-left: 5px;
   color: #999;
 }
 </style>
