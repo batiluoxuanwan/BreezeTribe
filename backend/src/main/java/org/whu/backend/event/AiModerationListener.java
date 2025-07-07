@@ -131,7 +131,7 @@ public class AiModerationListener {
             String riskLevel = (String) reason.getOrDefault("riskLevel", "未知");
             String riskTips = (String) reason.getOrDefault("riskTips", "无");
             String riskWords = (String) reason.getOrDefault("riskWords", "无");
-            sb.append(String.format("\n- 风险等级: %s, 风险提示: %s, 风险词: %s", riskLevel, riskTips, riskWords));
+            sb.append(String.format("风险等级: %s；风险提示: %s；风险词: %s", riskLevel, riskTips, riskWords));
         }
         return sb.toString();
     }
