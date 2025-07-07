@@ -232,7 +232,7 @@ const enrollRules = reactive({
 
 // --- 返回上一页 ---
 const goBack = () => {
-  router.push({ name: '旅行广场', query: { tab: 'groups' } });
+  router.go(-1);
 };
 
 // --- 获取特定旅行团的详细数据 ---

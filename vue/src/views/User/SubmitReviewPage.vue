@@ -23,6 +23,17 @@
             {{ isViewMode ? '查看旅行团评价' : '评价旅行团' }}
           </span>
           <span class="tour-title-header">{{ packageDetail.packageTitle || '加载中...' }}</span>
+          <el-button
+            v-if="isViewMode"
+            type="danger"
+            :icon="Delete"
+            circle
+            @click="deleteReview"
+            class="delete-button"
+            title="删除评价"
+          >
+            <el-icon><Delete /></el-icon>
+          </el-button>
         </div>
       </template>
 
@@ -71,7 +82,7 @@
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ElMessage, ElCard, ElButton, ElForm, ElFormItem, ElInput, ElRate, ElSkeleton, ElSkeletonItem, ElAlert } from 'element-plus';
+import { ElMessage, ElCard, ElButton, ElForm, ElFormItem, ElInput, ElRate, ElSkeleton, ElSkeletonItem, ElAlert ,ElMessageBox} from 'element-plus';
 import { ArrowLeft } from '@element-plus/icons-vue';
 import { authAxios, publicAxios } from '@/utils/request'; // 确保你导出了 publicAxios 用于公共接口请求
 
@@ -82,7 +93,7 @@ const router = useRouter();
 // packageId 用于提交新评价的旅行团ID
 // packageCommentId 用于查看已有评价的评论ID
 const packageId = ref(route.params.packageId);
-const packageCommentId = ref(route.params.packageCommentId);
+const packageCommentId = ref(route.params.commentId);
 
 const reviewFormRef = ref(null); // 表单引用
 
@@ -123,7 +134,7 @@ const formatReviewDate = (dateString) => {
 
 // --- 返回上一页 ---
 const goBack = () => {
-  router.go(-1);
+  router.push({ name: '用户个人主页', query: { tab: 'reviews' } }); 
 };
 
 // --- 重置表单 (仅在发布模式下可用) ---
@@ -153,10 +164,6 @@ const fetchData = async () => {
         packageDetail.value = {
           packageId: reviewDetail.value.packageId,
           packageTitle: reviewDetail.value.packageTitle,
-          // 注意：如果你的 GET /api/public/packages/comments/detail/{packageCommentId}
-          // 不返回 packageCoverImageUrl，这里将是 null。
-          // 如果需要显示，可能需要单独调用获取旅行团详情的 API。
-          packageCoverImageUrl: null // 暂时设为 null，取决于后端返回
         };
 
       } else {
@@ -209,14 +216,8 @@ const submitReview = async () => {
 
         if (response.data.code === 200) {
           ElMessage.success('评价提交成功！感谢您的宝贵反馈。');
-          // 提交成功后，你可以选择：
-          // 1. 跳转回用户“我的评价”列表页
-          router.push({ name: 'UserProfilePage', query: { tab: 'reviews' } });
-
-          // 2. 或者，如果后端返回了新创建的评论 ID，可以直接跳转到该评论的查看页面：
-          // const newPackageCommentId = response.data.data.id; // 假设 API 返回新评论的 ID
-          // router.replace({ name: 'ViewPackageReview', params: { packageCommentId: newPackageCommentId } });
-          // await fetchData(); // 重新加载数据以切换到查看模式
+          // 跳转回用户“我的评价”列表页
+          router.push({ name: '用户个人主页', query: { tab: 'reviews' } });
         } else {
           ElMessage.error(response.data.message || '评价提交失败，请重试。');
         }
@@ -230,6 +231,45 @@ const submitReview = async () => {
       ElMessage.warning('请检查您的输入，确保评分和评论内容符合要求。');
     }
   });
+};
+
+// 删除评价
+const deleteReview = async () => {
+  if (!packageCommentId.value) {
+    ElMessage.error('无法获取评价ID，请刷新页面重试。');
+    return;
+  }
+
+  try {
+    // 弹出确认框
+    await ElMessageBox.confirm('此操作将永久删除该评价, 是否继续?', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    });
+
+    // 用户确认删除
+    loading.value = true; // 删除过程中显示加载状态
+    const response = await authAxios.delete(`/user/packages/comments/package-comments/${packageCommentId.value}`);
+
+    if (response.data.code === 200) {
+      ElMessage.success('评价删除成功！');
+      // 成功删除后，跳转回用户的“我的评价”列表页
+      router.push({ name: '用户个人主页', query: { tab: 'reviews' } });
+    } else {
+      ElMessage.error(response.data.message || '评价删除失败，请重试。');
+    }
+  } catch (error) {
+    // 如果用户点击取消，会抛出 'cancel' 字符串
+    if (error === 'cancel') {
+      ElMessage.info('已取消删除操作。');
+    } else {
+      console.error('删除评价失败:', error);
+      ElMessage.error(`删除评价失败: ${error.message || '请检查网络或稍后再试。'}`);
+    }
+  } finally {
+    loading.value = false;
+  }
 };
 
 // 组件挂载时触发数据加载
@@ -282,6 +322,18 @@ onMounted(() => {
   font-size: 1.2rem;
   color: #606266;
   font-weight: normal;
+}
+
+.delete-button {
+  margin-left: 15px; 
+  background-color: #F56C6C; 
+  border-color: #F56C6C;
+  color: #fff;
+}
+
+.delete-button:hover {
+  background-color: #E6A23C; /* 悬停时颜色略深 */
+  border-color: #E6A23C;
 }
 
 .back-button {

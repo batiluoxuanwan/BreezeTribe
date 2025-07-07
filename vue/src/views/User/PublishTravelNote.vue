@@ -462,6 +462,7 @@ const handleLocationSelect = (item) => {
   searchLocation.value = item.name; // 将选中的名称显示在输入框
   selectedSpotData.value = item; // 存储完整的地点数据，可能包含 ID, 地址等
   ElMessage.success(`已选择：${item.name}`);
+  console.log('已选择地点',searchLocation.value,selectedSpotData.value)
 };
 
 const confirmLocation = () => {
