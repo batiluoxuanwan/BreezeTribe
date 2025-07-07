@@ -34,6 +34,16 @@ public interface TravelDepartureRepository extends JpaRepository<TravelDeparture
 
     Page<TravelDeparture> findByTravelPackageIdAndStatus(String packageId, TravelDeparture.DepartureStatus departureStatus, Pageable pageable);
 
+    /**
+     * 根据产品ID、团期状态和出发日期，分页查询可用的团期
+     * @param packageId 产品ID
+     * @param status 团期状态 (e.g., OPEN)
+     * @param date 日期，只查询此日期之后的团期
+     * @param pageable 分页信息
+     * @return 团期分页结果
+     */
+    Page<TravelDeparture> findByTravelPackageIdAndStatusAndDepartureDateAfter(String packageId, TravelDeparture.DepartureStatus status, LocalDateTime date, Pageable pageable);
+
     boolean existsByTravelPackageId(String packageId);
 
 
