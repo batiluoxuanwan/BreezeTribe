@@ -11,12 +11,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.whu.backend.dto.report.ModerationDetails;
 import org.whu.backend.entity.Report;
-import org.whu.backend.entity.accounts.Account;
 import org.whu.backend.repository.ReportRepository;
 import org.whu.backend.repository.authRepo.AuthRepository;
 import org.whu.backend.service.admin.AdminContentService;
 import org.whu.backend.service.ai.AiModerationService;
-import org.whu.backend.util.JpaUtil;
 
 import java.util.Collections;
 import java.util.List;
@@ -37,8 +35,6 @@ public class AiModerationListener {
     private ReportRepository reportRepository;
     @Autowired
     private ObjectMapper objectMapper; // 注入JSON处理工具
-    @Autowired
-    private AuthRepository authRepository;
 
     /**
      * 监听内容提交事件，并异步执行审核
