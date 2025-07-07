@@ -15,9 +15,15 @@
         <div><strong>{{ adminInfo.totalMerchants }}</strong><p>注册团长</p></div>
         <div><strong>{{ adminInfo.pendingTours }}</strong><p>待审旅行团</p></div>
       </div>
-      <el-button @click="editProfileDialog = true" type="primary" plain class="edit-profile-btn">编辑资料</el-button>
 
       <div class="sidebar-menu">
+        <div
+          :class="{ 'menu-item': true, 'active': activeTab === 'overview' }"
+          @click="activeTab = 'overview'"
+        >
+          <el-icon><Monitor /></el-icon>
+          <span>概览</span>
+        </div>
         <div
           :class="{ 'menu-item': true, 'active': activeTab === 'userManagement' }"
           @click="activeTab = 'userManagement'"
@@ -41,6 +47,13 @@
           <el-badge v-if="pendingToursCount > 0" :value="pendingToursCount" class="notification-badge" />
         </div>
         <div
+          :class="{ 'menu-item': true, 'active': activeTab === 'friends' }"
+          @click="activeTab = 'friends'"
+        >
+          <el-icon><User /></el-icon>
+          <span>我的好友</span>
+        </div>
+        <div
           :class="{ 'menu-item': true, 'active': activeTab === 'systemSettings' }"
           @click="activeTab = 'systemSettings'"
         >
@@ -52,6 +65,9 @@
 
     <main class="main-content">
       <el-tabs v-model="activeTab" class="hidden-tabs-header">
+        <el-tab-pane label="概览" name="overview">
+          <AdminOverview/>
+        </el-tab-pane>
         <el-tab-pane label="用户管理" name="userManagement">
           <h3 class="tab-header">用户列表</h3>
           <el-input v-model="userSearchQuery" placeholder="搜索用户ID、用户名或邮箱" clearable @input="debouncedSearchUsers" class="search-input"></el-input>
@@ -145,12 +161,19 @@
           />
         </el-tab-pane>
 
+        <el-tab-pane label="我的好友" name="friends">
+          <h3 class="tab-header">我的好友</h3>
+          <div style="margin-bottom: 32px;">
+            <MyFriends/>
+          </div>
+        </el-tab-pane>
+
         <el-tab-pane label="系统设置" name="systemSettings">
           <h3 class="tab-header">系统配置</h3>
           <div style="margin-bottom: 32px;">
             <AccountOverview @userUpdated="handleUserUpdated"/>
           </div>
-          </el-tab-pane>
+        </el-tab-pane>
       </el-tabs>
     </main>
 
@@ -218,7 +241,10 @@ import { User, Shop, PictureFilled, Document, Setting, EditPen, ArrowLeft } from
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { authAxios } from '@/utils/request'; 
 import { useRouter } from 'vue-router';
-import AccountOverview from '@/components/AccountOverview.vue'   
+import AccountOverview from '@/components/AccountOverview.vue';
+import MyFriends from '@/components/profile/MyFriends.vue' ;
+import AdminOverview from '@/components/profile/AdminOverview.vue';
+
 
 const router = useRouter();
 
@@ -234,7 +260,7 @@ const adminInfo = reactive({
   updatedAt: '',
 });
 
-const activeTab = ref('userManagement'); // 默认激活的 Tab
+const activeTab = ref('overview'); // 默认激活的 Tab
 
 // --- 用户管理数据 ---
 const users = ref([]);
@@ -540,27 +566,6 @@ const rejectTour = async (tourId) => {
     });
 };
 
-// 保存管理员资料 (目前仅模拟，实际应调用后端接口)
-const saveProfile = () => {
-  // TODO: 调用后端 API 更新管理员信息，例如 /api/admin/profile
-  ElMessage.success('管理员资料保存成功！');
-  editProfileDialog.value = false;
-};
-
-// 保存系统设置 (目前仅模拟密码修改)
-const saveAdminSettings = async () => {
-  if (adminSettingsForm.value.newPassword !== adminSettingsForm.value.confirmNewPassword) {
-    ElMessage.error('两次输入的新密码不一致！');
-    return;
-  }
-  // TODO: 调用后端 API 更新管理员密码，例如 /api/admin/change-password
-  // 确保后端有验证旧密码的逻辑
-  ElMessage.success('管理员密码修改成功！');
-  adminSettingsForm.value.oldPassword = '';
-  adminSettingsForm.value.newPassword = '';
-  adminSettingsForm.value.confirmNewPassword = '';
-};
-
 // 获取封禁状态
 const getBanStatusText = (banDurationDays) => {
   if (banDurationDays === -1) {
@@ -776,14 +781,6 @@ const goToHome = () => {
   color: rgb(0,100,110);
   margin-bottom: 4px;
   font-weight: 600;
-}
-
-.edit-profile-btn {
-  width: 80%;
-  margin-bottom: 30px;
-  border-radius: 8px;
-  font-weight: 500;
-  letter-spacing: 0.5px;
 }
 
 .sidebar-menu {
