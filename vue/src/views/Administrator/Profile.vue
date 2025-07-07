@@ -217,12 +217,10 @@ import { ref, onMounted, nextTick,reactive } from 'vue';
 import { User, Shop, PictureFilled, Document, Setting, EditPen, ArrowLeft } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { authAxios } from '@/utils/request'; 
-import { useNotificationStore } from '@/stores/notificationStore';
 import { useRouter } from 'vue-router';
 import AccountOverview from '@/components/AccountOverview.vue'   
 
 const router = useRouter();
-const notificationStore = useNotificationStore();
 
 // --- 管理员信息及侧边栏数据 ---
 const adminInfo = reactive({
@@ -316,7 +314,7 @@ const fetchAdminInfo = async () => {
 
     if (res.data.code === 200) {
       Object.assign(adminInfo, res.data.data);
-      ElMessage.success('管理员信息获取成功！');
+      //ElMessage.success('管理员信息获取成功！');
       console.log('Admin Info Data:', adminInfo); // 调试用
     } else {
       ElMessage.error(res.data.message || '获取管理员信息失败');

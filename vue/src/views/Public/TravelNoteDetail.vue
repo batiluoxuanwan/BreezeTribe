@@ -708,13 +708,15 @@ const postReplyComment = async (parentComment) => {
       activeReplyInputId.value = null; // 关闭回复输入框
       currentReplyTarget.value = null; // 重置回复目标
 
-      await fetchComments(true); 
-
       if (note.value.commentCount !== undefined && note.value.commentCount !== null) {
         note.value.commentCount++;
       } else {
         note.value.commentCount = 1;
       }
+
+      //又说我没更改不能提交
+
+      await fetchComments(true); 
 
       // 如果当前父评论的回复列表是展开的，则也刷新其 fullReplies
       if (expandedCommentId[parentComment.id]) {
