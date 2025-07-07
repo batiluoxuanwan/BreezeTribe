@@ -133,7 +133,8 @@ public class NotificationService {
 
     @Transactional
     public void markAsRead(String currentUserId, MarkAsReadRequestDto request) {
-        if (request.getCategory() == null || request.getCategory().isBlank()) {
+        if (request.getCategory() == null || request.getCategory().isBlank() || request.getCategory().equalsIgnoreCase("all")) {
+            notificationRepository.markAllAsReadByRecipientId(currentUserId);
             return;
         }
 
