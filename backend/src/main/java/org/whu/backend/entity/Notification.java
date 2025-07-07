@@ -80,24 +80,39 @@ public class Notification {
     }
 
     public enum NotificationType {
-        // 点赞和收藏类
+        // ---------点赞和收藏类---------
+        // 对用户
         NEW_POST_LIKE,          // 游记被点赞
         NEW_POST_FAVORITE,      // 游记被收藏
-
+        // 对商家
         NEW_PACKAGE_FAVORITE,   // 旅行团被收藏
 
-        // 评论和回复类
+        // ---------评论和回复类---------
+        // 对用户
         NEW_POST_COMMENT,       // 游记被评论
         NEW_COMMENT_REPLY,      // 你的评论被回复
-
+        // 对商家
         NEW_PACKAGE_COMMENT,    // 旅行团被评论
 
-        // 系统和订单类
+        // ---------系统和订单类---------
+        // 对用户
         ORDER_CREATED,          // 订单创建成功
         ORDER_PAID,             // 订单支付成功
         ORDER_CANCELED,         // 订单取消成功
+        // 对商家
         PACKAGE_APPROVED,       // 旅行团审核通过
         PACKAGE_REJECTED,       // 旅行团审核被驳回
-        DEPARTURE_REMINDER      // 临行时通知（对商户和对用户）
+        USER_PAID,              // 用户支付成功
+        // 对商家和用户
+        DEPARTURE_REMINDER,     // 临行时通知（对商户和对用户）
+        // 管理员操作导致的
+        POST_DELETED,           // 游记被删除
+        PACKAGE_BLOCKED,        // 旅行团被屏蔽
+        POST_COMMENT_DELETED,   // 游记评论被删除
+        PACKAGE_COMMENT_DELETED,// 旅行团评论被删除
+        // 举报通过和驳回
+        REPORT_CREATED,         // 举报已提交
+        REPORT_ACCEPTED,        // 举报已受理
+        REPORT_REJECTED         // 举报被驳回
     }
 }

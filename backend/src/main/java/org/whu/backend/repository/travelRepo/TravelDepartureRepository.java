@@ -36,9 +36,42 @@ public interface TravelDepartureRepository extends JpaRepository<TravelDeparture
 
     boolean existsByTravelPackageId(String packageId);
 
+
+    @Query("""
+        SELECT FUNCTION('DATE', td.createdTime), COUNT(td)
+        FROM TravelDeparture td
+        WHERE td.createdTime BETWEEN :start AND :end
+        GROUP BY FUNCTION('DATE', td.createdTime)
+        ORDER BY FUNCTION('DATE', td.createdTime)
+        """)
+    List<Object[]> countByDay(@Param("start") LocalDateTime start,
+                              @Param("end") LocalDateTime end);
+
+    @Query("""
+        SELECT FUNCTION('YEARWEEK', td.createdTime), COUNT(td)
+        FROM TravelDeparture td
+        WHERE td.createdTime BETWEEN :start AND :end
+        GROUP BY FUNCTION('YEARWEEK', td.createdTime)
+        ORDER BY FUNCTION('YEARWEEK', td.createdTime)
+        """)
+    List<Object[]> countByWeek(@Param("start") LocalDateTime start,
+                               @Param("end") LocalDateTime end);
+
+    @Query("""
+        SELECT FUNCTION('DATE_FORMAT', td.createdTime, '%Y-%m'), COUNT(td)
+        FROM TravelDeparture td
+        WHERE td.createdTime BETWEEN :start AND :end
+        GROUP BY FUNCTION('DATE_FORMAT', td.createdTime, '%Y-%m')
+        ORDER BY FUNCTION('DATE_FORMAT', td.createdTime, '%Y-%m')
+        """)
+    List<Object[]> countByMonth(@Param("start") LocalDateTime start,
+                                @Param("end") LocalDateTime end);
+
     /**
      * 【新增】查询在指定时间段内出发的所有团期（用于通知商家）
      */
     @Query("SELECT d FROM TravelDeparture d WHERE d.departureDate BETWEEN :start AND :end")
     List<TravelDeparture> findDeparturesBetween(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+
 }

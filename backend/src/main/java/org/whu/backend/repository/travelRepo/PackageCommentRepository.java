@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import org.whu.backend.entity.travelpac.PackageComment;
+import org.whu.backend.entity.travelpac.TravelPackage;
 
 import java.util.List;
 import java.util.Set;
@@ -23,6 +24,7 @@ public interface PackageCommentRepository extends JpaRepository<PackageComment, 
     long countByParentId(String parentId);
 
     Page<PackageComment> findByParentId(String commentId, Pageable repliesPageable);
+    List<PackageComment> findByParentId(String commentId);
 
     // 一次性查询出某个用户评价过的所有旅行团的ID
     @Query("SELECT pc.travelPackage.id FROM PackageComment pc WHERE pc.author.id = :userId")
@@ -34,4 +36,11 @@ public interface PackageCommentRepository extends JpaRepository<PackageComment, 
 
     // 查询用户是否已经评价过一个旅游团
     boolean existsByAuthorIdAndTravelPackageId(String userId, String packageId);
+
+    List<PackageComment> findByTravelPackageAndParentIsNull(TravelPackage travelPackage);
+
+    /**
+     * 根据作者ID和一组产品ID，一次性查询出所有相关的评论
+     */
+    List<PackageComment> findByAuthorIdAndTravelPackageIdIn(String authorId, List<String> packageIds);
 }

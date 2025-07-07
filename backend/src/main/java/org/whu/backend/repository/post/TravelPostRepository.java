@@ -38,7 +38,7 @@ public interface TravelPostRepository extends JpaRepository<TravelPost, String> 
 
     @Modifying
     @Query("UPDATE TravelPost p SET p.commentCount = GREATEST(p.commentCount - :num, 0 )WHERE p.id = :postId AND p.commentCount > 0")
-    void decrementCommentCount(String postId, Long num);
+    void decrementCommentCount(String postId, long num);
 
     // 原子化地增加点赞数
     @Modifying

@@ -40,4 +40,6 @@ public interface TagRepository extends JpaRepository<Tag, String> {
     Page<Tag> findByCategoryAndNameContainingIgnoreCase(Tag.TagCategory category, String name, Pageable pageable);
 
     Page<Tag> findByNameContainingIgnoreCase(String name, Pageable pageable);
+
+    List<Tag> findByNameIn(List<String> recommendedTagNames);
 }

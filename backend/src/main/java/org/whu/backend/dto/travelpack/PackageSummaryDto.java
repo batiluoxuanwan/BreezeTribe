@@ -3,6 +3,7 @@ package org.whu.backend.dto.travelpack;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Data;
+import org.whu.backend.dto.accounts.AuthorDto;
 
 import java.math.BigDecimal;
 
@@ -44,4 +45,7 @@ public class PackageSummaryDto {
 
     @Schema(description = "旅行团目前的状态")
     private String status;
+
+    @Schema(description = "经销商的具体信息")
+    private AuthorDto merchant;
 }

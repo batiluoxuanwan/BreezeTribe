@@ -53,14 +53,62 @@ public interface TravelOrderRepository extends JpaRepository<TravelOrder, String
     Set<String> findPackageIdsByUserId(@Param("userId") String userId);
 
     /**
+     * ====== 1. 按日统计（YYYY-MM-DD）======
+     */
+    @Query("""
+    SELECT FUNCTION('DATE', o.createdTime), SUM(o.travelerCount), SUM(o.totalPrice)
+    FROM TravelOrder o
+    WHERE o.createdTime >= :start AND o.createdTime < :end
+    AND (:merchantId IS NULL OR o.travelDeparture.travelPackage.dealer.id = :merchantId)
+    GROUP BY FUNCTION('DATE', o.createdTime)
+    ORDER BY FUNCTION('DATE', o.createdTime)
+""")
+    List<Object[]> countOrderStatsByDay(@Param("start") LocalDateTime start,
+                                        @Param("end") LocalDateTime end,
+                                        @Param("merchantId") String merchantId);
+
+    /**
+     * ====== 2. 按周统计（YEARWEEK，格式为202527）======
+     */
+    @Query("""
+    SELECT FUNCTION('YEARWEEK', o.createdTime), SUM(o.travelerCount), SUM(o.totalPrice)
+    FROM TravelOrder o
+    WHERE o.createdTime >= :start AND o.createdTime < :end
+    AND (:merchantId IS NULL OR o.travelDeparture.travelPackage.dealer.id = :merchantId)
+    GROUP BY FUNCTION('YEARWEEK', o.createdTime)
+    ORDER BY FUNCTION('YEARWEEK', o.createdTime)
+""")
+    List<Object[]> countOrderStatsByWeek(@Param("start") LocalDateTime start,
+                                         @Param("end") LocalDateTime end,
+                                         @Param("merchantId") String merchantId);
+
+    /**
+     * ====== 3. 按月统计（YYYY-MM）======
+     */
+    @Query("""
+    SELECT FUNCTION('DATE_FORMAT', o.createdTime, '%Y-%m'),SUM(o.travelerCount), SUM(o.totalPrice)
+    FROM TravelOrder o
+    WHERE o.createdTime >= :start AND o.createdTime < :end
+    AND (:merchantId IS NULL OR o.travelDeparture.travelPackage.dealer.id = :merchantId)
+    GROUP BY FUNCTION('DATE_FORMAT', o.createdTime, '%Y-%m')
+    ORDER BY FUNCTION('DATE_FORMAT', o.createdTime, '%Y-%m')
+""")
+    List<Object[]> countOrderStatsByMonth(@Param("start") LocalDateTime start,
+                                          @Param("end") LocalDateTime end,
+                                          @Param("merchantId") String merchantId);
+
+    /**
      * 【新增】将已支付(PAID)且已到出发日期的订单，状态更新为进行中(ONGOING)
      *
      * @param now 当前时间
      * @return 更新的记录数
      */
     @Modifying
-    @Query("UPDATE TravelOrder o SET o.status = 'ONGOING' " +
-            "WHERE o.status = 'PAID' AND o.travelDeparture.departureDate <= :now")
+    @Query(value = "UPDATE travel_orders o " +
+            "JOIN travel_departures d ON o.departure_id = d.id " +
+            "SET o.status = 'ONGOING' " +
+            "WHERE o.status = 'PAID' AND d.departure_date <= :now",
+            nativeQuery = true)
     int updatePaidToOngoing(@Param("now") LocalDateTime now);
 
 
@@ -90,4 +138,35 @@ public interface TravelOrderRepository extends JpaRepository<TravelOrder, String
      * 【新增】根据团期ID和订单状态，分页查询订单
      */
     Page<TravelOrder> findByTravelDeparture_IdAndStatus(String departureId, TravelOrder.OrderStatus status, Pageable pageable);
+
+    /**
+     * /*
+     * 【新增】根据团期ID，分页查询订单
+     */
+    Page<TravelOrder> findByTravelDeparture_Id(String departureId, Pageable pageable);
+
+    @Query("""
+    SELECT COALESCE(SUM(o.travelerCount), 0)
+    FROM TravelOrder o
+    WHERE o.travelDeparture.travelPackage.dealer.id = :merchantId
+      AND o.createdTime >= :start
+      AND o.createdTime < :end
+      AND o.status = 'PAID'
+""")
+    Long countJoinCountByMerchantAndPeriod(@Param("merchantId") String merchantId,
+                                           @Param("start") LocalDateTime start,
+                                           @Param("end") LocalDateTime end);
+
+    @Query("""
+    SELECT COALESCE(SUM(o.travelerCount), 0)
+    FROM TravelOrder o
+    WHERE o.travelDeparture.travelPackage.id = :packageId
+      AND o.createdTime >= :start
+      AND o.createdTime < :end
+      AND o.status = 'PAID'
+""")
+    Long countJoinCountByPackageAndPeriod(@Param("packageId") String packageId,
+                                          @Param("start") LocalDateTime start,
+                                          @Param("end") LocalDateTime end);
+
 }

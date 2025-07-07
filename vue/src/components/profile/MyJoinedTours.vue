@@ -5,7 +5,7 @@
           v-for="tour in joinedTours"
           :key="tour.id"
           class="tour-card hover-card"
-          @click="goToTourDetail(tour.id)" >
+          @click="goToTourDetail(tour.packageId)" >
           <img :src="tour.image" class="card-img" alt="旅行团图片" />
           <div class="card-info">
             <h3>{{ tour.title }}</h3>
@@ -56,6 +56,10 @@
 import { onMounted, ref } from 'vue' 
 import { ElMessageBox, ElCard, ElButton, ElEmpty, ElMessage } from 'element-plus';
 import { authAxios } from '@/utils/request';
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
+
 
 const joinedTours = ref([]); // 存储我的报名旅行团列表
 const joinedTotal = ref(0); // 我的报名总数
@@ -76,6 +80,7 @@ const fetchJoinedTours = async () => {
     });
 
     if (response.data.code === 200) {
+      console.log('获取报名数据成功:',response.data)
       joinedTours.value = response.data.data.content.map(order => {
         let progress = 0;
         let tourDate = ''; 

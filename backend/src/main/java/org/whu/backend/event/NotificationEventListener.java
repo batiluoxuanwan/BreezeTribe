@@ -6,6 +6,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.whu.backend.entity.Notification;
+import org.whu.backend.entity.accounts.Merchant;
 import org.whu.backend.entity.accounts.User;
 import org.whu.backend.entity.travelpac.TravelOrder;
 import org.whu.backend.entity.travelpac.TravelPackage;
@@ -19,6 +20,8 @@ import org.whu.backend.event.travelpac.PackageFavouredEvent;
 import org.whu.backend.repository.travelRepo.TravelPackageRepository;
 import org.whu.backend.service.NotificationService;
 import org.whu.backend.util.JpaUtil;
+
+import java.time.format.DateTimeFormatter;
 
 @Component
 @Slf4j
@@ -61,8 +64,9 @@ public class NotificationEventListener {
     public void handleOrderConfirmed(OrderConfirmedEvent event) {
         TravelOrder order = event.getOrder();
         User user = order.getUser();
+        Merchant merchant = order.getTravelDeparture().getTravelPackage().getDealer();
         String packageTitle = order.getTravelDeparture().getTravelPackage().getTitle();
-        // 通知用户
+        // -------通知用户------
         String description = String.format("您关于旅行产品 [%s] 的订单已成功支付", packageTitle);
         notificationService.createAndSendNotification(
                 user,
@@ -71,6 +75,23 @@ public class NotificationEventListener {
                 null,
                 null,
                 order.getTravelDeparture().getTravelPackage().getId()
+        );
+        // -------通知有新订单------
+        // log.info("监听到订单支付事件，准备为商家 '{}' 发送新订单通知。", merchant.getUsername());
+        String descriptionToMerchant = String.format(
+                "已成功支付了您的旅行团 [%s] 的订单，团期 [%s]。联系人姓名: [%s]，联系电话: [%s])",
+                packageTitle,
+                order.getTravelDeparture().getDepartureDate().format(DateTimeFormatter.ISO_LOCAL_DATE),
+                order.getContactName(),   // 使用订单里的联系人姓名
+                order.getContactPhone()  // 使用订单里的联系人电话
+        );
+        notificationService.createAndSendNotification(
+                merchant, // 接收者是商家
+                Notification.NotificationType.USER_PAID, // 使用一个新的、专门的通知类型
+                descriptionToMerchant,
+                null,
+                user, // 触发事件的用户
+                order.getTravelDeparture().getId() // 关联团期id
         );
     }
 

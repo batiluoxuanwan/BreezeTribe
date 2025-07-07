@@ -140,6 +140,7 @@ const fetchTravelGroups = async () => {
     }
     if (response.data.code === 200) {
       travelGroups.value = response.data.data.content; // 更新旅行团数据
+      groupTotal.value = response.data.data.totalElements || 0; // 总条数，用于分页
     } else {
       ElMessage.error(response.data.message || '获取旅行团数据失败！'); 
     }

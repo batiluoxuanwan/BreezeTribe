@@ -22,15 +22,20 @@ import org.whu.backend.dto.like.LikeDetailDto;
 import org.whu.backend.dto.like.LikePageRequestDto;
 import org.whu.backend.dto.like.LikeRequestDto;
 import org.whu.backend.dto.order.OrderCreateRequestDto;
+import org.whu.backend.dto.order.OrderForReviewDto;
 import org.whu.backend.dto.order.TravelOrderDetailDto;
+import org.whu.backend.dto.report.ReportCreateDto;
 import org.whu.backend.dto.user.InteractionStatusRequestDto;
 import org.whu.backend.dto.user.InteractionStatusResponseDto;
 import org.whu.backend.dto.user.ItemIdentifierDto;
 import org.whu.backend.dto.user.ItemStatusDto;
 import org.whu.backend.entity.*;
 import org.whu.backend.entity.accounts.User;
+import org.whu.backend.entity.travelpac.PackageComment;
 import org.whu.backend.entity.travelpac.TravelDeparture;
 import org.whu.backend.entity.travelpac.TravelOrder;
+import org.whu.backend.entity.travelpac.TravelPackage;
+import org.whu.backend.entity.travelpost.Comment;
 import org.whu.backend.entity.travelpost.TravelPost;
 import org.whu.backend.event.order.OrderCancelledEvent;
 import org.whu.backend.event.order.OrderConfirmedEvent;
@@ -40,14 +45,18 @@ import org.whu.backend.event.post.PostLikedEvent;
 import org.whu.backend.event.travelpac.PackageFavouredEvent;
 import org.whu.backend.repository.FavoriteRepository;
 import org.whu.backend.repository.LikeRepository;
+import org.whu.backend.repository.ReportRepository;
+import org.whu.backend.repository.post.PostCommentRepository;
 import org.whu.backend.repository.post.TravelPostRepository;
 import org.whu.backend.repository.travelRepo.*;
 import org.whu.backend.service.DtoConverter;
+import org.whu.backend.service.NotificationService;
 import org.whu.backend.util.AccountUtil;
 import org.whu.backend.util.JpaUtil;
 
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 
@@ -85,6 +94,12 @@ public class UserService {
     private int favoriteWeight;
     @Value("${recommendation.weights.like}")
     private int likeWeight;
+    @Autowired
+    private ReportRepository reportRepository;
+    @Autowired
+    private PostCommentRepository postCommentRepository;
+    @Autowired
+    private NotificationService notificationService;
 
     /**
      * 【核心重构】创建一个订单
@@ -237,45 +252,101 @@ public class UserService {
         return dtoConverter.convertPageToDto(orderPage, dtos);
     }
 
-    // 根据评价状态，获取用户的订单列表 // TODO: 这个方法有BUG，还没修，查不出来已评价和未评价！！！！！
+//    // 根据评价状态，获取用户的订单列表 // TODO: 这个方法有BUG，还没修，查不出来已评价和未评价！！！！！
+//    @Transactional(readOnly = true)
+//    public PageResponseDto<TravelOrderDetailDto> getOrdersByReviewStatus(String currentUserId, String status, PageRequestDto pageRequestDto) {
+//        log.info("用户ID '{}' 正在查询 '{}' 状态的已完成订单列表...", currentUserId, status);
+//
+//        // 1. 先找出该用户已经评价过的所有【产品模板】ID
+//        // 假设 packageCommentRepository 现在可以返回 TravelPackage 的 ID
+//        Set<String> reviewedPackageIds = packageCommentRepository.findTravelPackageIdsReviewedByUser(currentUserId);
+//
+//        Pageable pageable = PageRequest.of(pageRequestDto.getPage() - 1, pageRequestDto.getSize(),
+//                Sort.by(Sort.Direction.DESC, "createdTime"));
+//
+//        Page<TravelOrder> orderPage;
+//
+//        // 2. 根据前端传来的状态，调用新的、基于 TravelOrder 的查询方法
+//        // 注意：这里的查询逻辑现在是通过 TravelOrder -> TravelDeparture -> TravelPackage 进行关联
+//        if ("REVIEWED".equalsIgnoreCase(status)) {
+//            // 查询已完成的、且其关联的产品ID在“已评价列表”中的订单
+//            orderPage = travelOrderRepository.findByUserIdAndStatusAndTravelDeparture_TravelPackage_IdIn(
+//                    currentUserId, TravelOrder.OrderStatus.COMPLETED, reviewedPackageIds, pageable
+//            );
+//        } else if ("ALL".equalsIgnoreCase(status)) {
+//            // 查询全部已完成的订单
+//            orderPage = travelOrderRepository.findByUserIdAndStatus(
+//                    currentUserId, TravelOrder.OrderStatus.COMPLETED, pageable
+//            );
+//        } else { // 默认为查询“待评价” (PENDING)
+//            // 查询已完成的、且其关联的产品ID【不】在“已评价列表”中的订单
+//            orderPage = travelOrderRepository.findByUserIdAndStatusAndTravelDeparture_TravelPackage_IdNotIn(
+//                    currentUserId, TravelOrder.OrderStatus.COMPLETED, reviewedPackageIds, pageable
+//            );
+//        }
+//
+//        // 3. 【核心改变】将查询结果转换为DTO，使用新的转换方法
+//        List<TravelOrderDetailDto> dtos = orderPage.getContent().stream()
+//                .map(dtoConverter::convertTravelOrderToDetailDto) // 使用新的转换方法
+//                .collect(Collectors.toList());
+//
+//        return dtoConverter.convertPageToDto(orderPage, dtos);
+//    }
+
+    /**
+     * 根据评价状态，获取用户的订单列表
+     * 新思路：先查出所有已完成订单，然后在内存中进行处理和过滤，逻辑清晰且无BUG。
+     */
     @Transactional(readOnly = true)
-    public PageResponseDto<TravelOrderDetailDto> getOrdersByReviewStatus(String currentUserId, String status, PageRequestDto pageRequestDto) {
-        log.info("用户ID '{}' 正在查询 '{}' 状态的已完成订单列表...", currentUserId, status);
+    public PageResponseDto<OrderForReviewDto> getOrdersByReviewStatus(String currentUserId, String status, PageRequestDto pageRequestDto) {
+        log.info("服务层：用户ID '{}' 正在查询 '{}' 状态的已完成订单列表...", currentUserId, status);
 
         // 1. 先找出该用户已经评价过的所有【产品模板】ID
-        // 假设 packageCommentRepository 现在可以返回 TravelPackage 的 ID
         Set<String> reviewedPackageIds = packageCommentRepository.findTravelPackageIdsReviewedByUser(currentUserId);
+        log.info("服务层：用户 '{}' 已评价过 {} 个产品。", currentUserId, reviewedPackageIds.size());
 
+        // 2. 分页查询出该用户【所有】已完成的订单
         Pageable pageable = PageRequest.of(pageRequestDto.getPage() - 1, pageRequestDto.getSize(),
-                Sort.by(Sort.Direction.DESC, "createdTime"));
+                Sort.by(Sort.Direction.DESC, "updatedTime")); // 按完成时间排序
+        Page<TravelOrder> completedOrdersPage = travelOrderRepository.findByUserIdAndStatus(
+                currentUserId, TravelOrder.OrderStatus.COMPLETED, pageable
+        );
 
-        Page<TravelOrder> orderPage;
-
-        // 2. 【核心改变】根据前端传来的状态，调用新的、基于 TravelOrder 的查询方法
-        // 注意：这里的查询逻辑现在是通过 TravelOrder -> TravelDeparture -> TravelPackage 进行关联
-        if ("REVIEWED".equalsIgnoreCase(status)) {
-            // 查询已完成的、且其关联的产品ID在“已评价列表”中的订单
-            orderPage = travelOrderRepository.findByUserIdAndStatusAndTravelDeparture_TravelPackage_IdIn(
-                    currentUserId, TravelOrder.OrderStatus.COMPLETED, reviewedPackageIds, pageable
-            );
-        } else if ("ALL".equalsIgnoreCase(status)) {
-            // 查询全部已完成的订单
-            orderPage = travelOrderRepository.findByUserIdAndStatus(
-                    currentUserId, TravelOrder.OrderStatus.COMPLETED, pageable
-            );
-        } else { // 默认为查询“待评价” (PENDING)
-            // 查询已完成的、且其关联的产品ID【不】在“已评价列表”中的订单
-            orderPage = travelOrderRepository.findByUserIdAndStatusAndTravelDeparture_TravelPackage_IdNotIn(
-                    currentUserId, TravelOrder.OrderStatus.COMPLETED, reviewedPackageIds, pageable
-            );
-        }
-
-        // 3. 【核心改变】将查询结果转换为DTO，使用新的转换方法
-        List<TravelOrderDetailDto> dtos = orderPage.getContent().stream()
-                .map(dtoConverter::convertTravelOrderToDetailDto) // 使用新的转换方法
+        // 3. 预加载当前页所有已评价订单的“评论”内容
+        // a. 找出当前页中，所有已评价的产品ID
+        List<String> packageIdsOnPage = completedOrdersPage.getContent().stream()
+                .map(order -> order.getTravelDeparture().getTravelPackage().getId())
+                .filter(reviewedPackageIds::contains)
                 .collect(Collectors.toList());
 
-        return dtoConverter.convertPageToDto(orderPage, dtos);
+        // b. 一次性查出这些评论，并放入一个Map方便快速查找
+        Map<String, PackageComment> reviewsMap = Collections.emptyMap();
+        if (!packageIdsOnPage.isEmpty()) {
+            List<PackageComment> comments = packageCommentRepository.findByAuthorIdAndTravelPackageIdIn(currentUserId, packageIdsOnPage);
+            reviewsMap = comments.stream()
+                    .collect(Collectors.toMap(comment -> comment.getTravelPackage().getId(), Function.identity()));
+            log.info("服务层：为当前页预加载了 {} 条评论详情。", reviewsMap.size());
+        }
+
+
+        // 4. 将实体列表转换为包含“是否已评价”和“评价详情”的DTO列表
+        Map<String, PackageComment> finalReviewsMap = reviewsMap;
+        List<OrderForReviewDto> allDtos = completedOrdersPage.getContent().stream()
+                .map(order -> dtoConverter.convertTravelOrderToReviewDto(order, reviewedPackageIds, finalReviewsMap))
+                .collect(Collectors.toList());
+
+        // 5. 在内存中对DTO列表进行最终过滤
+        List<OrderForReviewDto> filteredDtos;
+        if ("REVIEWED".equalsIgnoreCase(status)) {
+            filteredDtos = allDtos.stream().filter(OrderForReviewDto::isHasReviewed).collect(Collectors.toList());
+        } else if ("PENDING".equalsIgnoreCase(status)) {
+            filteredDtos = allDtos.stream().filter(dto -> !dto.isHasReviewed()).collect(Collectors.toList());
+        } else { // "ALL"
+            filteredDtos = allDtos;
+        }
+
+        // 6. 手动构建并返回分页结果
+        return dtoConverter.convertPageToDto(completedOrdersPage, filteredDtos);
     }
 
     @Transactional // 必须加上事务注解！！！！！！
@@ -577,6 +648,76 @@ public class UserService {
         }
 
         return InteractionStatusResponseDto.builder().statusMap(statusMap).build();
+    }
+
+
+    @Transactional
+    public void createReport(ReportCreateDto dto, String currentUserId) {
+        User reporter = securityUtil.getCurrentUser();
+        String description;
+        String summary;
+        // 根据举报类型，验证被举报内容是否存在，并生成对应的通知文本
+        switch (dto.getItemType()) {
+            case TRAVEL_PACKAGE -> {
+                TravelPackage travelPackage = JpaUtil.getOrThrow(travelPackageRepository, dto.getReportedItemId(), "举报的旅行团不存在");
+                description = String.format("您对旅游团 [%s] 的举报已成功提交，我们将尽快处理。", travelPackage.getTitle());
+                summary = travelPackage.getTitle();
+            }
+            case TRAVEL_POST -> {
+                TravelPost travelPost = JpaUtil.getOrThrow(travelPostRepository, dto.getReportedItemId(), "举报的游记不存在");
+                description = String.format("您对游记 [%s] 的举报已成功提交，我们将尽快处理。", travelPost.getTitle());
+                summary = travelPost.getTitle();
+            }
+            case POST_COMMENT -> {
+                Comment comment = JpaUtil.getOrThrow(postCommentRepository, dto.getReportedItemId(), "举报的游记评论不存在");
+                String truncatedContent = truncate(comment.getContent(), 20);
+                description = String.format("您对游记评论（内容：“%s...”）的举报已成功提交，我们将尽快处理。", truncatedContent);
+                summary = comment.getContent();
+            }
+            case PACKAGE_COMMENT -> {
+                PackageComment comment = JpaUtil.getOrThrow(packageCommentRepository, dto.getReportedItemId(), "举报的旅行团评论不存在");
+                String truncatedContent = truncate(comment.getContent(), 20);
+                description = String.format("您对旅游团评论（内容：“%s...”）的举报已成功提交，我们将尽快处理。", truncatedContent);
+                summary = comment.getContent();
+            }
+            default -> {
+                // 提供一个默认的文本
+                description = "您的举报已成功提交，我们将尽快处理。";
+                summary = "未知内容";
+            }
+        }
+
+        // 创建并保存举报实体
+        Report report = new Report();
+        report.setReporter(reporter);
+        report.setReportedItemId(dto.getReportedItemId());
+        report.setItemType(dto.getItemType());
+        report.setReason(dto.getReason());
+        report.setAdditionalInfo(dto.getAdditionalInfo());
+        report.setSummary(summary);
+        reportRepository.save(report);
+
+        // 发送“举报已提交”的通知给举报人
+        notificationService.createAndSendNotification(
+                reporter,
+                Notification.NotificationType.REPORT_CREATED,
+                description,
+                dto.getItemType().toString(),
+                null,
+                report.getReportedItemId()
+        );
+
+        log.info("服务层：用户 '{}' 成功提交了对项目 '{}' 的举报。", currentUserId, dto.getReportedItemId());
+    }
+
+    /**
+     * 私有辅助方法，用于截断过长的字符串
+     */
+    private String truncate(String text, int maxLength) {
+        if (text == null || text.length() <= maxLength) {
+            return text;
+        }
+        return text.substring(0, maxLength);
     }
 
     // 准备废弃
