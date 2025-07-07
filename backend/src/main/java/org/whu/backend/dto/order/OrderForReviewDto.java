@@ -37,6 +37,9 @@ public class OrderForReviewDto {
     @Schema(description = "评价的评分")
     private Integer star;
 
+    @Schema(description = "评价的id")
+    private String commentId;
+
     @Schema(description = "评价的内容")
     private String content;
 

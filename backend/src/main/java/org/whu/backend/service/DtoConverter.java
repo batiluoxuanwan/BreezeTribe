@@ -226,6 +226,7 @@ public class DtoConverter {
         if (hasReviewed) {
             PackageComment comment = reviewsMap.get(travelPackage.getId());
             if (comment != null) {
+                builder.commentId(comment.getId());
                 builder.star(comment.getRating());
                 builder.content(comment.getContent());
             }
