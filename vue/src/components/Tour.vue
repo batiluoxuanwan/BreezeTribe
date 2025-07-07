@@ -1,3 +1,4 @@
+<!-- 首页的旅行团卡片 -->
 <template>
   <div class="travel-tour-card">
     <div class="image-container">
@@ -41,7 +42,13 @@ const props = defineProps({
 // 跳转详情页并传递旅行团id
 const goToDetail = () => {
   console.log('查看旅行团详情:', props.tour.id);
-  router.push({ name: 'TravelGroupDetail', params: { id: props.tour.id } });
+  router.push({ 
+    name: 'TravelGroupDetail', 
+    params: { id: props.tour.id },
+    query: {
+      from: 'home'
+    } 
+  });
 };
 
 </script>

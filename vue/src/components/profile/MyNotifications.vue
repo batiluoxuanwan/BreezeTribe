@@ -64,7 +64,7 @@
             :key="notification.id"
             class="notification-item hover-card"
             :class="{ 'is_read': notification.read }"
-            @click="markAsReadAndNavigate(notification)"
+            @click="Turn(notification)"
           >
             <div class="notification-item-header">
               <span class="notification-source">{{ getNotificationSource(notification.type) }}</span>
@@ -203,19 +203,6 @@ const fetchNotifications = async (category, reset = false) => {
   }
 };
 
-// 获取各个分类的未读通知数量
-const fetchUnreadCounts = async () => {
-    try {
-        const response = await authAxios.get('/notifications/unread-counts');
-        if (response.data.code === 200 && response.data.data) {
-            const counts = response.data.data; 
-            Object.assign(unreadCounts, counts);
-        }
-    } catch (error) {
-        console.error('获取未读通知数量失败:', error);
-    }
-};
-
 const markCurrentCategoryAsRead = async () => {
   const currentCategory = activeNotificationTab.value;
 
@@ -238,30 +225,59 @@ const markCurrentCategoryAsRead = async () => {
   }
 };
 
-const markAsReadAndNavigate = async (notification) => {
-  if (!notification.isRead) {
-    try {
-      await authAxios.post('/api/notifications/mark-as-read', {
-        types: [notification.category] 
-      });
-      notification.isRead = true; 
-      updateUnreadCounts();
-      console.log('标记已读成功')
-    } catch (error) {
-      console.error('标记通知为已读失败:', error);
-      ElMessage.error('标记为已读失败。');
-    }
-  }
 
-  console.log('notification',notification)
-  if (notification.type === 'comments' && notification.relatedItemId) {
-    router.push(`/post/${notification.relatedItemId}#comment-${notification.id}`);
-  } else if (notification.type === 'likes' && notification.relatedItemId) {
-    router.push(`/post/${notification.relatedItemId}`);
-  } else if (notification.type === 'system') {
-    ElMessage.info('这是一条系统通知，通常不需要跳转。');
-  }
+const Turn = async (notification) => {
+    // 根据通知类型获取目标路由对象
+    let targetRoute = null;
+    const notificationConfig = NOTIFICATION_TYPE_MAP[notification.type];
+    
+    // 如果没有找到对应的配置或者明确设置为不可跳转
+    if (!notificationConfig || notificationConfig.routeName === null) {
+        switch (notification.type) {
+            case 'NEW_COMMENT_REPLY':
+                if (notification.relatedItemId) {
+                    targetRoute = { name: 'TravelNoteDetail', params: { id: notification.relatedItemId } };
+                } else {
+                    ElMessage.warning('评论回复通知无有效跳转链接。');
+                }
+                break;
+
+            default:
+                ElMessage.info('此类型通知暂无直接跳转链接。');
+                console.log('未处理的通知类型:', notification.type, notification);
+                break;
+        }
+    } else {
+        targetRoute = { name: notificationConfig.routeName };
+
+        if (notification.relatedItemId) {
+            targetRoute.params = { id: notification.relatedItemId };
+        } 
+        else if (notification.type.startsWith('ORDER_') && notification.relatedOrderId) {
+            targetRoute.query = { activeTab: notificationConfig.queryTab, orderId: notification.relatedOrderId };
+        } else if (notification.type.startsWith('PACKAGE_') && notification.relatedTourId) {
+            targetRoute.query = { activeTab: notificationConfig.queryTab, tourId: notification.relatedTourId };
+        }
+        else if (notification.type !== 'USER_PAID') {
+            ElMessage.warning('通知相关ID缺失，无法跳转。');
+            console.warn(`通知类型 ${notification.type} 缺失相关ID:`, notification);
+            return;
+        }
+    }
+
+    // 如果成功构建了目标路由对象，则在新页面打开
+    if (targetRoute) {
+        // 使用 router.resolve() 将路由对象解析成一个完整的 URL
+        const resolvedRoute = router.resolve(targetRoute);
+        if (resolvedRoute && resolvedRoute.href) {
+            window.open(resolvedRoute.href, '_blank'); // 在新标签页打开
+        } else {
+            ElMessage.error('无法解析跳转链接。');
+            console.error('无法解析路由对象到URL:', targetRoute);
+        }
+    }
 };
+
 
 // 获取通知来源文本
 const getNotificationSource = (type) => {
@@ -286,25 +302,36 @@ onMounted(() => {
 
 // 通知类型映射
 const NOTIFICATION_TYPE_MAP = {
-  // 点赞和收藏类 (映射到前端的 'likes' 分类)
-  NEW_POST_LIKE: { category: 'likes', sourceText: '游记点赞', pathPrefix: '/post/' },
-  NEW_POST_FAVORITE: { category: 'likes', sourceText: '游记收藏', pathPrefix: '/post/' },
-  NEW_PACKAGE_FAVORITE: { category: 'likes', sourceText: '旅行团收藏', pathPrefix: '/travel-package/' },
+  // --- 点赞和收藏类 (映射到前端的 'likes' 分类) ---
+  // 游记相关的通知直接指向 'TravelNoteDetail' 路由，并通过 relatedItemId 传递 ID
+  NEW_POST_LIKE: { category: 'likes', sourceText: '游记点赞', routeName: 'TravelNoteDetail' },
+  NEW_POST_FAVORITE: { category: 'likes', sourceText: '游记收藏', routeName: 'TravelNoteDetail' },
+  // 旅行团相关的通知直接指向 'TravelGroupDetail' 路由，并通过 relatedItemId 传递 ID
+  NEW_PACKAGE_FAVORITE: { category: 'likes', sourceText: '旅行团收藏', routeName: 'TravelGroupDetail' },
 
-  // 评论和回复类 (映射到前端的 'comments' 分类)
-  NEW_POST_COMMENT: { category: 'comments', sourceText: '游记评论', pathPrefix: '/post/' },
-  NEW_COMMENT_REPLY: { category: 'comments', sourceText: '评论回复', pathPrefix: null },
-  NEW_PACKAGE_COMMENT: { category: 'comments', sourceText: '旅行团评论', pathPrefix: '/travel-package/' },
+  // --- 评论和回复类 (映射到前端的 'comments' 分类) ---
+  // 游记评论指向 'TravelNoteDetail' 路由
+  NEW_POST_COMMENT: { category: 'comments', sourceText: '游记评论', routeName: 'TravelNoteDetail' },
+  // 旅行团评论指向 'TravelGroupDetail' 路由
+  NEW_PACKAGE_COMMENT: { category: 'comments', sourceText: '旅行团评论', routeName: 'TravelGroupDetail' },
+  // 评论回复需要特殊处理，因为其 relatedItemId 可能指向评论本身或父实体，因此 routeName 设为 null
+  NEW_COMMENT_REPLY: { category: 'comments', sourceText: '评论回复', routeName: null },
 
-  // 系统和订单类 (映射到前端的 'system' 分类)
-  ORDER_CREATED: { category: 'system', sourceText: '订单创建', pathPrefix: '/merchant/dashboard?tab=orderManagement&orderId=' },
-  ORDER_PAID: { category: 'system', sourceText: '订单支付', pathPrefix: '/merchant/dashboard?tab=orderManagement&orderId=' },
-  ORDER_CANCELED: { category: 'system', sourceText: '订单取消', pathPrefix: '/merchant/dashboard?tab=orderManagement&orderId=' },
-  PACKAGE_APPROVED: { category: 'system', sourceText: '旅行团审核通过', pathPrefix: '/merchant/dashboard?tab=tourManagement&tourId=' },
-  PACKAGE_REJECTED: { category: 'system', sourceText: '旅行团审核驳回', pathPrefix: '/merchant/dashboard?tab=tourManagement&tourId=' }, 
-  USER_PAID:{category: 'system', sourceText: '用户已支付一笔订单', pathPrefix: '/merchant/me'},
+  // --- 系统和订单类 (映射到前端的 'system' 分类) ---
+  // 订单相关通知，都将跳转到商家个人主页的订单管理 Tab
+  ORDER_CREATED: { category: 'system', sourceText: '订单创建', routeName: '团长个人主页', queryTab: 'orderManagement' },
+  ORDER_PAID: { category: 'system', sourceText: '订单支付', routeName: '团长个人主页', queryTab: 'orderManagement' },
+  ORDER_CANCELED: { category: 'system', sourceText: '订单取消', routeName: '团长个人主页', queryTab: 'orderManagement' },
 
-  DEPARTURE_REMINDER: { category: 'system', sourceText: '临行提醒', pathPrefix: null  },
+  // 旅行团审核相关通知，都将跳转到商家个人主页的旅行团管理 Tab
+  PACKAGE_APPROVED: { category: 'system', sourceText: '旅行团审核通过', routeName: '团长个人主页', queryTab: 'tourManagement' },
+  PACKAGE_REJECTED: { category: 'system', sourceText: '旅行团审核驳回', routeName: '团长个人主页', queryTab: 'tourManagement' },
+
+  // 用户已支付订单通知，直接跳转到商家个人主页 (概述 Tab)
+  USER_PAID: { category: 'system', sourceText: '用户已支付一笔订单', routeName: '团长个人主页' },
+
+  // 临行提醒需要特殊处理，因为您的路由中没有明确的用户订单详情页，可能需要跳到用户个人主页的订单 Tab 或新建路由
+  DEPARTURE_REMINDER: { category: 'system', sourceText: '临行提醒', routeName: null },
 };
 </script>
 

@@ -75,6 +75,12 @@
         />
       </div>
 
+      <div v-if="note.spot" class="note-spot">
+        <el-icon><Location /></el-icon>
+        <span class="spot-name">{{ note.spot.name }}</span>
+        <span v-if="note.spot.address" class="spot-address">({{ note.spot.address }})</span>
+      </div>
+
       <div class="note-tags" v-if="note.tags && note.tags.length">
         <el-tag v-for="(tag, index) in note.tags" :key="index" size="large" class="note-tag">{{ tag.name }}</el-tag>
       </div>
@@ -676,8 +682,6 @@ const deleteCommentOrReply = async (item, parentComment = null, type = 'comment'
     if (response.data && response.data.code === 200) {
       ElMessage.success(`${type === 'comment' ? '评论' : '回复'}删除成功！`);
 
-      // --- 关键优化部分开始 ---
-
       if (type === 'comment') {
         // 如果删除的是主评论
         const index = comments.value.findIndex(c => c.id === item.id);
@@ -928,6 +932,35 @@ watch(
 .gallery-image:hover {
   transform: scale(1.02); /* 悬停放大效果 */
 }
+
+/* 地点信息样式 */
+.note-spot {
+  display: flex;
+  align-items: center;
+  margin-top: 15px;
+  margin-bottom: 20px;
+  color: #606266;
+  font-size: 0.95em;
+  padding: 8px 12px;
+  background-color: #f2f6fc;
+  border-left: 3px solid #44beae;
+  border-radius: 4px;
+}
+
+.note-spot .el-icon {
+  margin-right: 8px;
+  font-size: 1.1em;
+}
+
+.spot-name {
+  font-weight: 500;
+  margin-right: 5px;
+}
+
+.spot-address {
+  color: #909399;
+}
+
 
 .note-tags {
   margin-top: 30px;

@@ -233,9 +233,6 @@ const formatTime = (timeString) => {
 </script>
 
 <style scoped>
-.merchant-reviews-component {
-  padding: 20px;
-}
 
 .card-header {
   display: flex;
