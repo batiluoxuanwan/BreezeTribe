@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import org.whu.backend.common.Result;
 import org.whu.backend.dto.PageRequestDto;
 import org.whu.backend.dto.PageResponseDto;
+import org.whu.backend.dto.report.ModerationDetails;
 import org.whu.backend.dto.report.ReportDto;
 import org.whu.backend.entity.Report;
 import org.whu.backend.service.admin.AdminContentService;
@@ -94,6 +95,13 @@ public class AdminContentController {
     public Result<?> rejectReport(@PathVariable String reportId) {
         adminContentService.rejectReport(reportId);
         return Result.success("举报已驳回");
+    }
+
+    @Operation(summary = "内容合规测试", description = "")
+    @PostMapping("/moderateText")
+    public Result<ModerationDetails> moderateText(@Parameter String text) {
+        ModerationDetails result = adminContentService.moderateText(text);
+        return Result.success(result);
     }
 
 }

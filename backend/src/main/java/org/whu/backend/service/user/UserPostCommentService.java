@@ -19,6 +19,7 @@ import org.whu.backend.entity.accounts.User;
 import org.whu.backend.entity.travelpost.Comment;
 import org.whu.backend.entity.Notification;
 import org.whu.backend.entity.travelpost.TravelPost;
+import org.whu.backend.event.ContentSubmissionEvent;
 import org.whu.backend.event.post.PostCommentedEvent;
 import org.whu.backend.repository.authRepo.UserRepository;
 import org.whu.backend.repository.post.PostCommentRepository;
@@ -110,6 +111,15 @@ public class UserPostCommentService {
         Comment savedComment = commentRepository.save(newComment);
         postRepository.incrementCommentCount(post.getId());
         log.info("评论ID '{}' 已成功发布。", savedComment.getId());
+
+        // 5. 通知AI审核文字
+        eventPublisher.publishEvent(new ContentSubmissionEvent(
+                this,
+                savedComment.getId(),
+                ContentSubmissionEvent.ModerationItemType.POST_COMMENT,
+                savedComment.getContent()
+        ));
+
         return savedComment;
     }
 

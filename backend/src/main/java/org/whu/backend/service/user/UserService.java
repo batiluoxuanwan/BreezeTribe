@@ -305,37 +305,41 @@ public class UserService {
         Set<String> reviewedPackageIds = packageCommentRepository.findTravelPackageIdsReviewedByUser(currentUserId);
         log.info("服务层：用户 '{}' 已评价过 {} 个产品。", currentUserId, reviewedPackageIds.size());
 
-        // 2. 分页查询出该用户【所有】已完成的订单
-        Pageable pageable = PageRequest.of(pageRequestDto.getPage() - 1, pageRequestDto.getSize(),
-                Sort.by(Sort.Direction.DESC, "updatedTime")); // 按完成时间排序
-        Page<TravelOrder> completedOrdersPage = travelOrderRepository.findByUserIdAndStatus(
-                currentUserId, TravelOrder.OrderStatus.COMPLETED, pageable
+//        // 2. 分页查询出该用户【所有】已完成的订单
+//        Pageable pageable = PageRequest.of(pageRequestDto.getPage() - 1, pageRequestDto.getSize(),
+//                Sort.by(Sort.Direction.DESC, "updatedTime")); // 按完成时间排序
+//        Page<TravelOrder> completedOrdersPage = travelOrderRepository.findByUserIdAndStatus(
+//                currentUserId, TravelOrder.OrderStatus.COMPLETED, pageable
+//        );
+        // 2. 【重大改变】一次性查询出该用户【所有】已完成的订单，不再进行数据库分页！
+        List<TravelOrder> allCompletedOrders = travelOrderRepository.findAllByUserIdAndStatusOrderByUpdatedTimeDesc(
+                currentUserId, TravelOrder.OrderStatus.COMPLETED
         );
 
         // 3. 预加载当前页所有已评价订单的“评论”内容
         // a. 找出当前页中，所有已评价的产品ID
-        List<String> packageIdsOnPage = completedOrdersPage.getContent().stream()
+        List<String> packageIdsOnPage = allCompletedOrders.stream()
                 .map(order -> order.getTravelDeparture().getTravelPackage().getId())
                 .filter(reviewedPackageIds::contains)
                 .collect(Collectors.toList());
 
         // b. 一次性查出这些评论，并放入一个Map方便快速查找
-        Map<String, PackageComment> reviewsMap = Collections.emptyMap();
+        Map<String, PackageComment> reviewsMap;
         if (!packageIdsOnPage.isEmpty()) {
             List<PackageComment> comments = packageCommentRepository.findByAuthorIdAndTravelPackageIdIn(currentUserId, packageIdsOnPage);
             reviewsMap = comments.stream()
                     .collect(Collectors.toMap(comment -> comment.getTravelPackage().getId(), Function.identity()));
             log.info("服务层：为当前页预加载了 {} 条评论详情。", reviewsMap.size());
+        } else {
+            reviewsMap = Collections.emptyMap();
         }
 
+        // 4. 将【所有】实体列表转换为包含“是否已评价”和“评价详情”的DTO列表
+        List<OrderForReviewDto> allDtos = allCompletedOrders.stream()
+                .map(order -> dtoConverter.convertTravelOrderToReviewDto(order, reviewedPackageIds, reviewsMap))
+                .toList();
 
-        // 4. 将实体列表转换为包含“是否已评价”和“评价详情”的DTO列表
-        Map<String, PackageComment> finalReviewsMap = reviewsMap;
-        List<OrderForReviewDto> allDtos = completedOrdersPage.getContent().stream()
-                .map(order -> dtoConverter.convertTravelOrderToReviewDto(order, reviewedPackageIds, finalReviewsMap))
-                .collect(Collectors.toList());
-
-        // 5. 在内存中对DTO列表进行最终过滤
+        // 5. 【重大改变】在内存中对【所有】DTO列表进行最终过滤
         List<OrderForReviewDto> filteredDtos;
         if ("REVIEWED".equalsIgnoreCase(status)) {
             filteredDtos = allDtos.stream().filter(OrderForReviewDto::isHasReviewed).collect(Collectors.toList());
@@ -345,8 +349,45 @@ public class UserService {
             filteredDtos = allDtos;
         }
 
-        // 6. 手动构建并返回分页结果
-        return dtoConverter.convertPageToDto(completedOrdersPage, filteredDtos);
+        // 6. 【全新】在内存中对最终的列表进行手动分页
+        int page = pageRequestDto.getPage() - 1;
+        int size = pageRequestDto.getSize();
+        int totalElements = filteredDtos.size();
+
+        int start = page * size;
+        int end = Math.min(start + size, totalElements);
+
+        List<OrderForReviewDto> pagedContent = (start > totalElements) ? Collections.emptyList() : filteredDtos.subList(start, end);
+
+        // 7. 手动构建并返回一个【完全正确】的分页结果
+        return PageResponseDto.<OrderForReviewDto>builder()
+                .content(pagedContent)
+                .pageNumber(page + 1)
+                .first(page == 0)
+                .last(end >= totalElements)
+                .totalPages((int) Math.ceil((double) totalElements / size))
+                .totalElements(totalElements)
+                .numberOfElements(pagedContent.size())
+                .pageSize(size)
+                .build();
+//        // 4. 将实体列表转换为包含“是否已评价”和“评价详情”的DTO列表
+//        Map<String, PackageComment> finalReviewsMap = reviewsMap;
+//        List<OrderForReviewDto> allDtos = completedOrdersPage.getContent().stream()
+//                .map(order -> dtoConverter.convertTravelOrderToReviewDto(order, reviewedPackageIds, finalReviewsMap))
+//                .collect(Collectors.toList());
+
+        // 5. 在内存中对DTO列表进行最终过滤
+//        List<OrderForReviewDto> filteredDtos;
+//        if ("REVIEWED".equalsIgnoreCase(status)) {
+//            filteredDtos = allDtos.stream().filter(OrderForReviewDto::isHasReviewed).collect(Collectors.toList());
+//        } else if ("PENDING".equalsIgnoreCase(status)) {
+//            filteredDtos = allDtos.stream().filter(dto -> !dto.isHasReviewed()).collect(Collectors.toList());
+//        } else { // "ALL"
+//            filteredDtos = allDtos;
+//        }
+//
+//        // 6. 手动构建并返回分页结果
+//        return dtoConverter.convertPageToDto(completedOrdersPage, filteredDtos);
     }
 
     @Transactional // 必须加上事务注解！！！！！！

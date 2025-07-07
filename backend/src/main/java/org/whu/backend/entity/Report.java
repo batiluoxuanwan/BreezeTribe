@@ -44,7 +44,7 @@ public class Report {
     private ReportStatus status = ReportStatus.PENDING; // 举报处理状态
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "reporter_id", nullable = false)
+    @JoinColumn(name = "reporter_id", nullable = true)
     private Account reporter; // 举报人
 
     @CreationTimestamp
