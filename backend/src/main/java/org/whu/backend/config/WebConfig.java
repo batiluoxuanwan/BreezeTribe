@@ -14,6 +14,7 @@ public class WebConfig implements WebMvcConfigurer {
                         "http://localhost:8081",
                         "https://121.43.136.251:8080",
                         "https://121.43.136.251",
+                        "https://121.43.136.251/",
                         "https://frp-dad.com:36680") // 前端应用的源地址
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS") // 允许的HTTP方法
                 .allowedHeaders("*") // 允许所有请求头
@@ -25,6 +26,7 @@ public class WebConfig implements WebMvcConfigurer {
                         "http://localhost:8081",
                         "https://121.43.136.251:8080",
                         "https://121.43.136.251",
+                        "https://121.43.136.251/",
                         "https://frp-dad.com:36680") // 前端应用的源地址
                 .allowedMethods("*")
                 .allowedHeaders("*")
