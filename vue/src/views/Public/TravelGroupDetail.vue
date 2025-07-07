@@ -414,31 +414,52 @@ const fetchTravelGroupDetail = async (id) => {
   }
 };
 
-//获取特定旅行团的团期
-const fetchTravelGroupDepartures = async (packageId, page = 1, size = 10, sortBy = 'departureDate', sortDirection = 'ASC') => {
-  try {
-    const response = await publicAxios.get(`/public/travel-packages/${packageId}/departures`, {
-      params: {
-        page: page,
-        size: size,
-        sortBy: sortBy,
-        sortDirection: sortDirection
-      }
-    });
+const fetchTravelGroupDepartures = async (packageId) => {
+  if (!packageId) {
+    ElMessage.warning('未提供旅行团ID');
+    return []; 
+  }
 
-    if (response.data.code === 200) {
-      console.log('团期列表:', response.data.data.content);
-      return response.data.data.content; // 返回团期数组
-    } else {
-      console.error('获取团期列表失败:', response.data.message);
-      return [];
+  let currentPage = 1;
+  const pageSize = 100;
+  let allDepartures = []; // 使用一个局部数组来收集所有团期数据
+  try {
+    let hasMore = true;
+    while (hasMore) {
+      const response = await publicAxios.get(`/public/travel-packages/${packageId}/departures`, {
+        params: {
+          page: currentPage,
+          size: pageSize,
+          sortBy: 'departureDate',
+          sortDirection: 'ASC'
+        }
+      });
+
+      if (response.data.code === 200 && response.data.data) {
+        const newContent = response.data.data.content || [];
+        allDepartures = [...allDepartures, ...newContent];
+
+        const totalPages = response.data.data.totalPages;
+        if (currentPage >= totalPages || newContent.length === 0) {
+          hasMore = false;
+        } else {
+          currentPage++;
+        }
+      } else {
+        ElMessage.error(response.data.message || '获取团期失败。');
+        console.error('获取团期失败：', response.data.message);
+        hasMore = false;
+      }
     }
-  } catch (error) {
-    console.error('请求团期列表出错:', error);
-    if (error.response && error.response.data && error.response.data.message) {
-      console.error('后端错误消息:', error.response.data.message);
-    }
-    return [];
+
+    console.log(`成功加载 ${allDepartures.length} 条团期数据`);
+    // departures.value = allDepartures; // 这行如果不需要在函数外部直接访问这个ref，可以注释掉
+    return allDepartures; 
+
+  } catch (err) {
+    ElMessage.error('请求团期接口出错，请检查网络。');
+    console.error('请求团期接口出错：', err);
+    return []; 
   }
 };
 

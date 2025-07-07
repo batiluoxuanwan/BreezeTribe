@@ -167,24 +167,56 @@ watch(selectedScheduleId, (newVal, oldVal) => {
   }
 });
 
-// 获取指定旅行团的团期列表
+// 分页加载某个旅行团的全部团期
 const fetchSchedulesForTour = async () => {
+  if (!tourId.value) {
+    ElMessage.warning('未提供旅行团ID');
+    return;
+  }
+
   loadingSchedules.value = true;
+  schedules.value = []; // 清空旧数据
+
+  let currentPage = 1;
+  const pageSize = 50; // 可自调
+  let hasMore = true;
+
   try {
-    const response = await authAxios.get(`/merchant/packages/${tourId.value}/departures`);
-    if (response.data.code === 200 && response.data.data) {
-      schedules.value = response.data.data.content;
-      console.log('获取团期列表',schedules.value)
-      // 自动选中第一个团期
-      if (schedules.value.length > 0) {
-        selectedScheduleId.value = schedules.value[0].id;
+    while (hasMore) {
+      const response = await authAxios.get(`/merchant/packages/${tourId.value}/departures`, {
+        params: {
+          page: currentPage,
+          size: pageSize,
+          sortBy: 'departureDate',
+          sortDirection: 'ASC'
+        }
+      });
+
+      if (response.data.code === 200 && response.data.data) {
+        const pageData = response.data.data.content || [];
+        schedules.value.push(...pageData);
+
+        const totalPages = response.data.data.totalPages || 1;
+        if (currentPage >= totalPages || pageData.length === 0) {
+          hasMore = false;
+        } else {
+          currentPage++;
+        }
+      } else {
+        ElMessage.error(response.data.message || '获取团期失败');
+        hasMore = false;
       }
-    } else {
-      ElMessage.error(response.data.message || '获取团期列表失败');
-      schedules.value = [];
     }
+
+    console.log('获取全部团期列表:', schedules.value);
+
+    // 自动选中第一个团期
+    if (schedules.value.length > 0) {
+      selectedScheduleId.value = schedules.value[0].id;
+    }
+
   } catch (error) {
-    console.error('获取团期列表时发生错误:', error);
+    console.error('获取团期时出错:', error);
     ElMessage.error('加载团期信息失败。');
     schedules.value = [];
   } finally {
