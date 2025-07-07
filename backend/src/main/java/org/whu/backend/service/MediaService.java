@@ -112,8 +112,8 @@ public class MediaService {
         if (inUseByPackage.isPresent()) {
             TravelPackage blockingPackage = inUseByPackage.get().getTravelPackage();
             String errorMessage = String.format(
-                    "ID:[%s], 无法删除：该文件正在被旅行团 [%s] 使用。请先从其图集中移除。",
-                    blockingPackage.getId(), blockingPackage.getTitle()
+                    "无法删除：该文件正在被旅行团 [%s] 使用。请先从其图集中移除。",
+                    blockingPackage.getTitle()
             );
             log.warn("删除失败：文件ID '{}' 正在被旅行团ID '{}' 使用。", fileId, blockingPackage.getId());
             throw new BizException(errorMessage);
@@ -124,8 +124,8 @@ public class MediaService {
         if (inUseByPost.isPresent()) {
             TravelPost blockingPost = inUseByPost.get().getTravelPost();
             String errorMessage = String.format(
-                    "ID:[%s], 无法删除：该文件正在被游记 [%s] 使用。请先从其图集中移除。",
-                    blockingPost.getId(), blockingPost.getTitle()
+                    "无法删除：该文件正在被游记 [%s] 使用。请先从其图集中移除。",
+                    blockingPost.getTitle()
             );
             log.warn("删除失败：文件ID '{}' 正在被游记ID '{}' 使用。", fileId, blockingPost.getId());
             throw new BizException(errorMessage);
