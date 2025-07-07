@@ -357,7 +357,7 @@ const fetchInteractionStatus = async (itemId) => {
         if (error.response && error.response.status === 401) {
             ElMessage.warning('您未登录，无法获取点赞和收藏状态。');
         } else {
-           ElMessage.error('获取点赞/收藏状态网络错误！');
+          //  ElMessage.error('获取点赞/收藏状态网络错误！');
         }
     }
 };
@@ -457,9 +457,7 @@ const fetchNoteDetail = async () => {
       ElMessage.error('未能获取游记详情，请检查游记ID或稍后再试。');
     }
   } catch (error) {
-    console.error('获取游记详情失败:', error);
     note.value = null;
-    ElMessage.error('获取游记详情失败，请检查网络或稍后再试。');
   } finally {
     loading.value = false;
   }
@@ -699,8 +697,6 @@ const postReplyComment = async (parentComment) => {
   try {
     const payload = {
       content: replyContent.value.trim(),
-      // 如果 currentReplyTarget 是该主评论本身，则parentId是主评论ID
-      // 如果 currentReplyTarget 是该主评论下的某个回复，则parentId是该回复的ID
       parentId: currentReplyTarget.value.id 
     };
     
@@ -711,6 +707,14 @@ const postReplyComment = async (parentComment) => {
       replyContent.value = ''; // 清空输入框
       activeReplyInputId.value = null; // 关闭回复输入框
       currentReplyTarget.value = null; // 重置回复目标
+
+      if (note.value.commentCount !== undefined && note.value.commentCount !== null) {
+        note.value.commentCount++;
+      } else {
+        note.value.commentCount = 1;
+      }
+
+      //又说我没更改不能提交
 
       await fetchComments(true); 
 
@@ -755,9 +759,6 @@ const deleteCommentOrReply = async (item, parentComment = null, type = 'comment'
 
     if (response.data && response.data.code === 200) {
       ElMessage.success(`${type === 'comment' ? '评论' : '回复'}删除成功！`);
-
-      // --- 关键优化部分开始 ---
-
       if (type === 'comment') {
         // 如果删除的是主评论
         const index = comments.value.findIndex(c => c.id === item.id);
@@ -873,7 +874,14 @@ const goToLogin = () => {
 };
 
 const goBack = () => {
-  router.push({ name: '旅行广场', query: { tab: 'notes' } });
+  const from = route.query.from;
+  if (from === 'square-notes') {
+    router.push({ name: '旅行广场', query: { tab: 'notes' } });
+  }else if(from === 'home'){
+    router.push('/')
+  }else{
+    router.push('/')
+  }
 };
 
 onMounted(() => {
@@ -885,7 +893,6 @@ onMounted(() => {
     //fetchFriendsList();
   } else {
     loading.value = false;
-    ElMessage.error('缺少游记ID，无法加载详情。');
   }
   console.log('userId:',currentUserId)
   console.log('token.userId:',authStore.userId )
@@ -903,6 +910,7 @@ watch(
     }
   }
 );
+
 
 </script>
 

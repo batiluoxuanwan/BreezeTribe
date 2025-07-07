@@ -1,6 +1,7 @@
 package org.whu.backend.service.admin;
 
 import lombok.extern.slf4j.Slf4j;
+import org.codehaus.jettison.json.JSONException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -11,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.whu.backend.common.exception.BizException;
 import org.whu.backend.dto.PageRequestDto;
 import org.whu.backend.dto.PageResponseDto;
+import org.whu.backend.dto.report.ModerationDetails;
 import org.whu.backend.dto.report.ReportDto;
 import org.whu.backend.entity.InteractionItemType;
 import org.whu.backend.entity.Notification;
@@ -28,6 +30,7 @@ import org.whu.backend.repository.travelRepo.PackageCommentRepository;
 import org.whu.backend.repository.travelRepo.TravelPackageRepository;
 import org.whu.backend.service.DtoConverter;
 import org.whu.backend.service.NotificationService;
+import org.whu.backend.service.ai.AiModerationService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -59,6 +62,8 @@ public class AdminContentService {
     private ReportRepository reportRepository;
     @Autowired
     private DtoConverter dtoConverter;
+    @Autowired
+    private AiModerationService aiModerationService;
 
     /**
      * 删除一条对旅行团的评论
@@ -287,6 +292,16 @@ public class AdminContentService {
         );
 
         log.info("服务层：已驳回举报ID '{}'。", reportId);
+    }
+
+    public ModerationDetails moderateText(String text){
+        log.info("服务层：对内容进行合规检测 '{}'",text);
+        try {
+            ModerationDetails result =  aiModerationService.moderateText(text);
+            return result;
+        } catch (JSONException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 

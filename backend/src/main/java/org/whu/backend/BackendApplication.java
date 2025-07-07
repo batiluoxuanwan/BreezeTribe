@@ -10,7 +10,6 @@ import org.springframework.web.client.RestTemplate;
 
 @SpringBootApplication
 @EnableScheduling // 执行定时任务
-// 明确告诉 Spring Data JPA，你只用管 'org.whu.backend.repository.jpa_repo' 这个包下的仓库
 @EnableAsync
 @EnableJpaRepositories(basePackages = "org.whu.backend.repository")
 public class BackendApplication {

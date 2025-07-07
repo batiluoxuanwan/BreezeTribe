@@ -1,3 +1,4 @@
+<!-- 旅行广场的旅行团卡片 -->
 <template>
   <el-card class="travel-card group-card" shadow="hover">
     <div class="image-wrapper">
@@ -11,7 +12,7 @@
       <div class="card-info">
         <span>时长: {{ group.durationInDays }}天</span>
         <!-- <span>人数: {{ group.members }}人</span> -->
-        <span>评分: {{ group.rating }}</span>
+        <span>评分: {{ group.averageRating }}</span>
       </div>
       <el-button type="primary" size="small" class="detail-button" @click.stop="goToDetail">查看详情</el-button>
     </div>
@@ -35,7 +36,13 @@ const router = useRouter();
 // 跳转详情页并传递旅行团id
 const goToDetail = () => {
   console.log('查看旅行团详情:', props.group.id);
-  router.push({ name: 'TravelGroupDetail', params: { id: props.group.id } });
+  router.push({ 
+    name: 'TravelGroupDetail', 
+    params: { id: props.group.id },
+    query: {
+      from:'square-groups'
+    } 
+  });
 };
 
 </script>

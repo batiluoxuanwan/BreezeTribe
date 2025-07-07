@@ -109,4 +109,26 @@ public class ScheduledService {
         }
         log.info("【定时任务】[发送临行提醒]任务执行完毕。");
     }
+
+    /**
+     * 在每天凌晨0点10分，自动执行这个方法。
+     * (秒 分 时 日 月 周)
+     * 这样可以确保在新的一天开始时，所有昨天的团期都会被正确地标记为已结束。
+     */
+    @Scheduled(cron = "00 10 1 * * ?", zone = "Asia/Shanghai") // 使用东八区时间
+    @Transactional
+    public void updateExpiredDeparturesJob() {
+        log.info("【定时任务】开始执行[过期团期状态更新]任务...");
+        LocalDateTime now = LocalDateTime.now();
+
+        // 调用仓库方法，批量更新所有出发时间在当前时间之前的、且状态仍为OPEN或CLOSED的团期
+        int updatedCount = travelDepartureRepository.updateStatusToFinishedForExpiredDepartures(now);
+
+        if (updatedCount > 0) {
+            log.info("【定时任务】成功将 {} 个已过期的团期状态更新为“FINISHED”。", updatedCount);
+        } else {
+            log.info("【定时任务】ℹ本次没有需要更新状态的过期团期。");
+        }
+        log.info("【定时任务】[过期团期状态更新]任务执行完毕。");
+    }
 }

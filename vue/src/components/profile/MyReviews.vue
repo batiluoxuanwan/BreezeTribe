@@ -34,7 +34,7 @@
         </div>
         <div class="review-actions">
           <el-button v-if="!review.hasReviewed" type="primary" size="small" @click="goToReview(review.packageId)">去评价</el-button>
-          <el-button v-else type="info" size="small" @click="viewReview(review.orderId)">查看评价</el-button>
+          <el-button v-else type="info" size="small" @click="viewReview(review.commentId)">查看评价</el-button>
         </div>
       </el-card>
     </div>
@@ -105,10 +105,10 @@ const fetchReviews = async (reset = false) => {
 
       const mappedOrders = newOrders.map(order => ({
         packageId:order.packageId,
-        orderId: order.orderId,
+        commentId: order.commentId,
         tourTitle: order.packageTitle,
         packageCoverImageUrl: order.packageCoverImageUrl,
-        rating: order.status === 'REVIEWED' ? 5 : 0, // 占位符：已评价默认5星
+        rating: order.star,
         comment: order.hasReviewed ? '您已对该订单进行评价。' : '该订单等待您的评价。',
         date: new Date(order.orderTime).toLocaleDateString(),
         orderStatus: order.status,
@@ -143,8 +143,8 @@ const goToReview = (packageId) => {
 };
 
 // 处理“查看评价”点击事件**
-const viewReview = (orderId) => {
-  router.push({ name: 'ViewReviewPage', params: { packageCommentId: orderId } });
+const viewReview = (commentId) => {
+  router.push({ name: 'ViewReviewPage', params: { commentId: commentId } });
   console.log('跳转至查看评价页面，传入的参数',router)
 };
 

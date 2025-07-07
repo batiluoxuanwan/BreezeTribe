@@ -1,3 +1,4 @@
+<!-- 首页的游记卡片 -->
 <template>
   <div class="travel-note-card">
     <div class="image-wrapper">
@@ -42,7 +43,13 @@ const props = defineProps({
 // 跳转详情页并传递游记id
 const goToDetail = () => {
   console.log('查看游记详情:', props.note.id);
-  router.push({ name: 'TravelNoteDetail', params: { id: props.note.id } });
+  router.push({ 
+    name: 'TravelNoteDetail', 
+    params: { id: props.note.id },
+    query: {
+      from:'home'
+    } 
+  });
 };
 
 // 辅助函数，用于格式化数字（如浏览量、点赞数）和日期

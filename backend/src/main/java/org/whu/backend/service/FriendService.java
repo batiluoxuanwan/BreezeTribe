@@ -2,6 +2,7 @@ package org.whu.backend.service;
 
 
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -112,6 +113,7 @@ public class FriendService {
         friendRequestRepository.save(request);
     }
 
+    @Transactional
     public void deleteFriend(String friendId) {
         //String accountId = AccountUtil.getCurrentAccountId();
         Account account = accountUtil.getCurrentAccount();
@@ -144,8 +146,8 @@ public class FriendService {
 
                     Account Account1 = friend.getAccount1();
                     Account Account2 = friend.getAccount2();
-                    Account1.setAvatarUrl(AliyunOssUtil.generatePresignedGetUrl(Account1.getAvatarUrl(), 36000, IMAGE_PROCESS)); // 替换或设置
-                    Account2.setAvatarUrl(AliyunOssUtil.generatePresignedGetUrl(Account2.getAvatarUrl(), 36000, IMAGE_PROCESS)); // 替换或设置
+                    Account1.setAvatarUrl(AliyunOssUtil.generatePresignedGetUrl(Account1.getAvatarUrl(), 36000)); // 替换或设置
+                    Account2.setAvatarUrl(AliyunOssUtil.generatePresignedGetUrl(Account2.getAvatarUrl(), 36000)); // 替换或设置
                     dto.setAccount1(Account1);
                     dto.setAccount2(Account2);
                     dto.setCreatedAt(friend.getCreatedAt());

@@ -262,7 +262,7 @@ public class ChartDataUtil {
         switch (period.toLowerCase()) {
             case "day" -> {
                 endDate = today;
-                startDate = endDate.minusDays(30);
+                startDate = endDate.minusMonths(1);
             }
             case "week" -> {
                 endDate = today;

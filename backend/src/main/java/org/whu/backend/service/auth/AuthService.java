@@ -121,7 +121,9 @@ public class AuthService {
         account.setEmail(email);
         account.setPhone(phone);
         account.setPassword(passwordEncoder.encode(request.getPassword()));
-        account.setAvatarUrl("avatar/public/nailong.gif");
+        long timestamp = System.currentTimeMillis();
+        int num = (int) (timestamp % 4);
+        account.setAvatarUrl("avatar/public/"+ num +".png");
         authRepository.save(account);
 
         // 创建 JWT

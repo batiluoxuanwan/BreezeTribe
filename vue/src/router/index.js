@@ -40,13 +40,18 @@ const routes =[
         meta: { requiresAuth: true }
     },
     {
+        path: '/mymap',
+        name: 'map',
+        component:() =>import('../views/User/Map.vue'),
+    },
+    {
         path: '/review/:packageId', 
         name: 'SubmitReviewPage', 
         component:() =>import('../views/User/SubmitReviewPage.vue'),
         props: true 
     },
     {
-        path: '/review/comment/:packageCommentId',
+        path: '/review/comment/:commentId',
         name: 'ViewReviewPage', 
         component:() =>import('../views/User/SubmitReviewPage.vue'),
         props: true

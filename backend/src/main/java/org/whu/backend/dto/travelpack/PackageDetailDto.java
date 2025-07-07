@@ -33,6 +33,9 @@ public class PackageDetailDto {
     @Schema(description = "旅行团持续天数")
     private Integer durationInDays;
 
+    @Schema(description = "旅行团的平均评分，如果没数据就是0")
+    private Double averageRating;
+
     @Schema(description = "旅行团描述")
     private String detailedDescription;
 

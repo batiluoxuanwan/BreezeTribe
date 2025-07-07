@@ -2,6 +2,7 @@ package org.whu.backend.service.user;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -20,6 +21,7 @@ import org.whu.backend.entity.Tag;
 import org.whu.backend.entity.accounts.User;
 import org.whu.backend.entity.travelpost.PostImage;
 import org.whu.backend.entity.travelpost.TravelPost;
+import org.whu.backend.event.ContentSubmissionEvent;
 import org.whu.backend.repository.FavoriteRepository;
 import org.whu.backend.repository.LikeRepository;
 import org.whu.backend.repository.MediaFileRepository;
@@ -57,6 +59,8 @@ public class UserPostService {
     private TagRepository tagRepository;
     @Autowired
     private TravelPostRepository travelPostRepository;
+    @Autowired
+    private ApplicationEventPublisher eventPublisher; // 注入事件发布器
 
     @Transactional
     public TravelPost createPost(PostCreateRequestDto dto, String currentUserId) {
@@ -112,11 +116,19 @@ public class UserPostService {
         // 5. 保存游记
         TravelPost savedPost = postRepository.save(newPost);
         log.info("新游记 '{}' (ID: {}) 已成功创建。", savedPost.getTitle(), savedPost.getId());
+
+        // 6. 通知AI审核文字
+        eventPublisher.publishEvent(new ContentSubmissionEvent(
+                this,
+                savedPost.getId(),
+                ContentSubmissionEvent.ModerationItemType.TRAVEL_POST,
+                savedPost.getTitle() + "。" + savedPost.getContent()
+        ));
         return savedPost;
     }
 
     /**
-     *  更新一个游记的标签
+     * 更新一个游记的标签
      */
     @Transactional
     public void updatePackageTags(String packageId, List<String> tagIds, String currentDealerId) {
@@ -158,7 +170,7 @@ public class UserPostService {
                 .map(dtoConverter::convertPostToSummaryDto)
                 .collect(Collectors.toList());
 
-        return dtoConverter.convertPageToDto(postPage,dtos);
+        return dtoConverter.convertPageToDto(postPage, dtos);
     }
 
     // 获取一篇游记的详细信息（权限校验）
@@ -193,7 +205,7 @@ public class UserPostService {
         log.info(" -> 已删除游记 '{}' 的所有点赞记录。", postId);
 
         // c. 删除所有收藏
-        favoriteRepository.deleteAllByItemIdAndItemType(postId,InteractionItemType.POST);
+        favoriteRepository.deleteAllByItemIdAndItemType(postId, InteractionItemType.POST);
         log.info(" -> 已删除游记 '{}' 的所有收藏记录。", postId);
 
         // 3. 最后，（逻辑）删除游记本身
@@ -226,6 +238,15 @@ public class UserPostService {
         // 4. 保存更新
         TravelPost updatedPost = postRepository.save(postToUpdate);
         log.info("游记ID '{}' 已被成功更新。", postId);
+
+        // 5. 通知AI审核文字
+        eventPublisher.publishEvent(new ContentSubmissionEvent(
+                this,
+                updatedPost.getId(),
+                ContentSubmissionEvent.ModerationItemType.TRAVEL_POST,
+                updatedPost.getTitle() + "。" + updatedPost.getContent()
+        ));
+
         return updatedPost;
     }
 

@@ -169,4 +169,5 @@ public interface TravelOrderRepository extends JpaRepository<TravelOrder, String
                                           @Param("start") LocalDateTime start,
                                           @Param("end") LocalDateTime end);
 
+    List<TravelOrder> findAllByUserIdAndStatusOrderByUpdatedTimeDesc(String currentUserId, TravelOrder.OrderStatus orderStatus);
 }
