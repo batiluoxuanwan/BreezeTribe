@@ -36,6 +36,13 @@
           <span>评价管理</span>
         </div>
         <div
+          :class="{ 'menu-item': true, 'active': activeTab === 'friends' }"
+          @click="activeTab = 'friends'"
+        >
+          <el-icon><User /></el-icon>
+          <span>我的好友</span>
+        </div>
+        <div
           :class="{ 'menu-item': true, 'active': activeTab === 'images' }"
           @click="activeTab = 'images'"
         >
@@ -196,6 +203,10 @@
         <MyNotifications/>
       </div>
 
+      <div v-if="activeTab === 'friends'" >
+        <MyFriends/>
+      </div>
+
       <div v-if="activeTab === 'accountSettings'" class="settings-section">
         <AccountOverview @userUpdated="handleUserUpdated"/>
       </div>
@@ -252,7 +263,8 @@ import { useNotificationStore } from '@/stores/notificationStore';
 import AccountOverview from '@/components/AccountOverview.vue' 
 import MyNotifications from '@/components/profile/MyNotifications.vue';
 import MerchantReviews from '@/components/profile/MerchantReviews.vue'; 
-import MyMediaLibrary from '@/components/profile/MyMediaLibrary.vue' 
+import MyMediaLibrary from '@/components/profile/MyMediaLibrary.vue' ;
+import MyFriends from '@/components/profile/MyFriends.vue' 
 
 const router = useRouter();
 const route = useRoute();

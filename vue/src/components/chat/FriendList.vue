@@ -167,7 +167,7 @@ onMounted(async () => {
   width: 100%;
   height: 100%;
   flex-shrink: 0;
-  background-color: #f1f0f0; /* 好友列表背景色 */
+  background-color: #ffffff; /* 好友列表背景色 */
   border-right: none; /* 移除右侧边框，因为现在是唯一的容器了 */
   display: flex;
   flex-direction: column;

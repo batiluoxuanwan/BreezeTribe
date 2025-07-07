@@ -41,6 +41,13 @@
           <el-badge v-if="pendingToursCount > 0" :value="pendingToursCount" class="notification-badge" />
         </div>
         <div
+          :class="{ 'menu-item': true, 'active': activeTab === 'friends' }"
+          @click="activeTab = 'friends'"
+        >
+          <el-icon><User /></el-icon>
+          <span>我的好友</span>
+        </div>
+        <div
           :class="{ 'menu-item': true, 'active': activeTab === 'systemSettings' }"
           @click="activeTab = 'systemSettings'"
         >
@@ -145,12 +152,19 @@
           />
         </el-tab-pane>
 
+        <el-tab-pane label="我的好友" name="friends">
+          <h3 class="tab-header">我的好友</h3>
+          <div style="margin-bottom: 32px;">
+            <MyFriends/>
+          </div>
+        </el-tab-pane>
+
         <el-tab-pane label="系统设置" name="systemSettings">
           <h3 class="tab-header">系统配置</h3>
           <div style="margin-bottom: 32px;">
             <AccountOverview @userUpdated="handleUserUpdated"/>
           </div>
-          </el-tab-pane>
+        </el-tab-pane>
       </el-tabs>
     </main>
 
@@ -219,7 +233,9 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import { authAxios } from '@/utils/request'; 
 import { useNotificationStore } from '@/stores/notificationStore';
 import { useRouter } from 'vue-router';
-import AccountOverview from '@/components/AccountOverview.vue'   
+import AccountOverview from '@/components/AccountOverview.vue';
+import MyFriends from '@/components/profile/MyFriends.vue' ;
+
 
 const router = useRouter();
 const notificationStore = useNotificationStore();
