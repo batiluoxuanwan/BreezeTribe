@@ -26,6 +26,7 @@ import org.whu.backend.dto.admin.UserManagementDto;
 import org.whu.backend.dto.spot.SpotCreateRequestDto;
 import org.whu.backend.dto.spot.SpotSummaryDto;
 import org.whu.backend.dto.spot.SpotUpdateRequestDto;
+import org.whu.backend.dto.travelpack.PackageDetailDto;
 import org.whu.backend.dto.travelpack.PackageSummaryDto;
 import org.whu.backend.entity.Spot;
 import org.whu.backend.entity.travelpac.PackageComment;
@@ -38,6 +39,7 @@ import org.whu.backend.repository.projection.TimeCount;
 import org.whu.backend.repository.travelRepo.*;
 import org.whu.backend.service.DtoConverter;
 import org.whu.backend.service.NotificationService;
+import org.whu.backend.service.ViewCountService;
 import org.whu.backend.util.AccountUtil;
 import org.whu.backend.util.AliyunOssUtil;
 import org.whu.backend.util.ChartDataUtil;
@@ -773,6 +775,19 @@ public class AdminService {
         funnelData.put("travelPackageId", travelPackageId == null ? "ALL" : travelPackageId);
 
         return funnelData;
+    }
+
+    // 获取单个旅行团的详情
+    public PackageDetailDto getPackageDetails(String id) {
+        // 1. 调用Repository中定义好的方法
+        TravelPackage travelPackage = travelPackageRepository.findById(id)
+                .orElseThrow(() -> {
+                    log.warn("查询失败：找不到ID为 '{}' 的旅行团。", id);
+                    return new BizException("找不到ID为 " + id + " 的旅行团。");
+                });
+        log.info("成功查询到旅行团 '{}' 的详情。", travelPackage.getTitle());
+        // 2. 将Entity转换为详细的DTO
+        return dtoConverter.convertPackageToDetailDto(travelPackage);
     }
 }
 
