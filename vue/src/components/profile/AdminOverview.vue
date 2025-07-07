@@ -298,7 +298,8 @@ onMounted(() => {
   margin-top: 32px;
 }
 /*公用样式*/
-.chart-card {
+.chart-card ,
+.order-stats-card{
   width: 100%;
   height: 100%;
   border-radius: 12px;
@@ -325,7 +326,6 @@ onMounted(() => {
   font-weight: bold;
   font-size: 1.1em;
   color: #333;
-  border-radius: 12px;
 }
 
 .order-stats-card .card-header .filters {
@@ -339,6 +339,7 @@ onMounted(() => {
   min-height: 120px; /* 确保订单统计加载时也有一定高度 */
   font-size: 0.9em;
 }
+
 .order-stats-card .loading-container .el-icon {
   margin-right: 8px;
   font-size: 1.2em;
