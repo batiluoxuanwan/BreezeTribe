@@ -1,8 +1,15 @@
 <template>
+  <el-dialog
+    :model-value="visible"
+    @close="$emit('update:visible', false)"
+    draggable
+    width="600px"
+    top="10vh"
+    :close-on-click-modal="false"
+  >
   <div class="flex flex-col h-screen bg-gray-50 px-4 md:px-8 pt-4">
     <!-- 顶部状态栏 -->
     <div class="flex items-center gap-4 mb-4">
-      <button @click="goBack" class="text-blue-600 text-3xl p-2 hover:text-blue-800 transition">←</button>
       <img :src="friend.avatarUrl||defaultAvatar" class="w-10 h-10 rounded-full shadow" />
       <div class="flex flex-col">
         <span class="font-semibold text-lg">{{ friend.username }}</span>
@@ -51,6 +58,7 @@
       </button>
     </div>
   </div>
+  </el-dialog>
 </template>
 
 <script setup>
@@ -68,7 +76,10 @@ import { useChatStore } from '@/stores/chatStore'
 import ChatHeader from '@/components/chat/ChatHeader.vue'
 import ChatMessage from '@/components/chat/ChatMessage.vue'
 
-
+const props = defineProps({
+  friendId: String,
+  visible: Boolean
+});
 
 const authStore = useAuthStore();
 const chatStore = useChatStore();
@@ -85,7 +96,7 @@ const user = reactive({
 const isLoading = ref(true);       // 控制页面加载状态
 const route = useRoute();
 const router = useRouter();
-const friendId = route.params.friendId;
+const friendId = props.friendId;
 const friend = reactive({
   id: '',
   username: '',
@@ -96,10 +107,10 @@ const friend = reactive({
 const token = authStore.token;
 
 console.log('当前用户ID:', currentUserId.value);
-console.log('聊天对象ID:', friendId);
+console.log('聊天对象ID:', props.friendId);
 
 //const messages = ref([]);
-const messages = computed(() => chatStore.getMessages(friendId))
+const messages = computed(() => chatStore.getMessages(props.friendId))
 const newMessage = ref('');
 const messagesBox = ref(null);
 
@@ -145,11 +156,11 @@ onMounted(async () => {
 
   isLoading.value = true;
   await fetchCurrentUser();
-  await fetchFriendInfo(friendId);
+  await fetchFriendInfo(props.friendId);
   isLoading.value = false;
 
   // 1. 拉取历史消息
-  const res = await authAxios.get('/messages/' + friendId)
+  const res = await authAxios.get('/messages/' + props.friendId)
   //console.log('token:', token);
   console.log(res.data);
   const history = res.data.map(m => ({
@@ -159,14 +170,14 @@ onMounted(async () => {
     timestamp: m.timestamp
   }));
 
-  chatStore.setHistory(friendId, history)
+  chatStore.setHistory(props.friendId, history)
 });
 function send() {
   if (!newMessage.value.trim()) return
 
   const msg = {
     from: currentUserId.value,
-    to: friendId,
+    to: props.friendId,
     content: newMessage.value.trim(),
     timestamp: new Date().toISOString()
   }
@@ -186,9 +197,6 @@ function scrollToBottom() {
   });
 }
 
-const goBack = () => {
-  router.push('/user/friends');
-};
 
 </script>
 

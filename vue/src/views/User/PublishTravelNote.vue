@@ -10,7 +10,7 @@
       </template>
 
             <div class="tag-button-wrapper">
-            <el-button type = text @click="toggleTagSelector">{{ showSelector ? '完成添加' : '快来为你的旅行团添加标签吧！' }}</el-button>
+            <el-button type = text @click="toggleTagSelector">{{ showSelector ? '完成添加' : '快来为你的游记添加标签吧！' }}</el-button>
             </div>
 
             <div v-if="showSelector" class="tag-selector">

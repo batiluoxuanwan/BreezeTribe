@@ -24,7 +24,7 @@ import java.time.LocalDate;
 import java.util.Map;
 import java.util.Set;
 
-@Tag(name = "管理员-获取统计图表数据", description = "用于获取统计图表数据")
+@Tag(name = "获取统计图表数据", description = "用于获取统计图表数据")
 @RestController
 @RequestMapping("/api/admin/data")
 @Slf4j
