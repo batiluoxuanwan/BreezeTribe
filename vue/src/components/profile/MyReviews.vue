@@ -5,7 +5,6 @@
       <el-radio-group v-model="reviewStatus" size="default">
         <el-radio-button label="PENDING">待评价</el-radio-button>
         <el-radio-button label="REVIEWED">已评价</el-radio-button>
-        <el-radio-button label="ALL">全部</el-radio-button>
       </el-radio-group>
     </div>
 
@@ -20,7 +19,7 @@
           <div class="review-info">
             <h3 class="tour-title">{{ review.tourTitle }}</h3>
             <el-rate
-              v-if="review.orderStatus === 'REVIEWED'"
+              v-if="review.hasReviewed"
               v-model="review.rating"
               disabled
               show-text
@@ -34,8 +33,8 @@
           </div>
         </div>
         <div class="review-actions">
-          <el-button v-if="review.orderStatus === 'PENDING'" type="primary" size="small" @click="goToReview(review.id)">去评价</el-button>
-          <el-button v-else type="info" size="small" @click="viewReview(review.id)">查看评价</el-button>
+          <el-button v-if="!review.hasReviewed" type="primary" size="small" @click="goToReview(review.packageId)">去评价</el-button>
+          <el-button v-else type="info" size="small" @click="viewReview(review.orderId)">查看评价</el-button>
         </div>
       </el-card>
     </div>
@@ -105,13 +104,16 @@ const fetchReviews = async (reset = false) => {
       totalReviews.value = response.data.data.totalElements;
 
       const mappedOrders = newOrders.map(order => ({
-        id: order.id,
+        packageId:order.packageId,
+        orderId: order.orderId,
         tourTitle: order.packageTitle,
         packageCoverImageUrl: order.packageCoverImageUrl,
         rating: order.status === 'REVIEWED' ? 5 : 0, // 占位符：已评价默认5星
-        comment: order.status === 'REVIEWED' ? '您已对该订单进行评价。' : '该订单等待您的评价。',
+        comment: order.hasReviewed ? '您已对该订单进行评价。' : '该订单等待您的评价。',
         date: new Date(order.orderTime).toLocaleDateString(),
         orderStatus: order.status,
+        content:order.content,
+        hasReviewed:order.hasReviewed,
       }));
 
       if (reset) {
@@ -135,15 +137,15 @@ const fetchReviews = async (reset = false) => {
 };
 
 // 处理“去评价”点击事件
-const goToReview = (orderId) => {
-  router.push({ name: 'SubmitReviewPage', params: { orderId: orderId } });
-  ElMessage.info(`跳转到订单 ${orderId} 的评价页面`);
+const goToReview = (packageId) => {
+  router.push({ name: 'SubmitReviewPage', params: { packageId: packageId }});
+  console.log('跳转至去评价页面，传入的参数',router)
 };
 
 // 处理“查看评价”点击事件**
 const viewReview = (orderId) => {
-  router.push({ name: 'ViewReviewPage', params: { orderId: orderId } });
-  ElMessage.info(`查看订单 ${orderId} 的评价详情`);
+  router.push({ name: 'ViewReviewPage', params: { packageCommentId: orderId } });
+  console.log('跳转至查看评价页面，传入的参数',router)
 };
 
 // --- 生命周期钩子 ---

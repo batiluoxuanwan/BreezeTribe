@@ -56,7 +56,7 @@ public interface TravelOrderRepository extends JpaRepository<TravelOrder, String
      * ====== 1. 按日统计（YYYY-MM-DD）======
      */
     @Query("""
-    SELECT FUNCTION('DATE', o.createdTime), COUNT(o), SUM(o.totalPrice)
+    SELECT FUNCTION('DATE', o.createdTime), SUM(o.travelerCount), SUM(o.totalPrice)
     FROM TravelOrder o
     WHERE o.createdTime >= :start AND o.createdTime < :end
     AND (:merchantId IS NULL OR o.travelDeparture.travelPackage.dealer.id = :merchantId)
@@ -71,7 +71,7 @@ public interface TravelOrderRepository extends JpaRepository<TravelOrder, String
      * ====== 2. 按周统计（YEARWEEK，格式为202527）======
      */
     @Query("""
-    SELECT FUNCTION('YEARWEEK', o.createdTime), COUNT(o), SUM(o.totalPrice)
+    SELECT FUNCTION('YEARWEEK', o.createdTime), SUM(o.travelerCount), SUM(o.totalPrice)
     FROM TravelOrder o
     WHERE o.createdTime >= :start AND o.createdTime < :end
     AND (:merchantId IS NULL OR o.travelDeparture.travelPackage.dealer.id = :merchantId)
@@ -86,7 +86,7 @@ public interface TravelOrderRepository extends JpaRepository<TravelOrder, String
      * ====== 3. 按月统计（YYYY-MM）======
      */
     @Query("""
-    SELECT FUNCTION('DATE_FORMAT', o.createdTime, '%Y-%m'), COUNT(o), SUM(o.totalPrice)
+    SELECT FUNCTION('DATE_FORMAT', o.createdTime, '%Y-%m'),SUM(o.travelerCount), SUM(o.totalPrice)
     FROM TravelOrder o
     WHERE o.createdTime >= :start AND o.createdTime < :end
     AND (:merchantId IS NULL OR o.travelDeparture.travelPackage.dealer.id = :merchantId)
@@ -144,4 +144,29 @@ public interface TravelOrderRepository extends JpaRepository<TravelOrder, String
      * 【新增】根据团期ID，分页查询订单
      */
     Page<TravelOrder> findByTravelDeparture_Id(String departureId, Pageable pageable);
+
+    @Query("""
+    SELECT COALESCE(SUM(o.travelerCount), 0)
+    FROM TravelOrder o
+    WHERE o.travelDeparture.travelPackage.dealer.id = :merchantId
+      AND o.createdTime >= :start
+      AND o.createdTime < :end
+      AND o.status = 'PAID'
+""")
+    Long countJoinCountByMerchantAndPeriod(@Param("merchantId") String merchantId,
+                                           @Param("start") LocalDateTime start,
+                                           @Param("end") LocalDateTime end);
+
+    @Query("""
+    SELECT COALESCE(SUM(o.travelerCount), 0)
+    FROM TravelOrder o
+    WHERE o.travelDeparture.travelPackage.id = :packageId
+      AND o.createdTime >= :start
+      AND o.createdTime < :end
+      AND o.status = 'PAID'
+""")
+    Long countJoinCountByPackageAndPeriod(@Param("packageId") String packageId,
+                                          @Param("start") LocalDateTime start,
+                                          @Param("end") LocalDateTime end);
+
 }
