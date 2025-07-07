@@ -51,13 +51,14 @@ public class RecommendationService {
 
     /**
      * 【新增】为指定用户推荐【旅游团】
+     *
      * @param userId 当前登录用户的ID
      * @return 推荐的旅游团摘要DTO列表
      */
     @Transactional(readOnly = true)
     public List<PackageSummaryDto> getRecommendedPackages(String userId, RecommendRequestDto requestDto) {
         log.info("服务层：开始为用户ID '{}' 生成个性化【旅游团】推荐...", userId);
-        if (requestDto.getTotalNum()<requestDto.getRecommendNum()){
+        if (requestDto.getTotalNum() < requestDto.getRecommendNum()) {
             throw new BizException("推荐数量不能小于总数");
         }
         Map<String, Integer> userProfile = getUserProfile(userId);
@@ -73,8 +74,8 @@ public class RecommendationService {
 
         // 2. 获取候选内容，并排除已购买的
         List<TravelPackage> candidates = purchasedPackageIds.isEmpty()
-                ? packageRepository.findAll()
-                : packageRepository.findByIdNotIn(purchasedPackageIds);
+                ? packageRepository.findByStatus(TravelPackage.PackageStatus.PUBLISHED)
+                : packageRepository.findByStatusAndIdNotIn(TravelPackage.PackageStatus.PUBLISHED, purchasedPackageIds);
 
         // 3. 计算分数
         Map<TravelPackage, Double> itemScores = new HashMap<>();
@@ -98,11 +99,12 @@ public class RecommendationService {
 
     /**
      * 【新增】为指定用户推荐【游记】
+     *
      * @param userId 当前登录用户的ID
      * @return 推荐的游记摘要DTO列表
      */
     @Transactional(readOnly = true)
-    public List<PostSummaryDto> getRecommendedPosts(String userId,RecommendRequestDto requestDto) {
+    public List<PostSummaryDto> getRecommendedPosts(String userId, RecommendRequestDto requestDto) {
         log.info("服务层：开始为用户ID '{}' 生成个性化【游记】推荐...", userId);
         Map<String, Integer> userProfile = getUserProfile(userId);
 

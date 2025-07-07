@@ -19,6 +19,7 @@ public interface TravelPackageRepository extends JpaRepository<TravelPackage, St
     // 根据状态查询旅行团（分页）
     Page<TravelPackage> findByStatus(TravelPackage.PackageStatus status, Pageable pageable);
 
+    // 不分页
     List<TravelPackage> findByStatus(TravelPackage.PackageStatus status);
 
     // 根据ID和状态查询单个旅行团
@@ -71,7 +72,7 @@ public interface TravelPackageRepository extends JpaRepository<TravelPackage, St
 
     Collection<TravelPackage> findTop10ByOrderByCreatedTimeDesc();
 
-    List<TravelPackage> findByIdNotIn(Collection<String> ids);
+    List<TravelPackage> findByStatusAndIdNotIn(TravelPackage.PackageStatus status, Collection<String> ids);
 
     List<TravelPackage> findByDealerAndStatus(Merchant merchant, TravelPackage.PackageStatus packageStatus);
 
