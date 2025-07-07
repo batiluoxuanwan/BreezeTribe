@@ -38,6 +38,17 @@
         已加载全部游记
       </p>
     </div>
+
+    <div class="pagination-container" v-if=" totalNotes  > 0">
+        <el-pagination
+          background
+          layout="prev, pager, next"
+          :total=" totalNotes "
+          :page-size="pageSize"
+          :current-page="currentPage"
+          @current-change="handlePageChange"
+        />
+    </div>
 </template>
 
 <script setup>
@@ -130,6 +141,10 @@ const goToPublishTravelNote = () => {
   router.push("/user/publish-travel-note");
 };
 
+const handlePageChange = (newPage) => {
+  currentPage.value = newPage;
+   fetchNotes(true);
+};
 const showFootprintMap = () => {
   router.push("/mymap");
 }

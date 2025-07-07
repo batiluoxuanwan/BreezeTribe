@@ -199,13 +199,15 @@ public class UserService {
      * 【已重构】取消一个订单
      */
     @Transactional
-    public void cancelOrder(String orderId) {
-        User user = securityUtil.getCurrentUser();
+    public void cancelOrder(String orderId, boolean triggeredBySystem) {
         TravelOrder order = JpaUtil.getOrThrow(travelOrderRepository, orderId, "订单不存在");
 
-        // 权限校验
-        if (!order.getUser().getId().equals(user.getId())) {
-            throw new BizException("无权操作他人订单");
+        if (!triggeredBySystem) {
+            User user = securityUtil.getCurrentUser();
+            // 权限校验
+            if (!order.getUser().getId().equals(user.getId())) {
+                throw new BizException("无权操作他人订单");
+            }
         }
         // 只有待支付和已支付的订单可以取消
         if (order.getStatus() != TravelOrder.OrderStatus.PENDING_PAYMENT && order.getStatus() != TravelOrder.OrderStatus.PAID) {

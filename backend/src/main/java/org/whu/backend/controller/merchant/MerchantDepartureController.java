@@ -92,11 +92,13 @@ public class MerchantDepartureController {
     @GetMapping("/packages/{packageId}/departures")
     public Result<PageResponseDto<DepartureSummaryDto>> getDeparturesForPackage(
             @Parameter(description = "产品模板的ID") @PathVariable String packageId,
+            @Parameter(description = "按状态筛选（可选）：UPCOMING (待出发), PAST (已出发)。不传则返回所有。")
+            @RequestParam(required = false) String status,
             @Valid @ParameterObject PageRequestDto pageRequestDto) {
         String currentDealerId = AccountUtil.getCurrentAccountId();
         log.info("请求日志：经销商ID '{}' 正在查询产品ID '{}' 的团期列表, 分页参数: {}", currentDealerId, packageId, pageRequestDto);
 
-        PageResponseDto<DepartureSummaryDto> resultPage = merchantDepartureService.getDeparturesForPackage(packageId, currentDealerId, pageRequestDto);
+        PageResponseDto<DepartureSummaryDto> resultPage = merchantDepartureService.getDeparturesForPackage(packageId, currentDealerId, status, pageRequestDto);
 
         return Result.success("团期列表查询成功", resultPage);
     }

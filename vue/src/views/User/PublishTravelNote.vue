@@ -48,6 +48,27 @@
                   small
                 />
               </div>
+              <div class="ai-recommend-section">
+                <el-button type="" :icon="Cpu" @click="getAiSuggestedTags" :loading="aiLoading">
+                  获取 AI 智能推荐标签
+                </el-button>
+                <span v-if="aiLoading" class="loading-text">AI 正在思考中...</span>
+                <div v-if="aiSuggestedTags.length > 0" class="ai-suggested-preview">
+                  AI 推荐:
+                  <el-tag
+                    v-for="tag in aiSuggestedTags"
+                    :key="tag.id"
+                    size="small"
+                    type="success"
+                    effect="plain"
+                    class="ai-tag-item"
+                  >
+                    {{ tag.name }}
+                  </el-tag>
+                  <el-button type="primary" size="small" link @click="applyAiTags">采纳推荐</el-button>
+                </div>
+                <span v-else-if="aiHasSearched && !aiLoading" class="no-ai-tags-tip">暂无 AI 推荐标签。</span>
+              </div>
             </div>
 
             <div v-if="selectedTags.length > 0" class="selected-tags">
@@ -162,9 +183,11 @@ import {
   ElMessage,
   ElDialog,
   ElAutocomplete, 
-  ElMessageBox
+  ElMessageBox,
+  ElTag,       
+  ElDivider
 } from 'element-plus';
-import { ArrowLeft, Plus, Location, InfoFilled, CircleCloseFilled } from '@element-plus/icons-vue';
+import { ArrowLeft, Plus, Location, InfoFilled, CircleCloseFilled, Search, Cpu } from '@element-plus/icons-vue';
 import { publicAxios,authAxios } from '@/utils/request';
 
 const router = useRouter();
@@ -590,10 +613,19 @@ const size = 10
 const total = ref(0)
 const tagList = ref([])
 const selectedTags = ref([])
+// AI 推荐标签相关状态
+const aiLoading = ref(false); // AI 推荐加载状态
+const aiSuggestedTags = ref([]); // AI 推荐的标签列表
+const aiHasSearched = ref(false); // 是否尝试过 AI 推荐
+
 
 const toggleTagSelector = () => {
   showSelector.value = !showSelector.value
-  if (showSelector.value) fetchTags()
+   if (showSelector.value) {
+    fetchTags(); 
+    aiSuggestedTags.value = []; 
+    aiHasSearched.value = false; 
+  }
 }
 
 const fetchTags = async () => {
@@ -616,7 +648,7 @@ const fetchTags = async () => {
 
 const handlePageChange = (val) => {
   page.value = val
-  fetchTags()
+  fetchTags();
 }
 
 const toggleTag = (tag) => {
@@ -635,6 +667,62 @@ const removeTag = (tag) => {
 const isSelected = (tag) => {
   return selectedTags.value.some(t => t.id === tag.id)
 }
+
+// 新增 AI 推荐标签方法
+const getAiSuggestedTags = async () => {
+  const title = noteTitle.value.trim();
+  const content = noteContent.value.trim();
+
+  if (!title && !content) {
+    ElMessage.warning('请输入游记标题或内容，才能获取 AI 推荐标签！');
+    return;
+  }
+
+  aiLoading.value = true;
+  aiHasSearched.value = true;
+  aiSuggestedTags.value = []; // 清空之前的 AI 推荐结果
+
+  try {
+    const response = await authAxios.post('/chat/suggest-tags', {
+      title: title,
+      content: content,
+    });
+
+    if (response.data.code === 200) {
+      if (response.data.data && response.data.data.length > 0) {
+        aiSuggestedTags.value = response.data.data;
+        ElMessage.success('AI 标签推荐成功！');
+      } else {
+        ElMessage.info('AI 未能推荐任何标签，请尝试修改内容。');
+      }
+    } else {
+      ElMessage.error(response.data.message || '获取 AI 推荐标签失败');
+    }
+  } catch (error) {
+    console.error('获取 AI 推荐标签失败:', error);
+    ElMessage.error(`获取 AI 推荐标签失败: ${error.response?.data?.message || '网络或服务器错误'}`);
+  } finally {
+    aiLoading.value = false;
+  }
+};
+
+// 采纳 AI 推荐的标签
+const applyAiTags = () => {
+  if (aiSuggestedTags.value.length === 0) {
+    ElMessage.warning('当前没有 AI 推荐的标签可以采纳。');
+    return;
+  }
+
+  aiSuggestedTags.value.forEach(aiTag => {
+    // 如果该 AI 标签不在已选标签中，则添加
+    if (!selectedTags.value.some(sTag => sTag.id === aiTag.id)) {
+      selectedTags.value.push(aiTag);
+    }
+  });
+  ElMessage.success('已采纳 AI 推荐的标签！');
+  aiSuggestedTags.value = []; // 采纳后清空 AI 推荐列表
+  aiHasSearched.value = false; // 重置 AI 搜索状态
+};
 
 </script>
 
@@ -912,5 +1000,32 @@ const isSelected = (tag) => {
   color: #555;     
   font-size: 14px;  
   white-space: nowrap; /* 防止文本换行 */
+}
+.ai-recommend-section {
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px dashed #eee;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.ai-recommend-section .loading-text, .ai-recommend-section .no-ai-tags-tip {
+  color: #909399;
+  font-size: 13px;
+}
+
+.ai-suggested-preview {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  width: 100%; /* 确保它占据整行 */
+}
+
+.ai-tag-item {
+  cursor: default; /* AI推荐的标签不应该直接点击选择 */
 }
 </style>

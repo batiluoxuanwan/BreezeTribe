@@ -45,7 +45,7 @@
 
           <el-form-item label="手机验证码" prop="phoneCode" v-if="registerForm.verificationMethod === 'phone'">
             <div class="verification-code-input">
-              <el-input v-model="registerForm.phoneCode" placeholder="请输入手机验证码" />
+              <el-input v-model="registerForm.phoneCode" placeholder="请输入验证码" />
               <el-button
                 type="primary"
                 @click="sendPhoneCode"
@@ -58,7 +58,7 @@
 
           <el-form-item label="邮箱验证码" prop="emailCode" v-if="registerForm.verificationMethod === 'email'">
             <div class="verification-code-input">
-              <el-input v-model="registerForm.emailCode" placeholder="请输入邮箱验证码" />
+              <el-input v-model="registerForm.emailCode" placeholder="请输入验证码" />
               <el-button
                 type="primary"
                 @click="sendEmailCode"

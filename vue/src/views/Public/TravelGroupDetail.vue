@@ -132,6 +132,22 @@
 
           <el-divider class="section-divider"></el-divider>
 
+          <h3 class="section-title">团长介绍</h3>
+          <div class="contact-merchant-section mt-4 flex items-center gap-4">
+            <el-avatar
+              :src="travelGroupDetail.merchant.avatarUrl || '/default-avatar.png'"
+              :size="60"
+              class="cursor-pointer"
+              @click="(e) => openUserProfile(travelGroupDetail.merchant.id, e)"
+            />
+            <div class="flex flex-col">
+              <span class="text-lg font-medium">{{ travelGroupDetail.merchant.username || '团长' }}</span>
+              <span class="text-sm text-gray-500">← 点击团长头像联系团长哦！</span>
+            </div>
+          </div>
+
+          <el-divider class="section-divider"></el-divider>
+
           <h3 class="section-title">详细行程安排</h3>
           <div class="itinerary-section">
             <el-timeline v-if="travelGroupDetail.routes && travelGroupDetail.routes.length > 0">
@@ -239,6 +255,23 @@
       </span>
     </template>
   </el-dialog>
+
+  <UserProfilePopup
+      v-if="showUserProfilePopup"
+      v-model="showUserProfilePopup"
+      :userId="selectedUserProfileId"
+      :isFriend="isViewingUserFriend"
+      :currentUserId="currentUserId"      
+      @friend-request-sent="handleFriendRequestSent" 
+      @send-message="handleSendMessage"
+    />
+    <ChatRoom
+      v-if="showChatDialog"
+      :visible="showChatDialog"
+      :friendId="selectedUserId"
+      @update:visible="showChatDialog = false"
+    />
+
 </template>
 
 <script setup>
@@ -249,6 +282,8 @@ import { ArrowLeftBold, Picture, Star, StarFilled, Tickets,Warning } from '@elem
 import { publicAxios, authAxios } from '@/utils/request';
 import moment from 'moment';
 import { useAuthStore } from '@/stores/auth';
+import UserProfilePopup from '@/components/UserProfilePopup.vue'; 
+import ChatRoom from '../User/ChatRoom.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -380,31 +415,52 @@ const fetchTravelGroupDetail = async (id) => {
   }
 };
 
-//获取特定旅行团的团期
-const fetchTravelGroupDepartures = async (packageId, page = 1, size = 10, sortBy = 'departureDate', sortDirection = 'ASC') => {
-  try {
-    const response = await publicAxios.get(`/public/travel-packages/${packageId}/departures`, {
-      params: {
-        page: page,
-        size: size,
-        sortBy: sortBy,
-        sortDirection: sortDirection
-      }
-    });
+const fetchTravelGroupDepartures = async (packageId) => {
+  if (!packageId) {
+    ElMessage.warning('未提供旅行团ID');
+    return []; 
+  }
 
-    if (response.data.code === 200) {
-      console.log('团期列表:', response.data.data.content);
-      return response.data.data.content; // 返回团期数组
-    } else {
-      console.error('获取团期列表失败:', response.data.message);
-      return [];
+  let currentPage = 1;
+  const pageSize = 100;
+  let allDepartures = []; // 使用一个局部数组来收集所有团期数据
+  try {
+    let hasMore = true;
+    while (hasMore) {
+      const response = await publicAxios.get(`/public/travel-packages/${packageId}/departures`, {
+        params: {
+          page: currentPage,
+          size: pageSize,
+          sortBy: 'departureDate',
+          sortDirection: 'ASC'
+        }
+      });
+
+      if (response.data.code === 200 && response.data.data) {
+        const newContent = response.data.data.content || [];
+        allDepartures = [...allDepartures, ...newContent];
+
+        const totalPages = response.data.data.totalPages;
+        if (currentPage >= totalPages || newContent.length === 0) {
+          hasMore = false;
+        } else {
+          currentPage++;
+        }
+      } else {
+        ElMessage.error(response.data.message || '获取团期失败。');
+        console.error('获取团期失败：', response.data.message);
+        hasMore = false;
+      }
     }
-  } catch (error) {
-    console.error('请求团期列表出错:', error);
-    if (error.response && error.response.data && error.response.data.message) {
-      console.error('后端错误消息:', error.response.data.message);
-    }
-    return [];
+
+    console.log(`成功加载 ${allDepartures.length} 条团期数据`);
+    // departures.value = allDepartures; // 这行如果不需要在函数外部直接访问这个ref，可以注释掉
+    return allDepartures; 
+
+  } catch (err) {
+    ElMessage.error('请求团期接口出错，请检查网络。');
+    console.error('请求团期接口出错：', err);
+    return []; 
   }
 };
 
@@ -836,6 +892,65 @@ const submitEnrollForm = async () => {
       }
     }
   }
+};
+
+// --- 用户主页弹窗相关状态 ---
+const showUserProfilePopup = ref(false);
+const selectedUserProfileId = ref(null);
+const isViewingUserFriend = ref(false); 
+
+// 检查 selectedUserProfileId 是否是当前登录用户的好友
+const checkFriendStatus = async (targetUserId) => {
+  try {
+    const response = await authAxios.get('/friend/areufriend', {
+      params: {
+        hisid: targetUserId
+      }
+    });
+
+    if (response.data.code === 200) {
+      isViewingUserFriend.value = response.data.data === true;
+    } else {
+      console.warn('判断好友关系失败：', response.data.message);
+      isViewingUserFriend.value = false;
+    }
+  } catch (error) {
+    console.error('请求判断好友关系失败', error);
+    isViewingUserFriend.value = false;
+  }
+};
+
+// 当 selectedUserProfileId 变化时，检查好友状态
+watch(selectedUserProfileId, (newId) => {
+  if (newId) {
+    checkFriendStatus(newId);
+  } else {
+    isViewingUserFriend.value = false;
+  }
+});
+
+
+// 打开用户主页弹窗的函数
+const openUserProfile = async(userId) => {
+  console.log('点击了头像，传入的 userId:', userId);
+  selectedUserProfileId.value = userId;
+  showUserProfilePopup.value = true;
+  await checkFriendStatus(userId);
+};
+
+// 处理 UserProfilePopup 发出的 friend-request-sent 事件
+const handleFriendRequestSent = (targetUserId) => {
+  //ElMessage.success(`好友请求已发送给 ${targetUserId}`);
+  checkFriendStatus(targetUserId);
+};
+
+// 处理 UserProfilePopup 发出的 send-message 事件
+const showChatDialog = ref(false);
+const selectedUserId = ref(null);
+
+const handleSendMessage = (targetUserId) => {
+  selectedUserId.value = targetUserId;
+  showChatDialog.value = true;
 };
 
 // 组件挂载时执行
