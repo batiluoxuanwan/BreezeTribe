@@ -115,7 +115,7 @@ public class ScheduledService {
      * (秒 分 时 日 月 周)
      * 这样可以确保在新的一天开始时，所有昨天的团期都会被正确地标记为已结束。
      */
-    @Scheduled(cron = "30 15 19 * * ?", zone = "Asia/Shanghai") // 使用东八区时间
+    @Scheduled(cron = "00 10 1 * * ?", zone = "Asia/Shanghai") // 使用东八区时间
     @Transactional
     public void updateExpiredDeparturesJob() {
         log.info("【定时任务】开始执行[过期团期状态更新]任务...");
