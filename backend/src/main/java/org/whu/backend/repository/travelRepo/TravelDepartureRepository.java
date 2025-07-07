@@ -93,4 +93,8 @@ public interface TravelDepartureRepository extends JpaRepository<TravelDeparture
     @Query("UPDATE TravelDeparture d SET d.status = 'FINISHED' " +
             "WHERE d.departureDate < :now AND d.status IN ('OPEN', 'CLOSED')")
     int updateStatusToFinishedForExpiredDepartures(@Param("now") LocalDateTime now);
+
+    Page<TravelDeparture> findByTravelPackageIdAndDepartureDateAfter(String packageId, LocalDateTime now, Pageable pageable);
+
+    Page<TravelDeparture> findByTravelPackageIdAndDepartureDateBefore(String packageId, LocalDateTime now, Pageable pageable);
 }

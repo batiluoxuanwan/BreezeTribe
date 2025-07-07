@@ -59,7 +59,7 @@ public class UserActionController {
     @PostMapping("/orders/{orderId}/cancel")
     public Result<?> cancelOrder(@PathVariable String orderId) {
         log.info("请求日志：用户正在取消订单ID '{}'", orderId);
-        userService.cancelOrder(orderId);
+        userService.cancelOrder(orderId,false);
         return Result.success("订单已取消");
     }
 
