@@ -697,8 +697,6 @@ const postReplyComment = async (parentComment) => {
   try {
     const payload = {
       content: replyContent.value.trim(),
-      // 如果 currentReplyTarget 是该主评论本身，则parentId是主评论ID
-      // 如果 currentReplyTarget 是该主评论下的某个回复，则parentId是该回复的ID
       parentId: currentReplyTarget.value.id 
     };
     
@@ -711,6 +709,12 @@ const postReplyComment = async (parentComment) => {
       currentReplyTarget.value = null; // 重置回复目标
 
       await fetchComments(true); 
+
+      if (note.value.commentCount !== undefined && note.value.commentCount !== null) {
+        note.value.commentCount++;
+      } else {
+        note.value.commentCount = 1;
+      }
 
       // 如果当前父评论的回复列表是展开的，则也刷新其 fullReplies
       if (expandedCommentId[parentComment.id]) {
@@ -905,22 +909,6 @@ watch(
   }
 );
 
-/**
- * 格式化时间戳为更友好的日期时间字符串
- * @param {string} timeString - ISO 格式的时间字符串
- * @returns {string} 格式化后的时间字符串
- */
-const formatTime = (timeString) => {
-  if (!timeString) return '';
-  const date = new Date(timeString);
-  return date.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: 'numeric',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-};
 
 </script>
 
