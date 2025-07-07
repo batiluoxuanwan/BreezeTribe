@@ -15,20 +15,24 @@ import org.whu.backend.dto.PageRequestDto;
 import org.whu.backend.dto.PageResponseDto;
 import org.whu.backend.dto.accounts.MerchantrankDto;
 import org.whu.backend.dto.travelpack.PackageSummaryDto;
+import org.whu.backend.entity.accounts.Account;
 import org.whu.backend.entity.accounts.Role;
 import org.whu.backend.service.admin.AdminService;
+import org.whu.backend.util.AccountUtil;
 
 import java.time.LocalDate;
 import java.util.Map;
 import java.util.Set;
 
-@Tag(name = "管理员-获取统计图表数据", description = "用于获取统计图表数据")
+@Tag(name = "获取统计图表数据", description = "用于获取统计图表数据")
 @RestController
 @RequestMapping("/api/admin/data")
 @Slf4j
 public class DataController {
     @Autowired
     private AdminService adminService;
+    @Autowired
+    private AccountUtil accountUtil;
 
     @PreAuthorize("hasRole('ADMIN')") // 确保只有管理员能访问
     @Operation(summary = "获取用户增长趋势图")
@@ -56,8 +60,8 @@ public class DataController {
         return Result.success(data);
     }
 
-    @PreAuthorize("hasRole('ADMIN')") // 确保只有管理员能访问
-    @Operation(summary = "获取订单数量与收入流水统计")
+    @PreAuthorize("hasAnyRole('ADMIN')") // 确保只有管理员能访问
+    @Operation(summary = "获取参与人数数量与收入流水统计")
     @GetMapping("/orders-stats")
     public Result<Map<String, Object>> getOrderStats(
             @RequestParam(defaultValue = "month") String period,
@@ -97,6 +101,31 @@ public class DataController {
         return Result.success("团期列表查询成功", resultPage);
     }
 
+    @PreAuthorize("hasRole('MERCHANT')") // 确保只有管理员能访问
+    @Operation(summary = "获取参与人数与收入流水统计")
+    @GetMapping("/checkorder")
+    public Result<Map<String, Object>> checkOrder(
+            @RequestParam(defaultValue = "month") String period,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        String merchantId = AccountUtil.getCurrentAccountId();
+        Map<String, Object> data = adminService.getOrderStats(period, startDate, endDate, merchantId);
+        return Result.success(data);
+    }
 
+    @PreAuthorize("hasRole('MERCHANT')") // 确保只有管理员能访问
+    @Operation(summary = "获取旅游团转化漏斗图数据", description = "统计某旅游团在指定时间范围内的浏览、收藏、拼团/分享、下单等行为数量")
+    @GetMapping("/conversion-funnel")
+    public Result<Map<String, Object>> getConversionFunnel(
+            @RequestParam(defaultValue = "month") String period,
+            @RequestParam(required = false) String travelPackageId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
 
+        String merchantId = AccountUtil.getCurrentAccountId();
+        Map<String, Object> data = adminService.getConversionFunnel(period, startDate, endDate, merchantId, travelPackageId);
+        return Result.success(data);
+    }
 }
+
+

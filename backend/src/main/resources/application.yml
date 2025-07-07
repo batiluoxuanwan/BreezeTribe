@@ -62,6 +62,12 @@ ai:
     model:
       name: DeepSeek-R1-Distill-Llama-8B-F16
 
+aliyun:
+  moderation:
+    region-id: cn-shanghai
+    endpoint: green-cip.cn-shanghai.aliyuncs.com
+    service-code: comment_detection
+
 dashscope:
   api-key:
     package-recommend: sk-98e1d9b45e064da1a03e214f7c0ff468

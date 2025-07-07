@@ -43,6 +43,9 @@ public class PackageSummaryDto {
     @Schema(description = "旅行团的浏览量")
     private Integer viewCount;
 
+    @Schema(description = "旅行团的平均评分，如果没数据就是0")
+    private double averageRating;
+
     @Schema(description = "旅行团目前的状态")
     private String status;
 

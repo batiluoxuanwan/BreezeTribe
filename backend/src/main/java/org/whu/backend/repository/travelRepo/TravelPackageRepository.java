@@ -1,5 +1,6 @@
 package org.whu.backend.repository.travelRepo;
 
+import io.lettuce.core.dynamic.annotation.Param;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -9,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.whu.backend.entity.accounts.Merchant;
 import org.whu.backend.entity.travelpac.TravelPackage;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -71,6 +73,71 @@ public interface TravelPackageRepository extends JpaRepository<TravelPackage, St
 
     List<TravelPackage> findByIdNotIn(Collection<String> ids);
 
-
     List<TravelPackage> findByDealerAndStatus(Merchant merchant, TravelPackage.PackageStatus packageStatus);
+
+    @Query("""
+        SELECT COALESCE(SUM(tp.viewCount), 0)
+        FROM TravelPackage tp
+        WHERE tp.dealer.id = :merchantId
+          AND tp.createdTime >= :start
+          AND tp.createdTime < :end
+    """)
+    Long sumViewCountByMerchantAndPeriod(@Param("merchantId") String merchantId,
+                                         @Param("start") LocalDateTime start,
+                                         @Param("end") LocalDateTime end);
+
+    @Query("""
+        SELECT COALESCE(SUM(tp.favoriteCount), 0)
+        FROM TravelPackage tp
+        WHERE tp.dealer.id = :merchantId
+          AND tp.createdTime >= :start
+          AND tp.createdTime < :end
+    """)
+    Long sumFavoriteCountByMerchantAndPeriod(@Param("merchantId") String merchantId,
+                                             @Param("start") LocalDateTime start,
+                                             @Param("end") LocalDateTime end);
+
+    @Query("""
+        SELECT COALESCE(SUM(tp.commentCount), 0)
+        FROM TravelPackage tp
+        WHERE tp.dealer.id = :merchantId
+          AND tp.createdTime >= :start
+          AND tp.createdTime < :end
+    """)
+    Long sumCommentCountByMerchantAndPeriod(@Param("merchantId") String merchantId,
+                                            @Param("start") LocalDateTime start,
+                                            @Param("end") LocalDateTime end);
+
+    @Query("""
+        SELECT COALESCE(SUM(tp.viewCount), 0)
+        FROM TravelPackage tp
+        WHERE tp.id = :packageId
+          AND tp.createdTime >= :start
+          AND tp.createdTime < :end
+    """)
+    Long sumViewCountByPackageAndPeriod(@Param("packageId") String packageId,
+                                        @Param("start") LocalDateTime start,
+                                        @Param("end") LocalDateTime end);
+
+    @Query("""
+        SELECT COALESCE(SUM(tp.favoriteCount), 0)
+        FROM TravelPackage tp
+        WHERE tp.id = :packageId
+          AND tp.createdTime >= :start
+          AND tp.createdTime < :end
+    """)
+    Long sumFavoriteCountByPackageAndPeriod(@Param("packageId") String packageId,
+                                            @Param("start") LocalDateTime start,
+                                            @Param("end") LocalDateTime end);
+
+    @Query("""
+        SELECT COALESCE(SUM(tp.commentCount), 0)
+        FROM TravelPackage tp
+        WHERE tp.id = :packageId
+          AND tp.createdTime >= :start
+          AND tp.createdTime < :end
+    """)
+    Long sumCommentCountByPackageAndPeriod(@Param("packageId") String packageId,
+                                           @Param("start") LocalDateTime start,
+                                           @Param("end") LocalDateTime end);
 }

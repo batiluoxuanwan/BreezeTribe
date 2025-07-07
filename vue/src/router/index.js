@@ -102,12 +102,12 @@ const routes =[
         component:() =>import('../views/User/EditNote.vue'),
         props: true, 
     },
-    {
-        path: '/chat/:friendId',
-        name: 'ChatRoom',
-        component: () => import('../components/chat/ChatRoom.vue'),
-        props: true 
-    },
+    // {
+    //     path: '/chat/:friendId',
+    //     name: 'ChatRoom',
+    //     component: () => import('../components/chat/FriendList.vue'),
+    //     props: true 
+    // },
     {
         path: '/user/addfriend',
         name: 'AddFriend',

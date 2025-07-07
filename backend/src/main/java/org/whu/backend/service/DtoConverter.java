@@ -226,6 +226,7 @@ public class DtoConverter {
         if (hasReviewed) {
             PackageComment comment = reviewsMap.get(travelPackage.getId());
             if (comment != null) {
+                builder.commentId(comment.getId());
                 builder.star(comment.getRating());
                 builder.content(comment.getContent());
             }
@@ -526,6 +527,7 @@ public class DtoConverter {
                 .viewCount(entity.getViewCount())
                 .status(entity.getStatus().toString())
                 .merchant(ConvertUserToAuthorDto(entity.getDealer()))
+                .averageRating(entity.getAverageRating())
                 .build();
     }
 
@@ -577,6 +579,7 @@ public class DtoConverter {
                 .merchant(ConvertUserToAuthorDto(entity.getDealer()))
                 .tags(tagDtos)
                 .routes(routeDtos)
+                .averageRating(entity.getAverageRating())
                 .build();
     }
 
@@ -641,6 +644,7 @@ public class DtoConverter {
                 .tags(tagDtos)
                 .imageIdAndUrls(imageIdAndUrls)
                 .routes(routeDtos)
+                .averageRating(entity.getAverageRating())
                 // 填充子类特有字段
                 .departures(departureDtos)
                 .build();
@@ -701,7 +705,7 @@ public class DtoConverter {
                 .reason(report.getReason())
                 .additionalInfo(report.getAdditionalInfo())
                 .status(report.getStatus())
-                .reporter(ConvertUserToAuthorDto(report.getReporter()))
+                .reporter(report.getReporter() == null ? null : ConvertUserToAuthorDto(report.getReporter()))
                 .summary(report.getSummary())
                 .createdTime(report.getCreatedTime())
                 .build();

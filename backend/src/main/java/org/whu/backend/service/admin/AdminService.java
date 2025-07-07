@@ -512,6 +512,7 @@ public class AdminService {
     }
 
     public Map<String, Object> getOrderStats(String period, LocalDate startDate, LocalDate endDate, String merchantId) {
+
         // 1. 统一计算时间范围，支持默认值和校验
         Pair<LocalDate, LocalDate> range = ChartDataUtil.resolveRange(period, startDate, endDate);
         startDate = range.getLeft();
@@ -532,7 +533,7 @@ public class AdminService {
 
         // 4. 构造图表数据（附加字段为 merchantId，可用于前端标记来源）
         String label = (merchantId != null && !merchantId.isEmpty()) ? merchantId : "ALL";
-        return ChartDataUtil.buildChartData(period, startDate, endDate, rawData, "merchantId", label);
+        return ChartDataUtil.buildDualChartDataY2(period, startDate, endDate, rawData);
     }
 
     public PageResponseDto<PackageSummaryDto> getTripRank(@Valid PageRequestDto pageRequestDto, String upperCase) {
@@ -715,6 +716,66 @@ public class AdminService {
                 .build();
     }
 
+    /**
+     * 获取转化漏斗数据
+     *
+     * @param period          时间周期（day/week/month） - 这里可根据需要扩展，当前仅用于时间范围默认值计算
+     * @param startDate       开始时间
+     * @param endDate         结束时间
+     * @param merchantId      当前商户ID，限定数据范围
+     * @param travelPackageId 旅游团ID
+     * @return key-value map，包含各个阶段的数量
+     */
+    public Map<String, Object> getConversionFunnel(String period, LocalDate startDate, LocalDate endDate,
+                                                   String merchantId, String travelPackageId) {
+
+        // 1. 统一计算时间范围，支持默认值和校验
+        Pair<LocalDate, LocalDate> range = ChartDataUtil.resolveRange(period, startDate, endDate);
+        startDate = range.getLeft();
+        endDate = range.getRight();
+
+        // 2. 统一转换为 LocalDateTime 左闭右开区间：[startDate.atStartOfDay(), endDate.plusDays(1).atStartOfDay())
+        Pair<LocalDateTime, LocalDateTime> dateTimeRange = ChartDataUtil.toDateTimeRange(startDate, endDate);
+        LocalDateTime start = dateTimeRange.getLeft();
+        LocalDateTime end = dateTimeRange.getRight();
+
+        // 3. 根据travelPackageId是否为空，分别调用不同的方法查询数据
+        long viewCount;
+        long favoriteCount;
+        long commentCount;
+        long joinCount;
+
+        if (travelPackageId == null || travelPackageId.isBlank()) {
+            // 统计该商家全部旅行团行为数据汇总
+            viewCount = travelPackageRepository.sumViewCountByMerchantAndPeriod(merchantId, start, end);
+            favoriteCount = travelPackageRepository.sumFavoriteCountByMerchantAndPeriod(merchantId, start, end);
+            commentCount = travelPackageRepository.sumCommentCountByMerchantAndPeriod(merchantId, start, end);
+            joinCount = travelOrderRepository.countJoinCountByMerchantAndPeriod(merchantId, start, end);
+        } else {
+            // 只统计指定旅行团的数据
+            viewCount = travelPackageRepository.sumViewCountByPackageAndPeriod(travelPackageId, start, end);
+            favoriteCount = travelPackageRepository.sumFavoriteCountByPackageAndPeriod(travelPackageId, start, end);
+            commentCount = travelPackageRepository.sumCommentCountByPackageAndPeriod(travelPackageId, start, end);
+            joinCount = travelOrderRepository.countJoinCountByPackageAndPeriod(travelPackageId, start, end);
+        }
+
+        // 4. 组装结果，结构清晰
+        Map<String, Object> funnelData = new LinkedHashMap<>();
+        funnelData.put("viewCount", viewCount);
+        funnelData.put("favoriteCount", favoriteCount);
+        funnelData.put("commentCount", commentCount);
+        funnelData.put("joinCount", joinCount);
+
+        // 5. 附加信息
+        funnelData.put("period", period);
+        funnelData.put("startDate", startDate.toString());
+        funnelData.put("endDate", endDate.toString());
+        funnelData.put("travelPackageId", travelPackageId == null ? "ALL" : travelPackageId);
+
+        return funnelData;
+    }
+}
+
 //    public Map<String, Object> getUserGrowthData(String period) {
 //        Map<String, Object> result = new LinkedHashMap<>();
 //        List<Object[]> rawData = accountRepository.getUserGrowthGroupedByPeriod(period);
@@ -765,4 +826,4 @@ public class AdminService {
 //        }
 //        return result;
 //    }
-}
+

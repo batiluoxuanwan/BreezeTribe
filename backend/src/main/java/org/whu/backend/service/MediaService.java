@@ -16,6 +16,10 @@ import org.whu.backend.dto.PageResponseDto;
 import org.whu.backend.dto.mediafile.MediaFileDto;
 import org.whu.backend.entity.MediaFile;
 import org.whu.backend.entity.accounts.Account;
+import org.whu.backend.entity.association.PackageImage;
+import org.whu.backend.entity.travelpac.TravelPackage;
+import org.whu.backend.entity.travelpost.PostImage;
+import org.whu.backend.entity.travelpost.TravelPost;
 import org.whu.backend.repository.MediaFileRepository;
 import org.whu.backend.repository.PackageImageRepository;
 import org.whu.backend.repository.authRepo.AuthRepository;
@@ -24,6 +28,7 @@ import org.whu.backend.util.AliyunOssUtil;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -50,8 +55,8 @@ public class MediaService {
                 .orElseThrow(() -> new BizException("上传失败：找不到用户 " + uploaderId));
 
         // 2. 调用OSS服务上传文件
-        String objectKey = uploader.getId()+"/"+ UUID.randomUUID();
-        AliyunOssUtil.upload(objectKey,file.getInputStream());
+        String objectKey = uploader.getId() + "/" + UUID.randomUUID();
+        AliyunOssUtil.upload(objectKey, file.getInputStream());
 
         // 3. 创建并保存MediaFile实体到数据库
         MediaFile mediaFile = new MediaFile();
@@ -80,47 +85,54 @@ public class MediaService {
                 .map(dtoConverter::convertMediaFileToDto)
                 .collect(Collectors.toList());
 
-        return dtoConverter.convertPageToDto(mediaFilePage,dtos);
+        return dtoConverter.convertPageToDto(mediaFilePage, dtos);
     }
 
 
     /**
-     * [新增] 从我的媒体库删除一个文件
+     * 从我的媒体库删除一个文件
+     * 增加了更智能的错误提示，会告知用户文件具体被哪个项目占用了。
      */
     @Transactional
     public void deleteMediaFile(String fileId, String currentUserId) {
         log.info("用户ID '{}' 正在尝试删除媒体文件ID '{}'...", currentUserId, fileId);
 
-        // 1. 查找文件是否存在
+        // 1. 查找文件并验证所有权 (逻辑不变)
         MediaFile mediaFile = mediaFileRepository.findById(fileId)
                 .orElseThrow(() -> new BizException("找不到ID为 " + fileId + " 的文件"));
 
-        // 2. 验证所有权，确保用户只能删除自己上传的文件
         if (!mediaFile.getUploader().getId().equals(currentUserId)) {
             log.error("权限拒绝：用户ID '{}' 试图删除不属于自己的文件ID '{}'。", currentUserId, fileId);
             throw new BizException(HttpStatus.UNAUTHORIZED.value(), "无权删除此文件");
         }
 
-        // 3. 关键！检查该文件是否还在被其他地方使用
-        boolean isInUseInPackages = packageImageRepository.existsByMediaFileId(fileId);
-        if (isInUseInPackages) {
-            log.warn("删除失败：文件ID '{}' 正在被一个或多个旅行团使用。", fileId);
-            throw new BizException("无法删除：该文件正在被至少一个旅行团使用。请先从旅行团图集中移除。");
+        // 2. 检查文件是否被旅行团使用
+        // 我们不再用exists，而是尝试查找第一个使用它的PackageImage记录
+        Optional<PackageImage> inUseByPackage = packageImageRepository.findTopByMediaFileId(fileId);
+        if (inUseByPackage.isPresent()) {
+            TravelPackage blockingPackage = inUseByPackage.get().getTravelPackage();
+            String errorMessage = String.format(
+                    "ID:[%s], 无法删除：该文件正在被旅行团 [%s] 使用。请先从其图集中移除。",
+                    blockingPackage.getId(), blockingPackage.getTitle()
+            );
+            log.warn("删除失败：文件ID '{}' 正在被旅行团ID '{}' 使用。", fileId, blockingPackage.getId());
+            throw new BizException(errorMessage);
         }
 
-        boolean isInUseInPosts = postImageRepository.existsByMediaFileId(fileId);
-        if (isInUseInPosts){
-            log.warn("删除失败：文件ID '{}' 正在被一个或多个旅行团使用。", fileId);
-            throw new BizException("无法删除：该文件正在被至少一个游记使用。请先从游记图集中移除。");
+        // 3. 检查文件是否被游记使用
+        Optional<PostImage> inUseByPost = postImageRepository.findTopByMediaFileId(fileId);
+        if (inUseByPost.isPresent()) {
+            TravelPost blockingPost = inUseByPost.get().getTravelPost();
+            String errorMessage = String.format(
+                    "ID:[%s], 无法删除：该文件正在被游记 [%s] 使用。请先从其图集中移除。",
+                    blockingPost.getId(), blockingPost.getTitle()
+            );
+            log.warn("删除失败：文件ID '{}' 正在被游记ID '{}' 使用。", fileId, blockingPost.getId());
+            throw new BizException(errorMessage);
         }
 
-        // TODO: 未来还可以增加对游记等其他地方的引用检查
-
-        // 4. 从数据库和OSS上删除文件
-        // a. 从OSS删除
+        // 4. 如果所有检查都通过，则执行删除 (逻辑不变)
         AliyunOssUtil.delete(mediaFile.getObjectKey());
-
-        // b. 从数据库删除
         mediaFileRepository.delete(mediaFile);
 
         log.info("文件ID '{}' 已被用户ID '{}' 成功从媒体库和OSS中删除。", fileId, currentUserId);
