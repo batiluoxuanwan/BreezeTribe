@@ -68,36 +68,8 @@
     </aside>
 
     <main class="main-content">
-      <div v-if="activeTab === 'overview'">
+      <div v-if="activeTab === 'overview'" class="overview-content">
         <div class="stat-cards-grid">
-          <el-card class="stat-card">
-            <div class="card-icon"><el-icon><DocumentCopy /></el-icon></div>
-            <div class="card-info">
-              <p>待审核旅行团</p>
-              <h2>{{ merchantOverview.pendingTours }}</h2>
-            </div>
-          </el-card>
-          <el-card class="stat-card">
-            <div class="card-icon"><el-icon><Calendar /></el-icon></div>
-            <div class="card-info">
-              <p>今日订单数</p>
-              <h2>{{ merchantOverview.todayOrders }}</h2>
-            </div>
-          </el-card>
-          <el-card class="stat-card">
-            <div class="card-icon"><el-icon><TrendCharts /></el-icon></div>
-            <div class="card-info">
-              <p>本月营收</p>
-              <h2>¥{{ merchantOverview.monthlyRevenue }}</h2>
-            </div>
-          </el-card>
-          <el-card class="stat-card">
-            <div class="card-icon"><el-icon><StarFilled /></el-icon></div>
-            <div class="card-info">
-              <p>整体评分</p>
-              <h2>{{ merchantOverview.overallRating }}</h2>
-            </div>
-          </el-card>
           <el-card class="stat-card new-tour-card" @click="goToNewGroupPage">
             <div class="card-icon"><el-icon><Plus /></el-icon></div>
             <div class="card-info">
@@ -113,48 +85,9 @@
               <el-button type="primary" :icon="Calendar" circle class="add-schedule-btn"></el-button>
           </el-card>
         </div>
-
-        <el-row :gutter="20" class="overview-sections">
-          <el-col :span="12">
-            <el-card class="recent-status-card">
-              <template #header>
-                <div class="card-header-with-link">
-                  <span>近期旅行团审核状态</span>
-                  <el-link type="primary" @click="activeTab = 'tourManagement'">查看所有</el-link>
-                </div>
-              </template>
-              <el-table :data="recentTourReviews" :show-header="false" style="width: 100%">
-                <el-table-column prop="title" label="团名"></el-table-column>
-                <el-table-column prop="status" label="状态" width="100">
-                  <template #default="{ row }">
-                    <el-tag :type="getTourReviewStatusType(row.status)">{{ getTourReviewStatusText(row.status) }}</el-tag>
-                  </template>
-                </el-table-column>
-              </el-table>
-              <el-empty v-if="recentTourReviews.length === 0" description="暂无近期审核记录" :image-size="50"></el-empty>
-            </el-card>
-          </el-col>
-          <el-col :span="12">
-            <el-card class="recent-status-card">
-              <template #header>
-                <div class="card-header-with-link">
-                  <span>近期订单概览</span>
-                  <el-link type="primary" @click="activeTab = 'orderManagement'">查看所有</el-link>
-                </div>
-              </template>
-              <el-table :data="recentOrders" :show-header="false" style="width: 100%">
-                <el-table-column prop="tourTitle" label="旅行团"></el-table-column>
-                <el-table-column prop="orderStatus" label="状态" width="100">
-                  <template #default="{ row }">
-                    <el-tag :type="getOrderStatusType(row.orderStatus)">{{ getOrderStatusText(row.orderStatus) }}</el-tag>
-                  </template>
-                </el-table-column>
-                <el-table-column prop="orderDate" label="日期" width="120"></el-table-column>
-              </el-table>
-              <el-empty v-if="recentOrders.length === 0" description="暂无近期订单" :image-size="50"></el-empty>
-            </el-card>
-          </el-col>
-        </el-row>
+        <RankList/>
+        <ConversionFunnel/>
+        <CheckOrderStats/>
       </div>
 
       <!-- 我的旅行团 -->
@@ -264,7 +197,10 @@ import AccountOverview from '@/components/AccountOverview.vue'
 import MyNotifications from '@/components/profile/MyNotifications.vue';
 import MerchantReviews from '@/components/profile/MerchantReviews.vue'; 
 import MyMediaLibrary from '@/components/profile/MyMediaLibrary.vue' ;
-import MyFriends from '@/components/profile/MyFriends.vue' 
+import MyFriends from '@/components/profile/MyFriends.vue' ;
+import RankList from '@/components/RankList.vue';
+import ConversionFunnel from '@/components/ConversionFunnel.vue';
+import CheckOrderStats from '@/components/CheckOrderStats.vue';
 
 const router = useRouter();
 const route = useRoute();
@@ -952,6 +888,12 @@ watch(
 
 .hidden-tabs-header .el-tabs__content {
   padding: 0;
+}
+
+.overview-content {
+  display: flex;
+  flex-direction: column; /* 让子元素垂直排列 */
+  gap: 20px; /* 在所有子元素之间添加 20px 的间距 */
 }
 
 /* --- 团长特有样式 --- */
