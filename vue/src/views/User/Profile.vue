@@ -359,8 +359,8 @@ watch(
 
 .back-to-home-btn{
   position:absolute;
-  top:10px;
-  left:10px;
+  top:50px;
+  left:50px;
   padding:8px 15px;
   font-size:0.9rem;
   border-radius:8px;

@@ -1,3 +1,4 @@
+<!-- 旅行广场的旅行团卡片 -->
 <template>
   <el-card class="travel-card group-card" shadow="hover">
     <div class="image-wrapper">
@@ -11,7 +12,7 @@
       <div class="card-info">
         <span>时长: {{ group.durationInDays }}天</span>
         <!-- <span>人数: {{ group.members }}人</span> -->
-        <span>评分: {{ group.rating }}</span>
+        <span>评分: {{ group.averageRating }}</span>
       </div>
       <el-button type="primary" size="small" class="detail-button" @click.stop="goToDetail">查看详情</el-button>
     </div>
@@ -35,7 +36,30 @@ const router = useRouter();
 // 跳转详情页并传递旅行团id
 const goToDetail = () => {
   console.log('查看旅行团详情:', props.group.id);
-  router.push({ name: 'TravelGroupDetail', params: { id: props.group.id } });
+  router.push({ 
+    name: 'TravelGroupDetail', 
+    params: { id: props.group.id },
+    query: {
+      from:'square-groups'
+    } 
+  });
+};
+
+/**
+ * 格式化时间戳为更友好的日期时间字符串
+ * @param {string} timeString - ISO 格式的时间字符串
+ * @returns {string} 格式化后的时间字符串
+ */
+const formatTime = (timeString) => {
+  if (!timeString) return '';
+  const date = new Date(timeString);
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
 };
 
 </script>

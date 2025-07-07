@@ -1,5 +1,8 @@
 <template>
+  <div class="notes-header">
     <el-button type="primary" :icon="Plus" @click="goToPublishTravelNote">发布新游记</el-button>
+    <el-button type="primary" :icon="MapLocation" @click="showFootprintMap" class="footprint-btn">我的足迹</el-button>
+  </div>
     <div v-loading="noteLoading">
       <div v-if="notes.length > 0" class="card-grid">
         <el-card
@@ -42,7 +45,7 @@ import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { authAxios } from "@/utils/request";
 import { ElButton, ElCard, ElEmpty, ElMessage } from "element-plus";
-import { Plus } from "@element-plus/icons-vue";
+import { Plus,MapLocation } from "@element-plus/icons-vue";
 
 const router = useRouter();
 const notes = ref([]);
@@ -126,6 +129,10 @@ const goToDetail = (id) => {
 const goToPublishTravelNote = () => {
   router.push("/user/publish-travel-note");
 };
+
+const showFootprintMap = () => {
+  router.push("/mymap");
+}
 
 // 在这里调用 onMounted，只获取游记数据
 onMounted(() => {

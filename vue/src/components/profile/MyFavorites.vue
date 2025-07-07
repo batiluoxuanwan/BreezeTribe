@@ -8,8 +8,8 @@
           @click="goToTourDetail(tour.itemid)"
         >
           <img
-            v-if="tour.coverImageUrls && tour.coverImageUrls.length > 0"
-            :src="tour.coverImageUrls[0]"
+            v-if="tour.imageUrls && tour.imageUrls.length > 0"
+            :src="tour.imageUrls[0]"
             class="card-img"
             alt="收藏图片"
           />
@@ -27,6 +27,7 @@ import { onMounted, ref ,reactive} from 'vue'
 import { ElCard, ElEmpty, ElMessage } from 'element-plus';
 import { useRouter } from 'vue-router';
 import { authAxios,publicAxios } from '@/utils/request';
+import defaultInvalidImage from '@/assets/default.jpg'; 
 
 const router = useRouter();
 const collectedTours = ref([]);
@@ -52,6 +53,7 @@ const fetchTravelPackageDetail = async (id) => {
   try {
     const response = await publicAxios.get(`/public/travel-packages/${id}`);
     if (response.data.code === 200 && response.data.data) {
+      console.log('获取旅行团信息',response.data)
       return response.data.data;
     } else {
       const errorMessage = response.data.message || '';
@@ -88,6 +90,7 @@ const fetchCollectedTours = async () => {
     });
 
     if (response.data.code === 200 && response.data.data) {
+      console.log('获取所有收藏',response.data.data.content)
       const basicCollectedItems = response.data.data.content;
       pagination.pageNumber = response.data.data.pageNumber;
       pagination.pageSize = response.data.data.pageSize;
@@ -101,7 +104,7 @@ const fetchCollectedTours = async () => {
             itemid: `invalid-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`, 
             itemType: item?.itemType || 'UNKNOWN',
             title: '无效收藏项',
-            coverImageUrls: [],
+            imageUrls: [],
 
           };
         }
@@ -111,7 +114,7 @@ const fetchCollectedTours = async () => {
             return {
               ...item,
               title: packageDetail.message, // 显示“该旅行团已失效”
-              coverImageUrls: [], // 清空封面图片，或者可以使用一个默认的失效图片
+              imageUrls: [defaultInvalidImage], // 默认的失效图片
               isInvalidPackage: true, // 添加一个标记，方便前端UI判断渲染样式
               location: '未知', // 或其他合适的默认值
               price: 0,
@@ -121,7 +124,7 @@ const fetchCollectedTours = async () => {
             return {
               ...item, 
               title: packageDetail.title,
-              coverImageUrls: packageDetail.coverImageUrls,
+              imageUrls: packageDetail.imageUrls,
             };
             } else {
             return {

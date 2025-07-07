@@ -68,7 +68,7 @@
         <el-input
           v-model="noteContent"
           type="textarea"
-          placeholder="分享你的旅行见闻..."
+          placeholder="分享你的旅行见闻...（必填）"
           maxlength="500"
           show-word-limit
           class="note-textarea"
@@ -94,14 +94,14 @@
             :limit="maxMediaFiles"
           >
             <el-icon><Plus /></el-icon>
-            <div class="el-upload__text">添加照片</div>
+            <div class="el-upload__text">添加照片（必填）</div>
           </el-upload>
         </div>
 
         <div class="title-input-container">
           <el-input
             v-model="noteTitle"
-            placeholder="为你的游记添加一个标题（可选）"
+            placeholder="为你的游记添加一个标题（必填）"
             maxlength="50"
             show-word-limit
           />
@@ -110,7 +110,7 @@
         <div class="location-picker" @click="pickLocation">
           <el-icon><Location /></el-icon>
           <span v-if="selectedLocation">{{ selectedLocation }}</span>
-          <span v-else class="placeholder-text">你在哪里？</span>
+          <span v-else class="placeholder-text">你在哪里？（必填）</span>
           <el-button type="text">选择位置</el-button>
         </div>
 
@@ -194,7 +194,7 @@ const mediaFiles = computed(() => {
 });
 
 const canPublish = computed(() => {
-  return noteContent.value.trim() !== '' || mediaFiles.value.length > 0;
+  return noteContent.value.trim() !== '' && mediaFiles.value.length > 0 && noteTitle.value.trim() !== '' && selectedLocation.value.trim() !== '';
 });
 
 const textareaRef = ref(null);
@@ -462,6 +462,7 @@ const handleLocationSelect = (item) => {
   searchLocation.value = item.name; // 将选中的名称显示在输入框
   selectedSpotData.value = item; // 存储完整的地点数据，可能包含 ID, 地址等
   ElMessage.success(`已选择：${item.name}`);
+  console.log('已选择地点',searchLocation.value,selectedSpotData.value)
 };
 
 const confirmLocation = () => {

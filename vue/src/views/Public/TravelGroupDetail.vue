@@ -32,17 +32,27 @@
                 </el-button>
               </div>
             </div>
+
+            <el-button
+              type="warning"
+              icon="WarningFilled"
+              circle
+              size="large"
+              @click="reportItem('PACKAGE', travelGroupDetail.id)"
+              :disabled="!authStore.isLoggedIn"
+              title="举报此旅行团"
+            />
           </template>
 
           <el-row :gutter="30" class="main-info-section">
             <el-col :span="14">
-              <el-carousel v-if="travelGroupDetail.coverImageUrls && travelGroupDetail.coverImageUrls.length > 1"
+              <el-carousel v-if="travelGroupDetail.imageUrls && travelGroupDetail.imageUrls.length > 1"
                            trigger="click" height="400px" indicator-position="outside" class="group-carousel">
-                <el-carousel-item v-for="(imgUrl, idx) in travelGroupDetail.coverImageUrls" :key="idx">
+                <el-carousel-item v-for="(imgUrl, idx) in travelGroupDetail.imageUrls" :key="idx">
                   <el-image :src="imgUrl" fit="cover" class="carousel-image"></el-image>
                 </el-carousel-item>
               </el-carousel>
-              <el-image v-else :src="travelGroupDetail.coverImageUrls && travelGroupDetail.coverImageUrls.length > 0 ? travelGroupDetail.coverImageUrls[0] : 'https://fuss10.elemecdn.com/e/5d/4a731a90594a4af544c0c25941171jpeg.jpeg'"
+              <el-image v-else :src="travelGroupDetail.imageUrls && travelGroupDetail.imageUrls.length > 0 ? travelGroupDetail.imageUrls[0] : 'https://fuss10.elemecdn.com/e/5d/4a731a90594a4af544c0c25941171jpeg.jpeg'"
                         fit="cover" class="group-image-single">
                 <template #error>
                   <div class="image-slot">
@@ -148,6 +158,53 @@
             <el-empty v-else description="暂无详细行程安排。"></el-empty>
           </div>
         </el-card>
+
+        <el-card class="comments-card">
+          <template #header>
+            <div class="card-header">
+              <h3 class="section-title">用户评价 ({{ commentsTotal }})</h3>
+            </div>
+          </template>
+          <div v-if="commentsLoading" class="loading-comments">
+            <el-empty description="正在加载评价..."></el-empty>
+          </div>
+          <div v-else-if="comments && comments.length > 0">
+            <div v-for="comment in comments" :key="comment.id" class="comment-item">
+              <div class="comment-header">
+                <el-avatar :src="comment.author.avatarUrl" :alt="comment.author.username" :icon="UserFilled" class="comment-avatar"></el-avatar>
+                <div class="comment-meta">
+                  <span class="comment-author">{{ comment.author.username }}</span>
+                  <el-rate v-model="comment.rating" disabled show-score text-color="#ff9900" score-template="{value}" class="comment-rating"></el-rate>
+                  <span class="comment-time">{{ formatDate(comment.createdTime) }}</span>
+                </div>
+              </div>
+              <div class="comment-content">
+                <p>{{ comment.content }}</p>                        
+              </div>
+              <el-button
+                type="danger"
+                text
+                icon="WarningFilled"
+                size="small"
+                @click="reportItem('COMMENT', comment.id)"
+                :disabled="!authStore.isLoggedIn"
+                style="margin-top: 5px;"
+              >
+                举报
+              </el-button>
+            </div>
+            <el-pagination
+              background
+              layout="prev, pager, next"
+              :total="commentsTotal"
+              :page-size="commentsPageSize"
+              :current-page="commentsCurrentPage"
+              @current-change="handleCommentsPageChange"
+              class="comments-pagination"
+            ></el-pagination>
+          </div>
+          <el-empty v-else description="暂无用户评价。"></el-empty>
+        </el-card>
       </div>
 
       <el-empty v-else description="未找到该旅行团信息或加载失败"></el-empty>
@@ -188,7 +245,7 @@
 import { ref, onMounted, reactive ,watch} from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, ElCard, ElRow, ElCol, ElImage, ElDivider, ElTag, ElRate, ElEmpty, ElButton, ElCarousel, ElCarouselItem, ElTimeline, ElTimelineItem, ElIcon, ElMessageBox, ElDialog, ElForm, ElFormItem, ElInput, ElInputNumber } from 'element-plus';
-import { ArrowLeftBold, Picture, Star, StarFilled, Tickets } from '@element-plus/icons-vue'; // Import Star and StarFilled icons
+import { ArrowLeftBold, Picture, Star, StarFilled, Tickets,WarningFilled } from '@element-plus/icons-vue'; // Import Star and StarFilled icons
 import { publicAxios, authAxios } from '@/utils/request';
 import moment from 'moment';
 import { useAuthStore } from '@/stores/auth';
@@ -230,9 +287,65 @@ const enrollRules = reactive({
   ],
 });
 
+// --- 旅行团评价相关数据 ---
+const comments = ref([]);
+const commentsLoading = ref(false);
+const commentsCurrentPage = ref(1);
+const commentsPageSize = ref(10);
+const commentsTotal = ref(0);
+
+// --- 获取旅行团评价列表的方法 ---
+const fetchPackageComments = async (packageId, page = 1, size = 10, sortBy = 'createdTime', sortDirection = 'DESC') => {
+  commentsLoading.value = true;
+  try {
+    const response = await publicAxios.get(`/public/packages/comments/${packageId}`, {
+      params: {
+        page: page,
+        size: size,
+        sortBy: sortBy,
+        sortDirection: sortDirection,
+      },
+    });
+
+    if (response.data.code === 200 && response.data.data) {
+      comments.value = response.data.data.content;
+      commentsTotal.value = response.data.data.totalElements;
+      commentsCurrentPage.value = response.data.data.pageNumber + 1; // 后端页码从0开始，前端从1开始
+      commentsPageSize.value = response.data.data.pageSize;
+    } else {
+      ElMessage.warning(response.data.message || '获取旅行团评价失败！');
+      comments.value = [];
+      commentsTotal.value = 0;
+    }
+  } catch (error) {
+    console.error(`获取旅行团评价 (packageId: ${packageId}) 失败:`, error);
+    ElMessage.error('获取评价列表失败，请检查网络或稍后再试。');
+    comments.value = [];
+    commentsTotal.value = 0;
+  } finally {
+    commentsLoading.value = false;
+  }
+};
+
+// --- 处理评价分页变化 ---
+const handleCommentsPageChange = (newPage) => {
+  commentsCurrentPage.value = newPage;
+  if (travelGroupDetail.value && travelGroupDetail.value.id) {
+    fetchPackageComments(travelGroupDetail.value.id, newPage, commentsPageSize.value);
+  }
+};
+
+
 // --- 返回上一页 ---
 const goBack = () => {
-  router.push({ name: '旅行广场', query: { tab: 'groups' } });
+  const from = route.query.from;
+  if (from === 'square-groups') {
+    router.push({ name: '旅行广场', query: { tab: 'groups' } });
+  }else if(from === 'home'){
+    router.push('/')
+  }else{
+    router.push('/')
+  }
 };
 
 // --- 获取特定旅行团的详细数据 ---
@@ -242,11 +355,13 @@ const fetchTravelGroupDetail = async (id) => {
     const response = await publicAxios.get(`/public/travel-packages/${id}`);
 
     if (response.data.code === 200) {
+      console.log('获取旅行团详情',response.data)
       travelGroupDetail.value = response.data.data;
       travelGroupDetail.value.departures = await fetchTravelGroupDepartures(id);
       if (authStore.isLoggedIn) {
         await checkFavoriteStatus(id);
       }
+      await fetchPackageComments(id); // 在获取详情后立即加载评价
     } else {
       ElMessage.error(response.data.message || '获取旅行团详情失败！');
       travelGroupDetail.value = null;
@@ -612,14 +727,14 @@ watch(
 
 /* 详情内容容器，避免被返回按钮遮挡 */
 .detail-content-wrapper {
-  margin-top: 20px; /* Ensure content is below back button */
+  margin-top: 20px; 
 }
 
 /* 卡片样式 */
 .detail-card {
   border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* Softer, more pronounced shadow */
-  border: none; /* Remove default border */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); 
+  border: none; 
 }
 
 /* 卡片头部样式 */
@@ -635,6 +750,116 @@ watch(
   display: flex;
   align-items: center;
   gap: 15px; /* Space between tag and button */
+}
+
+.comments-card {
+  margin-top: 30px;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border: none;
+}
+
+.comments-card .card-header {
+  border-bottom: 1px solid #ebeef5;
+  padding-bottom: 15px;
+}
+
+.comments-card .section-title {
+  font-size: 1.8em;
+  color: #303133;
+  margin: 0;
+  border-left: 5px solid #4cb1a3;
+  padding-left: 10px;
+  font-weight: bold;
+}
+
+/* 单个评论项样式 */
+.comment-item {
+  border-bottom: 1px dashed #ebeef5;
+  padding: 20px 0;
+}
+
+.comment-item:last-child {
+  border-bottom: none; /* 最后一个评论项没有下划线 */
+}
+
+.comment-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.comment-avatar {
+  width: 40px;
+  height: 40px;
+  margin-right: 15px;
+  flex-shrink: 0; /* 防止头像被挤压 */
+}
+
+.comment-meta {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.comment-author {
+  font-weight: bold;
+  color: #303133;
+  font-size: 1.1em;
+  margin-bottom: 5px;
+}
+
+.comment-rating {
+  margin-right: 10px;
+  vertical-align: middle;
+}
+
+.comment-time {
+  font-size: 0.85em;
+  color: #909399;
+}
+
+.comment-content p {
+  font-size: 1em;
+  line-height: 1.7;
+  color: #606266;
+  margin-bottom: 10px;
+}
+
+.replies-preview {
+  margin-top: 10px;
+  padding-left: 20px;
+  border-left: 3px solid #f0f2f5;
+  background-color: #fafafa;
+  border-radius: 4px;
+  padding: 10px 15px;
+}
+
+.reply-item {
+  font-size: 0.9em;
+  color: #909399;
+  margin-bottom: 5px;
+}
+
+.total-replies {
+  font-size: 0.85em;
+  color: #409eff; /* Element Plus primary color */
+  cursor: pointer;
+  margin-top: 5px;
+  display: inline-block;
+}
+
+/* 评价分页样式 */
+.comments-pagination {
+  margin-top: 30px;
+  text-align: center;
+}
+
+/* 加载评价时的样式 */
+.loading-comments {
+  text-align: center;
+  padding: 50px 0;
+  color: #909399;
 }
 
 /* 旅行团标题 */
@@ -799,8 +1024,8 @@ watch(
 }
 
 .departure-card.is-selected {
-    border-color: #409EFF; /* Element Plus primary color */
-    box-shadow: 0 4px 12px rgba(64, 158, 255, 0.2); /* 更明显的选中阴影 */
+    border-color: #34bea7e7; /* Element Plus primary color */
+    box-shadow: 0 4px 12px rgba(56, 202, 166, 0.2); /* 更明显的选中阴影 */
     transform: translateY(-3px); /* 选中时也稍微抬高 */
 }
 
@@ -810,7 +1035,7 @@ watch(
     position: absolute;
     top: -8px; /* 调整位置 */
     right: -8px; /* 调整位置 */
-    background-color: #409EFF;
+    background-color: #45c4b9;
     color: white;
     border-radius: 50%;
     width: 24px;
