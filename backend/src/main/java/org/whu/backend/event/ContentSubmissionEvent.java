@@ -4,8 +4,7 @@ import lombok.Getter;
 import org.springframework.context.ApplicationEvent;
 
 /**
- * 【新增】内容提交事件
- * <p>
+ * 内容提交事件
  * 当有任何新内容被创建时，就发布这个事件。它像一张信息卡片，包含了审核所需的所有信息。
  */
 @Getter

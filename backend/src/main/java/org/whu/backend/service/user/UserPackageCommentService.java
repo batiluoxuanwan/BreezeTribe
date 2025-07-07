@@ -18,6 +18,7 @@ import org.whu.backend.entity.travelpac.PackageComment;
 import org.whu.backend.entity.travelpac.TravelOrder;
 import org.whu.backend.entity.travelpac.TravelPackage;
 import org.whu.backend.entity.accounts.User;
+import org.whu.backend.event.ContentSubmissionEvent;
 import org.whu.backend.event.travelpac.PackageCommentedEvent;
 import org.whu.backend.repository.authRepo.UserRepository;
 import org.whu.backend.repository.travelRepo.OrderRepository;
@@ -116,6 +117,14 @@ public class UserPackageCommentService {
         }
         // 原子地增加评论数
         packageRepository.incrementCommentCount(packageId);
+
+        // 通知AI审核文字
+        eventPublisher.publishEvent(new ContentSubmissionEvent(
+                this,
+                newComment.getId(),
+                ContentSubmissionEvent.ModerationItemType.PACKAGE_COMMENT,
+                newComment.getContent()
+        ));
 
 
         return commentRepository.save(newComment);

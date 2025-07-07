@@ -117,7 +117,7 @@ public class UserPostService {
         TravelPost savedPost = postRepository.save(newPost);
         log.info("新游记 '{}' (ID: {}) 已成功创建。", savedPost.getTitle(), savedPost.getId());
 
-        // 6. 通知AI审核
+        // 6. 通知AI审核文字
         eventPublisher.publishEvent(new ContentSubmissionEvent(
                 this,
                 savedPost.getId(),
@@ -238,6 +238,15 @@ public class UserPostService {
         // 4. 保存更新
         TravelPost updatedPost = postRepository.save(postToUpdate);
         log.info("游记ID '{}' 已被成功更新。", postId);
+
+        // 5. 通知AI审核文字
+        eventPublisher.publishEvent(new ContentSubmissionEvent(
+                this,
+                updatedPost.getId(),
+                ContentSubmissionEvent.ModerationItemType.TRAVEL_POST,
+                updatedPost.getTitle() + "。" + updatedPost.getContent()
+        ));
+
         return updatedPost;
     }
 
