@@ -747,15 +747,15 @@ public class AdminService {
 
         if (travelPackageId == null || travelPackageId.isBlank()) {
             // 统计该商家全部旅行团行为数据汇总
-            viewCount = travelDepartureRepository.sumViewCountByMerchantAndPeriod(merchantId, start, end);
-            favoriteCount = travelDepartureRepository.sumFavoriteCountByMerchantAndPeriod(merchantId, start, end);
-            commentCount = travelDepartureRepository.sumCommentCountByMerchantAndPeriod(merchantId, start, end);
+            viewCount = travelPackageRepository.sumViewCountByMerchantAndPeriod(merchantId, start, end);
+            favoriteCount = travelPackageRepository.sumFavoriteCountByMerchantAndPeriod(merchantId, start, end);
+            commentCount = travelPackageRepository.sumCommentCountByMerchantAndPeriod(merchantId, start, end);
             joinCount = travelOrderRepository.countJoinCountByMerchantAndPeriod(merchantId, start, end);
         } else {
             // 只统计指定旅行团的数据
-            viewCount = travelDepartureRepository.sumViewCountByPackageAndPeriod(travelPackageId, start, end);
-            favoriteCount = travelDepartureRepository.sumFavoriteCountByPackageAndPeriod(travelPackageId, start, end);
-            commentCount = travelDepartureRepository.sumCommentCountByPackageAndPeriod(travelPackageId, start, end);
+            viewCount = travelPackageRepository.sumViewCountByPackageAndPeriod(travelPackageId, start, end);
+            favoriteCount = travelPackageRepository.sumFavoriteCountByPackageAndPeriod(travelPackageId, start, end);
+            commentCount = travelPackageRepository.sumCommentCountByPackageAndPeriod(travelPackageId, start, end);
             joinCount = travelOrderRepository.countJoinCountByPackageAndPeriod(travelPackageId, start, end);
         }
 

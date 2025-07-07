@@ -72,4 +72,6 @@ public interface TravelDepartureRepository extends JpaRepository<TravelDeparture
      */
     @Query("SELECT d FROM TravelDeparture d WHERE d.departureDate BETWEEN :start AND :end")
     List<TravelDeparture> findDeparturesBetween(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+
 }
