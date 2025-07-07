@@ -114,7 +114,7 @@ const fetchFriends = async () => {
   try {
     const params = {
       page: 1,
-      size: 100, 
+      size: 10, 
       sortBy: 'createdAt',
       sortDirection: 'DESC',
     };

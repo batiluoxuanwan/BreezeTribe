@@ -19,6 +19,17 @@
         </el-card>
       </div>
       <el-empty v-else description="暂无收藏"></el-empty>
+
+      <div class="pagination-container" v-if="totalElements > 0">
+        <el-pagination
+          background
+          layout="prev, pager, next"
+          :total="totalElements"
+          :page-size="pageSize"
+          :current-page="currentPage"
+          @current-change="handlePageChange"
+        />
+      </div>
     </div>
 </template>  
 
@@ -31,20 +42,9 @@ import { authAxios,publicAxios } from '@/utils/request';
 const router = useRouter();
 const collectedTours = ref([]);
 
-const pagination = reactive({
-  pageNumber: 0,
-  pageSize: 10,
-  totalElements: 0,
-  totalPages: 0,
-});
-
-const searchParams = reactive({
-  keyword: '',
-  page: 1,
-  size: 10,
-  sortBy: 'createdTime',
-  sortDirection: 'DESC',
-});
+const currentPage = ref(1);
+const pageSize = ref(8); // 每页显示图片数量
+const totalElements = ref(0);
 
 
 //获得单个旅行团详情
@@ -81,18 +81,15 @@ const fetchTravelPackageDetail = async (id) => {
 const fetchCollectedTours = async () => {
   try {
     const response = await authAxios.get('/user/favorites', {
-      params: {
-        page: searchParams.page,
-        size: searchParams.size,
-      },
+     params: {
+      page: currentPage.value,
+      size: pageSize.value,
+    }
     });
 
     if (response.data.code === 200 && response.data.data) {
       const basicCollectedItems = response.data.data.content;
-      pagination.pageNumber = response.data.data.pageNumber;
-      pagination.pageSize = response.data.data.pageSize;
-      pagination.totalElements = response.data.data.totalElements;
-      pagination.totalPages = response.data.data.totalPages;
+      totalElements.value = response.data.data.totalElements;
 
       const detailedItemsPromises = basicCollectedItems.map(async (item) => {
         if (!item || !item.itemid || !item.itemType) {
@@ -159,6 +156,11 @@ const goToTourDetail = (id) => {
   router.push({ name: 'TravelGroupDetail', params: { id } });
 };
 
+const handlePageChange = (newPage) => {
+  currentPage.value = newPage;
+  fetchCollectedTours(); 
+};
+
 onMounted(() => {
   fetchCollectedTours();
 });
@@ -204,4 +206,9 @@ onMounted(() => {
   text-align: left;
 }
 
+.pagination-container {
+  margin-top: 30px;
+  display: flex;
+  justify-content: center;
+}
 </style>
