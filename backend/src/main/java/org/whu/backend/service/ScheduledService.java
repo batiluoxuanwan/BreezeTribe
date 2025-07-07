@@ -10,6 +10,7 @@ import org.whu.backend.entity.travelpac.TravelDeparture;
 import org.whu.backend.entity.travelpac.TravelOrder;
 import org.whu.backend.repository.travelRepo.TravelDepartureRepository;
 import org.whu.backend.repository.travelRepo.TravelOrderRepository;
+import org.whu.backend.service.user.UserService;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -23,6 +24,8 @@ public class ScheduledService {
     private TravelDepartureRepository travelDepartureRepository;
     @Autowired
     private NotificationService notificationService;
+    @Autowired
+    private UserService userService;
 
     /**
      * 【核心重构】这是一个定时任务方法
@@ -130,5 +133,44 @@ public class ScheduledService {
             log.info("【定时任务】ℹ本次没有需要更新状态的过期团期。");
         }
         log.info("【定时任务】[过期团期状态更新]任务执行完毕。");
+    }
+
+    /**
+     * fixedRate = 60000 的意思是：每隔60秒（1分钟）就执行一次这个方法。
+     * 这能保证订单在创建后大约60-120分钟内被取消。
+     */
+    @Scheduled(fixedRate = 60 * 60 * 1000)
+    @Transactional
+    public void cancelUnpaidOrdersJob() {
+        // 1. 计算出60分钟前的时间点
+        LocalDateTime tenMinutesAgo = LocalDateTime.now().minusMinutes(60);
+        log.info("【定时任务】开始扫描创建于 {} 之前的未支付订单...", tenMinutesAgo);
+
+        // 2. 从数据库中找出所有符合条件的订单
+        List<TravelOrder> ordersToCancel = travelOrderRepository.findAllByStatusAndCreatedTimeBefore(
+                TravelOrder.OrderStatus.PENDING_PAYMENT,
+                tenMinutesAgo
+        );
+
+        if (ordersToCancel.isEmpty()) {
+            log.info("【定时任务】本次没有需要自动取消的订单。");
+            return;
+        }
+
+        log.warn("【定时任务】发现 {} 个超时未支付的订单，准备执行取消操作...", ordersToCancel.size());
+
+        // 3. 遍历列表，逐个调用我们已经写好的取消订单逻辑
+        for (TravelOrder order : ordersToCancel) {
+            try {
+                log.info("【定时任务】正在取消订单ID: {}", order.getId());
+                // 它已经包含了减少库存、发送通知等所有逻辑，非常完美！
+                userService.cancelOrder(order.getId(),true);
+            } catch (Exception e) {
+                // 即使某个订单取消失败，我们也要捕获异常，确保任务能继续处理下一个
+                log.error("【定时任务】自动取消订单ID '{}' 时发生错误: {}", order.getId(), e.getMessage());
+            }
+        }
+
+        log.info("【定时任务】超时订单自动取消任务执行完毕。");
     }
 }
