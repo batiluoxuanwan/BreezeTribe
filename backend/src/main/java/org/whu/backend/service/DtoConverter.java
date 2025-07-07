@@ -644,6 +644,7 @@ public class DtoConverter {
                 .tags(tagDtos)
                 .imageIdAndUrls(imageIdAndUrls)
                 .routes(routeDtos)
+                .averageRating(entity.getAverageRating())
                 // 填充子类特有字段
                 .departures(departureDtos)
                 .build();
@@ -704,7 +705,7 @@ public class DtoConverter {
                 .reason(report.getReason())
                 .additionalInfo(report.getAdditionalInfo())
                 .status(report.getStatus())
-                .reporter(ConvertUserToAuthorDto(report.getReporter()))
+                .reporter(report.getReporter() == null ? null : ConvertUserToAuthorDto(report.getReporter()))
                 .summary(report.getSummary())
                 .createdTime(report.getCreatedTime())
                 .build();

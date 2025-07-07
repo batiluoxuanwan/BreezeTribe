@@ -12,7 +12,6 @@ import org.springframework.util.StringUtils;
 import org.whu.backend.dto.report.ModerationDetails;
 import org.whu.backend.entity.Report;
 import org.whu.backend.repository.ReportRepository;
-import org.whu.backend.repository.authRepo.AuthRepository;
 import org.whu.backend.service.admin.AdminContentService;
 import org.whu.backend.service.ai.AiModerationService;
 
