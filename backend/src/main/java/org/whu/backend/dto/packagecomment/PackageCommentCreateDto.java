@@ -11,7 +11,7 @@ import lombok.Data;
 public class PackageCommentCreateDto {
     @Schema(description = "评价星级 (1-5)，如果是回复就随便给一个星级")
     @NotNull
-    @Min(0) @Max(5)
+    @Min(1) @Max(5)
     private Integer rating;
 
     @Schema(description = "评价内容")

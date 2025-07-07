@@ -10,7 +10,7 @@
       </template>
 
             <div class="tag-button-wrapper">
-            <el-button type = text @click="toggleTagSelector">{{ showSelector ? '完成添加' : '快来为你的旅行团添加标签吧！' }}</el-button>
+            <el-button type = text @click="toggleTagSelector">{{ showSelector ? '完成添加' : '快来为你的游记添加标签吧！' }}</el-button>
             </div>
 
             <div v-if="showSelector" class="tag-selector">
@@ -605,7 +605,7 @@ const fetchTags = async () => {
     sortDirection: 'DESC'
   }
 
-  const res = await publicAxios.get('/public', { params })
+  const res = await publicAxios.get('/public/tags', { params })
   if (res.data.code === 200) {
     tagList.value = res.data.data.content
     total.value = res.data.data.totalElements

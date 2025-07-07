@@ -11,7 +11,12 @@
     <el-card v-else-if="note" class="detail-card">
       <div class="card-header">
         <div class="author-profile">
-          <el-avatar :src="note.author.avatarUrl || '/default-avatar.png'" :size="50" class="author-avatar"></el-avatar>
+          <el-avatar
+            :src="note.author.avatarUrl || '/default-avatar.png'"
+            :size="50"
+            class="author-avatar"
+            @click="openUserProfile(note.author.id)"
+          ></el-avatar>
           <div class="author-info-text">
             <span class="author-name">{{ note.author.username || '匿名用户' }}</span>
             <span class="publish-time">{{ formatTime(note.createdTime) }}</span>
@@ -94,7 +99,13 @@
         <div v-loading="commentsLoading">
           <div v-if="comments.length > 0" class="comment-list">
             <div v-for="comment in comments" :key="comment.id" class="comment-item">
-              <el-avatar :src="comment.author.avatarUrl || '/default-avatar.png'" :size="40" class="comment-avatar"></el-avatar>
+              <el-avatar 
+              :src="comment.author.avatarUrl || '/default-avatar.png'" 
+              :size="40"
+              @click="(e) => openUserProfile(comment.author.id, e)"
+              style="cursor: pointer;"
+              class="comment-avatar">
+              </el-avatar>
               <div class="comment-content-wrapper">
                 <div class="comment-header">
                   <span class="comment-author">{{ comment.author.username || '匿名用户' }}</span>
@@ -146,7 +157,13 @@
                   <div v-loading="repliesLoadingForComment[comment.id]">
                     <div v-if="comment.fullReplies && comment.fullReplies.length > 0" class="full-reply-list">
                       <div v-for="reply in comment.fullReplies" :key="reply.id" class="full-reply-item">
-                        <el-avatar :src="reply.author.avatarUrl || '/default-avatar.png'" :size="30" class="reply-avatar"></el-avatar>
+                        <el-avatar 
+                        :src="reply.author.avatarUrl || '/default-avatar.png'" 
+                        :size="30" 
+                        @click="(e) => openUserProfile(reply.author.id, e)"
+                        style="cursor: pointer;"
+                        class="reply-avatar">
+                      </el-avatar>
                         <div class="full-reply-content-wrapper">
                           <div class="reply-header">
                             <span class="reply-author">{{ reply.author.username || '匿名用户' }}</span>
@@ -237,6 +254,22 @@
 
     <el-empty v-else description="游记不存在或已删除" class="empty-state"></el-empty>
   </div>
+ 
+    <UserProfilePopup
+      v-if="showUserProfilePopup"
+      v-model="showUserProfilePopup"
+      :userId="selectedUserProfileId"
+      :isFriend="isViewingUserFriend"
+      :currentUserId="currentUserId"      
+      @friend-request-sent="handleFriendRequestSent" 
+      @send-message="handleSendMessage"
+    />
+    <ChatRoom
+      v-if="showChatDialog"
+      :visible="showChatDialog"
+      :friendId="selectedUserId"
+      @update:visible="showChatDialog = false"
+    />
 
   </template>
 
@@ -247,6 +280,8 @@ import { ElMessage,ElMessageBox } from 'element-plus';
 import { ArrowLeft, Star, ChatDotRound ,Delete} from '@element-plus/icons-vue';
 import { publicAxios,authAxios } from '@/utils/request'; 
 import { useAuthStore } from '@/stores/auth';
+import UserProfilePopup from '@/components/UserProfilePopup.vue'; 
+import ChatRoom from '../User/ChatRoom.vue';
 
 const authStore = useAuthStore();
 const currentUserId = computed(() => authStore.userId);
@@ -406,9 +441,7 @@ const formatTime = (timeString) => {
   });
 };
 
-/**
- * 获取游记详情的函数
- */
+//获取游记详情的函数
 const fetchNoteDetail = async () => {
   loading.value = true;
   try {
@@ -431,26 +464,6 @@ const fetchNoteDetail = async () => {
     loading.value = false;
   }
 };
-
-const goBack = () => {
-  router.push({ name: '旅行广场', query: { tab: 'notes' } });
-};
-
-// 组件挂载时执行
-onMounted(() => {
-  postId.value = route.params.id; 
-  if (postId.value) {
-    fetchNoteDetail();
-    fetchInteractionStatus(postId.value);
-    fetchComments(true); // 首次加载主评论，从第一页开始
-  } else {
-    loading.value = false;
-    ElMessage.error('缺少游记ID，无法加载详情。');
-  }
-  console.log('userId:',currentUserId)
-  console.log('token.userId:',authStore.userId )
-  console.log('authStore:',authStore )
-});
 
 // 获取主评论列表
 const fetchComments = async (reset = false) => {
@@ -796,9 +809,88 @@ const deleteCommentOrReply = async (item, parentComment = null, type = 'comment'
   }
 };
 
-const goToLogin = () => {
-  router.push('/login'); // 假设你的登录路由是 '/login'
+// --- 用户主页弹窗相关状态 ---
+const showUserProfilePopup = ref(false);
+const selectedUserProfileId = ref(null);
+const isViewingUserFriend = ref(false); 
+
+// 检查 selectedUserProfileId 是否是当前登录用户的好友
+const checkFriendStatus = async (targetUserId) => {
+  try {
+    const response = await authAxios.get('/friend/areufriend', {
+      params: {
+        hisid: targetUserId
+      }
+    });
+
+    if (response.data.code === 200) {
+      isViewingUserFriend.value = response.data.data === true;
+    } else {
+      console.warn('判断好友关系失败：', response.data.message);
+      isViewingUserFriend.value = false;
+    }
+  } catch (error) {
+    console.error('请求判断好友关系失败', error);
+    isViewingUserFriend.value = false;
+  }
 };
+
+// 当 selectedUserProfileId 变化时，检查好友状态
+watch(selectedUserProfileId, (newId) => {
+  if (newId) {
+    checkFriendStatus(newId);
+  } else {
+    isViewingUserFriend.value = false;
+  }
+});
+
+
+// 打开用户主页弹窗的函数
+const openUserProfile = async(userId) => {
+  console.log('点击了头像，传入的 userId:', userId);
+  selectedUserProfileId.value = userId;
+  showUserProfilePopup.value = true;
+  await checkFriendStatus(userId);
+};
+
+// 处理 UserProfilePopup 发出的 friend-request-sent 事件
+const handleFriendRequestSent = (targetUserId) => {
+  //ElMessage.success(`好友请求已发送给 ${targetUserId}`);
+  checkFriendStatus(targetUserId);
+};
+
+// 处理 UserProfilePopup 发出的 send-message 事件
+const showChatDialog = ref(false);
+const selectedUserId = ref(null);
+
+const handleSendMessage = (targetUserId) => {
+  selectedUserId.value = targetUserId;
+  showChatDialog.value = true;
+};
+
+const goToLogin = () => {
+  router.push('/login'); 
+};
+
+const goBack = () => {
+  router.push({ name: '旅行广场', query: { tab: 'notes' } });
+};
+
+onMounted(() => {
+  postId.value = route.params.id; 
+  if (postId.value) {
+    fetchNoteDetail();
+    fetchInteractionStatus(postId.value);
+    fetchComments(true); // 首次加载主评论，从第一页开始
+    //fetchFriendsList();
+  } else {
+    loading.value = false;
+    ElMessage.error('缺少游记ID，无法加载详情。');
+  }
+  console.log('userId:',currentUserId)
+  console.log('token.userId:',authStore.userId )
+  console.log('authStore:',authStore )
+});
 
 // 监听路由参数变化，当 postId 改变时重新加载游记和评论
 watch(

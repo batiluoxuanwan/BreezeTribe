@@ -41,14 +41,6 @@
           <el-badge v-if="pendingToursCount > 0" :value="pendingToursCount" class="notification-badge" />
         </div>
         <div
-          :class="{ 'menu-item': true, 'active': activeTab === 'noteReview' }"
-          @click="activeTab = 'noteReview'"
-        >
-          <el-icon><Document /></el-icon>
-          <span>游记审核</span>
-          <el-badge v-if="pendingNotesCount > 0" :value="pendingNotesCount" class="notification-badge" />
-        </div>
-        <div
           :class="{ 'menu-item': true, 'active': activeTab === 'systemSettings' }"
           @click="activeTab = 'systemSettings'"
         >
@@ -153,31 +145,6 @@
           />
         </el-tab-pane>
 
-        <el-tab-pane label="游记审核" name="noteReview">
-          <h3 class="tab-header">待审核游记</h3>
-          <el-table :data="pendingNotes" v-loading="noteReviewLoading" style="width: 100%" class="admin-table">
-            <el-table-column prop="title" label="游记标题"></el-table-column>
-            <el-table-column prop="authorName" label="作者"></el-table-column>
-            <el-table-column prop="submitDate" label="提交日期"></el-table-column>
-            <el-table-column label="操作" width="200">
-              <template #default="{ row }">
-                <el-button link type="primary" size="small" @click="viewNoteDetails(row)">查看详情</el-button>
-                <el-button link type="success" size="small" @click="approveNote(row)">通过</el-button>
-                <el-button link type="danger" size="small" @click="rejectNote(row)">拒绝</el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-          <el-pagination
-            background
-            layout="prev, pager, next"
-            :total="pendingNotesTotal"
-            :page-size="noteReviewPageSize"
-            v-model:current-page="noteReviewCurrentPage"
-            @current-change="fetchPendingNotes"
-            class="pagination-bottom"
-          />
-        </el-tab-pane>
-
         <el-tab-pane label="系统设置" name="systemSettings">
           <h3 class="tab-header">系统配置</h3>
           <div style="margin-bottom: 32px;">
@@ -193,10 +160,10 @@
         <el-descriptions-item label="用户名">{{ selectedUser.username }}</el-descriptions-item>
         <el-descriptions-item label="邮箱">{{ selectedUser.email }}</el-descriptions-item>
         <el-descriptions-item label="电话">{{ selectedUser.phone }}</el-descriptions-item>
-        <el-descriptions-item label="注册日期">{{ selectedUser.registrationDate }}</el-descriptions-item>
+        <el-descriptions-item label="注册日期">{{ formatTime(selectedUser.createdAt) }}</el-descriptions-item>
         <el-descriptions-item label="状态">
-          <el-tag :type="selectedUser.status === 'ACTIVE' ? 'success' : 'danger'">
-            {{ selectedUser.status === 'ACTIVE' ? '正常' : '禁用' }}
+          <el-tag :type="selectedUser.banDurationDays === 0 ? 'success' : 'danger'">
+            {{ selectedUser.banDurationDays === 0 ? '正常' : '禁用' }}
           </el-tag>
         </el-descriptions-item>
         </el-descriptions>
@@ -209,13 +176,12 @@
       <el-descriptions border :column="1">
         <el-descriptions-item label="团长ID">{{ selectedMerchant.id }}</el-descriptions-item>
         <el-descriptions-item label="用户名">{{ selectedMerchant.username }}</el-descriptions-item>
-        <el-descriptions-item label="公司名称">{{ selectedMerchant.companyName }}</el-descriptions-item>
-        <el-descriptions-item label="联系邮箱">{{ selectedMerchant.contactEmail }}</el-descriptions-item>
-        <el-descriptions-item label="联系电话">{{ selectedMerchant.contactPhone }}</el-descriptions-item>
-        <el-descriptions-item label="注册日期">{{ selectedMerchant.registrationDate }}</el-descriptions-item>
+        <el-descriptions-item label="联系邮箱">{{ selectedMerchant.email }}</el-descriptions-item>
+        <el-descriptions-item label="联系电话">{{ selectedMerchant.phone }}</el-descriptions-item>
+        <el-descriptions-item label="注册日期">{{ formatTime(selectedMerchant.createdAt) }}</el-descriptions-item>
         <el-descriptions-item label="状态">
-          <el-tag :type="selectedMerchant.status === 'ACTIVE' ? 'success' : 'danger'">
-            {{ selectedMerchant.status === 'ACTIVE' ? '正常' : '禁用' }}
+          <el-tag :type="selectedMerchant.banDurationDays === 0 ? 'success' : 'danger'">
+            {{ selectedMerchant.banDurationDays === 0 ? '正常' : '禁用' }}
           </el-tag>
         </el-descriptions-item>
         </el-descriptions>
@@ -227,13 +193,11 @@
     <el-dialog v-model="tourDetailsDialog" :title="`旅行团审核: ${selectedTour.title}`" width="800px">
       <el-descriptions border :column="2" class="detail-descriptions">
         <el-descriptions-item label="团名">{{ selectedTour.title }}</el-descriptions-item>
-        <el-descriptions-item label="发布团长">{{ selectedTour.merchantName }}</el-descriptions-item>
-        <el-descriptions-item label="地点">{{ selectedTour.location }}</el-descriptions-item>
+        <el-descriptions-item label="发布团长">{{ selectedTour.merchant.username }}</el-descriptions-item>
         <el-descriptions-item label="价格">{{ selectedTour.price }}</el-descriptions-item>
-        <el-descriptions-item label="天数">{{ selectedTour.duration }}</el-descriptions-item>
-        <el-descriptions-item label="提交日期">{{ selectedTour.submitDate }}</el-descriptions-item>
+        <el-descriptions-item label="天数">{{ selectedTour.durationInDays }}</el-descriptions-item>
         <el-descriptions-item label="封面图">
-          <img :src="selectedTour.image" alt="封面" style="width: 120px; height: 90px; object-fit: cover; border-radius: 8px;">
+          <img :src="selectedTour.coverImageUrl" alt="封面" style="width: 120px; height: 90px; object-fit: cover; border-radius: 8px;">
         </el-descriptions-item>
         <el-descriptions-item label="详情描述" :span="2">
           <p>{{ selectedTour.description }}</p>
@@ -245,27 +209,6 @@
         <el-button type="success" @click="approveTour(selectedTour.id)">通过</el-button>
       </template>
     </el-dialog>
-
-    <el-dialog v-model="noteDetailsDialog" :title="`游记审核: ${selectedNote.title}`" width="800px">
-      <el-descriptions border :column="2" class="detail-descriptions">
-        <el-descriptions-item label="游记标题">{{ selectedNote.title }}</el-descriptions-item>
-        <el-descriptions-item label="作者">{{ selectedNote.authorName }}</el-descriptions-item>
-        <el-descriptions-item label="提交日期">{{ selectedNote.submitDate }}</el-descriptions-item>
-        <el-descriptions-item label="分类">{{ selectedNote.category }}</el-descriptions-item>
-        <el-descriptions-item label="封面图" :span="2">
-          <img :src="selectedNote.image" alt="封面" style="width: 200px; height: 120px; object-fit: cover; border-radius: 8px;">
-        </el-descriptions-item>
-        <el-descriptions-item label="游记内容" :span="2">
-          <p>{{ selectedNote.content }}</p>
-        </el-descriptions-item>
-        </el-descriptions>
-      <template #footer>
-        <el-button @click="noteDetailsDialog = false">取消</el-button>
-        <el-button type="danger" @click="rejectNote(selectedNote.id)">拒绝</el-button>
-        <el-button type="success" @click="approveNote(selectedNote.id)">通过</el-button>
-      </template>
-    </el-dialog>
-
   </div>
 </template>
 
@@ -273,11 +216,13 @@
 import { ref, onMounted, nextTick,reactive } from 'vue';
 import { User, Shop, PictureFilled, Document, Setting, EditPen, ArrowLeft } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { authAxios } from '@/utils/request'; // 假设你的认证请求实例
+import { authAxios } from '@/utils/request'; 
+import { useNotificationStore } from '@/stores/notificationStore';
 import { useRouter } from 'vue-router';
 import AccountOverview from '@/components/AccountOverview.vue'   
 
 const router = useRouter();
+const notificationStore = useNotificationStore();
 
 // --- 管理员信息及侧边栏数据 ---
 const adminInfo = reactive({
@@ -350,6 +295,20 @@ const debounce = (func, delay) => {
     timeout = setTimeout(() => func.apply(this, args), delay);
   };
 };
+
+// 辅助函数：格式化时间戳
+const formatTime = (timeString) => {
+  if (!timeString) return '';
+  const date = new Date(timeString);
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
 //获取管理员个人信息
 const fetchAdminInfo = async () => {
   try {
@@ -381,13 +340,12 @@ const fetchAdminInfo = async () => {
 // 获取管理员概览数据 (侧边栏统计)
 const fetchAdminOverview = async () => {
   try {
-    const response = await authAxios.get('/api/admin/overview'); // 假设后端有此接口
+    const response = await authAxios.get('/api/admin/overview'); 
     if (response.data.code === 200) {
       adminInfo.value.totalUsers = response.data.data.totalUsers;
       adminInfo.value.totalMerchants = response.data.data.totalMerchants;
       adminInfo.value.pendingTours = response.data.data.pendingTours;
       pendingToursCount.value = response.data.data.pendingTours; // 更新徽标
-      // 假设后端也返回待审核游记数量
       pendingNotesCount.value = response.data.data.pendingNotes || 0;
     }
   } catch (error) {
@@ -450,6 +408,7 @@ const toggleUserStatus = async (userRow) => {
 const viewUserDetails = (userRow) => {
   selectedUser.value = { ...userRow }; // 复制一份数据
   userDetailsDialog.value = true;
+  console.log('查看用户详情:',selectedUser.value)
 };
 
 // 获取团长列表
@@ -483,6 +442,7 @@ const debouncedSearchMerchants = debounce(fetchMerchants, 500); // 搜索防抖
 const viewMerchantDetails = (merchantRow) => {
   selectedMerchant.value = { ...merchantRow };
   merchantDetailsDialog.value = true;
+  console.log('查看团长详情:',selectedMerchant.value )
 };
 
 // 获取待审核旅行团列表
@@ -514,6 +474,7 @@ const fetchPendingTours = async () => {
 const viewTourDetails = (tourRow) => {
   selectedTour.value = { ...tourRow };
   tourDetailsDialog.value = true;
+  console.log('查看旅行团详情:',selectedTour.value)
 };
 
 // 审核通过旅行团
@@ -580,83 +541,6 @@ const rejectTour = async (tourId) => {
       }
     });
 };
-
-// // 获取待审核游记列表
-// const fetchPendingNotes = async () => {
-//   noteReviewLoading.value = true;
-//   try {
-//     const response = await authAxios.get('/api/admin/notes/pending', { // 假设后端有此接口
-//       params: {
-//         pageNum: noteReviewCurrentPage.value,
-//         pageSize: noteReviewPageSize
-//       }
-//     });
-//     if (response.data.code === 200 && response.data.data) {
-//       pendingNotes.value = response.data.data.records;
-//       pendingNotesTotal.value = response.data.data.total;
-//       pendingNotesCount.value = response.data.data.total; // 更新侧边栏徽标
-//     } else {
-//       ElMessage.error(response.data.message || '获取待审核游记失败');
-//     }
-//   } catch (error) {
-//     console.error('获取待审核游记时发生错误:', error);
-//     ElMessage.error('加载待审核游记失败。');
-//   } finally {
-//     noteReviewLoading.value = false;
-//   }
-// };
-
-// // 查看游记详情并弹窗审核
-// const viewNoteDetails = (noteRow) => {
-//   selectedNote.value = { ...noteRow };
-//   noteDetailsDialog.value = true;
-// };
-
-// // 审核通过游记
-// const approveNote = async (noteId) => {
-//   ElMessageBox.confirm('确定要通过此游记的审核吗？', '提示', {
-//     type: 'success'
-//   })
-//     .then(async () => {
-//       try {
-//         const response = await authAxios.post(`/admin/approvals/travel-packages/${noteId}/approve`); 
-//         if (response.data.code === 200) {
-//           ElMessage.success('游记审核通过！');
-//           await fetchPendingNotes();
-//           noteDetailsDialog.value = false;
-//         } else {
-//           ElMessage.error(response.data.message || '审核失败');
-//         }
-//       } catch (error) {
-//         console.error('审核游记时发生错误:', error);
-//         ElMessage.error('操作失败，请稍后再试。');
-//       }
-//     })
-//     .catch(() => { /* 用户取消 */ });
-// };
-
-// // 拒绝游记
-// const rejectNote = async (noteId) => {
-//   ElMessageBox.confirm('确定要拒绝此游记的审核吗？', '提示', {
-//     type: 'danger'
-//   })
-//     .then(async () => {
-//       try {
-//         const response = await authAxios.post(`/api/admin/notes/${noteId}/reject`); // 假设后端接口
-//         if (response.data.code === 200) {
-//           ElMessage.success('游记已拒绝！');
-//           await fetchPendingNotes();
-//           noteDetailsDialog.value = false;
-//         } else {
-//           ElMessage.error(response.data.message || '拒绝失败');
-//         }
-//       } catch (error) {
-//         console.error('拒绝游记时发生错误:', error);
-//         ElMessage.error('操作失败，请稍后再试。');
-//       }
-//     })
-//     .catch(() => { /* 用户取消 */ });
-// };
 
 // 保存管理员资料 (目前仅模拟，实际应调用后端接口)
 const saveProfile = () => {
@@ -799,15 +683,6 @@ onMounted(() => {
   fetchPendingTours();  // 加载待审核旅行团
   //fetchPendingNotes();  // 加载待审核游记
 });
-
-// 当 activeTab 改变时，重新加载对应数据 (按需)
-// Vue 3 的 watch 可以在这里使用，但由于 onMounted 已经全部加载，这里仅作示例
-// watch(activeTab, (newTab) => {
-//   if (newTab === 'userManagement') fetchUsers();
-//   else if (newTab === 'merchantManagement') fetchMerchants();
-//   else if (newTab === 'tourReview') fetchPendingTours();
-//   else if (newTab === 'noteReview') fetchPendingNotes();
-// });
 
 // 跳转首页
 const goToHome = () => {
@@ -997,12 +872,6 @@ const goToHome = () => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
-.pagination-bottom {
-  margin-top: 20px;
-  justify-content: flex-end; /* 右对齐 */
-  display: flex;
-}
-
 .setting-card {
   margin-top: 20px;
   padding: 20px;
@@ -1023,5 +892,11 @@ const goToHome = () => {
 }
 .detail-descriptions .el-descriptions-item__container {
   align-items: flex-start; /* 文本和内容在顶部对齐 */
+}
+
+.pagination-bottom {
+  margin-top: 20px;
+  justify-content: flex-end;
+  display: flex;
 }
 </style>

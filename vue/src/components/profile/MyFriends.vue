@@ -1,34 +1,36 @@
 <template>
   <div class="app-layout">
-    <div class="main-sidebar">
+<div class="top-navbar">
       <div
-        class="main-nav-item"
+        class="nav-item"
         :class="{ 'is-active': activeMainTab === 'chat' }"
         @click="activeMainTab = 'chat'"
       >
-        <el-icon :size="24"><ChatDotRound /></el-icon>
+        <el-icon><ChatDotRound /></el-icon>
+        <span>好友列表</span>
       </div>
       <div
-        class="main-nav-item"
+        class="nav-item"
         :class="{ 'is-active': activeMainTab === 'friends' }"
         @click="activeMainTab = 'friends'"
       >
-        <el-icon :size="24"><User /></el-icon> 
+        <el-icon><User /></el-icon>
+        <span>好友管理</span>
       </div>
-      </div>
+    </div>
 
     <div class="main-content-area">
-      <ChatRoom v-if="activeMainTab === 'chat'" />
-      <FriendManagementModule v-if="activeMainTab === 'friends'" />
-      </div>
+      <FriendList v-if="activeMainTab === 'chat'" />
+      <AddFriend v-if="activeMainTab === 'friends'" />
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref } from 'vue';
 import { ChatDotRound, User } from '@element-plus/icons-vue';
-import ChatRoom from '@/components/chat/ChatRoom.vue'; // 假设的聊天模块组件
-//import FriendManagementModule from './FriendManagementModule.vue'; // 假设的好友管理模块组件
+import FriendList from '@/components/chat/FriendList.vue';
+import AddFriend from '@/views/User/AddFriend.vue';
 
 const activeMainTab = ref('chat'); // 默认显示聊天模块
 </script>
@@ -36,32 +38,43 @@ const activeMainTab = ref('chat'); // 默认显示聊天模块
 <style scoped>
 .app-layout {
   display: flex;
+  flex-direction: column; /* 垂直方向布局：顶部导航在上面，内容在下面 */
   height: 100%; 
   width: 100%;
+  gap:10px;
 }
 
-.main-sidebar {
-  width: 40px; /* 导航栏宽度 */
+.top-navbar {
+  display: flex; /* 让导航项水平排列 */
+  justify-content: flex-start; /* 导航项从左侧开始排列 */
+  align-items: center; /* 垂直居中 */
+  height: 60px; /* 顶部导航栏的高度 */
   background-color: #ffffff; /* 导航栏背景 */
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding-top: 20px;
-  gap: 15px; /* 导航项之间间距 */
+  padding: 0 20px; /* 左右内边距 */
+  border-bottom: 1px solid #eee; /* 底部加一条细线，与内容区做区分 */
+  gap: 30px; /* 导航项之间的间距 */
 }
 
-.main-nav-item {
+.nav-item {
+  display: flex; /* 让图标和文字水平排列 */
+  align-items: center; /* 垂直居中 */
+  gap: 5px; /* 图标和文字之间的间距 */
   color: #b0b0b0;
   cursor: pointer;
-  padding: 10px 0;
-  font-size: 12px;
-  text-align: center;
-  width: 100%; /* 让导航项占据整个侧边栏宽度 */
+  padding: 8px 12px; /* 导航项的内边距 */
+  font-size: 14px; /* 字体大小 */
+  border-radius: 4px; /* 轻微圆角 */
+  transition: background-color 0.3s, color 0.3s; /* 平滑过渡效果 */
 }
 
-.main-nav-item:hover, .main-nav-item.is-active {
+.nav-item:hover,
+.nav-item.is-active {
   color: #6da0b1;
-  background-color: #ffffff; /* 激活和悬停时的背景色 */
+  background-color: #f0f0f0; /* 激活和悬停时的背景色 */
+}
+
+.nav-item.is-active {
+  font-weight: bold; /* 激活时字体加粗 */
 }
 
 .main-content-area {

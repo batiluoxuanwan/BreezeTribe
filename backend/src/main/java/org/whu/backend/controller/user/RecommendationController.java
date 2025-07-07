@@ -2,6 +2,8 @@ package org.whu.backend.controller.user;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -9,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.whu.backend.common.Result;
 import org.whu.backend.dto.post.PostSummaryDto;
+import org.whu.backend.dto.recommend.RecommendRequestDto;
 import org.whu.backend.dto.travelpack.PackageSummaryDto;
 import org.whu.backend.service.user.RecommendationService;
 import org.whu.backend.util.AccountUtil;
@@ -26,17 +29,19 @@ public class RecommendationController {
 
     @Operation(summary = "获取个性化【旅游团】推荐", description = "根据用户画像推荐旅游产品。")
     @GetMapping("/packages")
-    public Result<List<PackageSummaryDto>> getPackageRecommendations() {
+    public Result<List<PackageSummaryDto>> getPackageRecommendations(
+            @Valid @ParameterObject RecommendRequestDto requestDto) {
         String currentUserId = AccountUtil.getCurrentAccountId();
-        List<PackageSummaryDto> recommendations = recommendationService.getRecommendedPackages(currentUserId);
+        List<PackageSummaryDto> recommendations = recommendationService.getRecommendedPackages(currentUserId, requestDto);
         return Result.success("获取旅游团推荐成功", recommendations);
     }
 
     @Operation(summary = "获取个性化【游记】推荐", description = "根据用户画像推荐游记。")
     @GetMapping("/posts")
-    public Result<List<PostSummaryDto>> getPostRecommendations() {
+    public Result<List<PostSummaryDto>> getPostRecommendations(
+            @Valid @ParameterObject RecommendRequestDto requestDto) {
         String currentUserId = AccountUtil.getCurrentAccountId();
-        List<PostSummaryDto> recommendations = recommendationService.getRecommendedPosts(currentUserId);
+        List<PostSummaryDto> recommendations = recommendationService.getRecommendedPosts(currentUserId, requestDto);
         return Result.success("获取游记推荐成功", recommendations);
     }
 }

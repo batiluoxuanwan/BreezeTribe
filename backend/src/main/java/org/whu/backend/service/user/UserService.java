@@ -24,6 +24,7 @@ import org.whu.backend.dto.like.LikeRequestDto;
 import org.whu.backend.dto.order.OrderCreateRequestDto;
 import org.whu.backend.dto.order.OrderForReviewDto;
 import org.whu.backend.dto.order.TravelOrderDetailDto;
+import org.whu.backend.dto.report.ReportCreateDto;
 import org.whu.backend.dto.user.InteractionStatusRequestDto;
 import org.whu.backend.dto.user.InteractionStatusResponseDto;
 import org.whu.backend.dto.user.ItemIdentifierDto;
@@ -33,6 +34,8 @@ import org.whu.backend.entity.accounts.User;
 import org.whu.backend.entity.travelpac.PackageComment;
 import org.whu.backend.entity.travelpac.TravelDeparture;
 import org.whu.backend.entity.travelpac.TravelOrder;
+import org.whu.backend.entity.travelpac.TravelPackage;
+import org.whu.backend.entity.travelpost.Comment;
 import org.whu.backend.entity.travelpost.TravelPost;
 import org.whu.backend.event.order.OrderCancelledEvent;
 import org.whu.backend.event.order.OrderConfirmedEvent;
@@ -42,9 +45,12 @@ import org.whu.backend.event.post.PostLikedEvent;
 import org.whu.backend.event.travelpac.PackageFavouredEvent;
 import org.whu.backend.repository.FavoriteRepository;
 import org.whu.backend.repository.LikeRepository;
+import org.whu.backend.repository.ReportRepository;
+import org.whu.backend.repository.post.PostCommentRepository;
 import org.whu.backend.repository.post.TravelPostRepository;
 import org.whu.backend.repository.travelRepo.*;
 import org.whu.backend.service.DtoConverter;
+import org.whu.backend.service.NotificationService;
 import org.whu.backend.util.AccountUtil;
 import org.whu.backend.util.JpaUtil;
 
@@ -88,6 +94,12 @@ public class UserService {
     private int favoriteWeight;
     @Value("${recommendation.weights.like}")
     private int likeWeight;
+    @Autowired
+    private ReportRepository reportRepository;
+    @Autowired
+    private PostCommentRepository postCommentRepository;
+    @Autowired
+    private NotificationService notificationService;
 
     /**
      * 【核心重构】创建一个订单
@@ -280,6 +292,7 @@ public class UserService {
 //
 //        return dtoConverter.convertPageToDto(orderPage, dtos);
 //    }
+
     /**
      * 根据评价状态，获取用户的订单列表
      * 新思路：先查出所有已完成订单，然后在内存中进行处理和过滤，逻辑清晰且无BUG。
@@ -333,7 +346,7 @@ public class UserService {
         }
 
         // 6. 手动构建并返回分页结果
-        return dtoConverter.convertPageToDto(completedOrdersPage,filteredDtos);
+        return dtoConverter.convertPageToDto(completedOrdersPage, filteredDtos);
     }
 
     @Transactional // 必须加上事务注解！！！！！！
@@ -635,6 +648,76 @@ public class UserService {
         }
 
         return InteractionStatusResponseDto.builder().statusMap(statusMap).build();
+    }
+
+
+    @Transactional
+    public void createReport(ReportCreateDto dto, String currentUserId) {
+        User reporter = securityUtil.getCurrentUser();
+        String description;
+        String summary;
+        // 根据举报类型，验证被举报内容是否存在，并生成对应的通知文本
+        switch (dto.getItemType()) {
+            case TRAVEL_PACKAGE -> {
+                TravelPackage travelPackage = JpaUtil.getOrThrow(travelPackageRepository, dto.getReportedItemId(), "举报的旅行团不存在");
+                description = String.format("您对旅游团 [%s] 的举报已成功提交，我们将尽快处理。", travelPackage.getTitle());
+                summary = travelPackage.getTitle();
+            }
+            case TRAVEL_POST -> {
+                TravelPost travelPost = JpaUtil.getOrThrow(travelPostRepository, dto.getReportedItemId(), "举报的游记不存在");
+                description = String.format("您对游记 [%s] 的举报已成功提交，我们将尽快处理。", travelPost.getTitle());
+                summary = travelPost.getTitle();
+            }
+            case POST_COMMENT -> {
+                Comment comment = JpaUtil.getOrThrow(postCommentRepository, dto.getReportedItemId(), "举报的游记评论不存在");
+                String truncatedContent = truncate(comment.getContent(), 20);
+                description = String.format("您对游记评论（内容：“%s...”）的举报已成功提交，我们将尽快处理。", truncatedContent);
+                summary = comment.getContent();
+            }
+            case PACKAGE_COMMENT -> {
+                PackageComment comment = JpaUtil.getOrThrow(packageCommentRepository, dto.getReportedItemId(), "举报的旅行团评论不存在");
+                String truncatedContent = truncate(comment.getContent(), 20);
+                description = String.format("您对旅游团评论（内容：“%s...”）的举报已成功提交，我们将尽快处理。", truncatedContent);
+                summary = comment.getContent();
+            }
+            default -> {
+                // 提供一个默认的文本
+                description = "您的举报已成功提交，我们将尽快处理。";
+                summary = "未知内容";
+            }
+        }
+
+        // 创建并保存举报实体
+        Report report = new Report();
+        report.setReporter(reporter);
+        report.setReportedItemId(dto.getReportedItemId());
+        report.setItemType(dto.getItemType());
+        report.setReason(dto.getReason());
+        report.setAdditionalInfo(dto.getAdditionalInfo());
+        report.setSummary(summary);
+        reportRepository.save(report);
+
+        // 发送“举报已提交”的通知给举报人
+        notificationService.createAndSendNotification(
+                reporter,
+                Notification.NotificationType.REPORT_CREATED,
+                description,
+                dto.getItemType().toString(),
+                null,
+                report.getReportedItemId()
+        );
+
+        log.info("服务层：用户 '{}' 成功提交了对项目 '{}' 的举报。", currentUserId, dto.getReportedItemId());
+    }
+
+    /**
+     * 私有辅助方法，用于截断过长的字符串
+     */
+    private String truncate(String text, int maxLength) {
+        if (text == null || text.length() <= maxLength) {
+            return text;
+        }
+        return text.substring(0, maxLength);
     }
 
     // 准备废弃

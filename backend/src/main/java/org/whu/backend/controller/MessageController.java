@@ -24,10 +24,10 @@ public class MessageController {
     @GetMapping("/{friendId}")
     public List<Message> getHistory(@PathVariable String friendId) {
 
-        System.out.println("✅ 接口已进入");
+        //System.out.println("✅ 接口已进入");
         String accountId = AccountUtil.getCurrentAccountId();
-        System.out.println("当前用户ID: " + accountId);
-        System.out.println("好友ID: " + friendId);
+        //System.out.println("当前用户ID: " + accountId);
+        //System.out.println("好友ID: " + friendId);
         List<Message> fromMe = messageRepository.findByFromAccountIdAndToAccountId(accountId, friendId);
         List<Message> toMe = messageRepository.findByFromAccountIdAndToAccountId(friendId, accountId);
 
@@ -37,7 +37,7 @@ public class MessageController {
 
         // 按时间戳升序排序
         combined.sort(Comparator.comparing(Message::getTimestamp));
-        System.out.println(combined);
+        //System.out.println(combined);
         return combined;
         //return messageRepository.findByFromAccountIdAndToAccountIdOrViceVersa(accountId,friendId);
     }

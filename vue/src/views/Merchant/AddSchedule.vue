@@ -342,9 +342,10 @@ const addDepartures = async (pkgId) => {
   
   addLoading.value = true;
   try {
-    console.log('即将发送的团期数据 (departuresToAdd):', departuresToAdd);
+    console.log('即将发送的团期数据 (departuresToAdd):', departuresToAdd,pkgId);
     const response = await authAxios.post(`/merchant/packages/${pkgId}/departures`, departuresToAdd);
 
+    console.log('response:',response)
     if (response.data.code === 200) {
       console.log('后端响应数据 (response.data):', response.data);
       ElMessage.success('团期批量添加成功！');
@@ -359,7 +360,12 @@ const addDepartures = async (pkgId) => {
     }
   } catch (error) {
     console.error('批量添加团期失败:', error);
-    ElMessage.error(`批量添加团期失败: ${error.response?.data?.message || error.message}`);
+    if (error.response && error.response.data && error.response.data.message) {
+      ElMessage.error(`批量添加团期失败: ${error.response.data.message}`);
+    } 
+    else {
+      ElMessage.error('批量添加团期失败，请检查网络或稍后再试。');
+    }
   } finally {
     addLoading.value = false;
   }
