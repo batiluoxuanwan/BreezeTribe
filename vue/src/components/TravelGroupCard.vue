@@ -45,23 +45,6 @@ const goToDetail = () => {
   });
 };
 
-/**
- * 格式化时间戳为更友好的日期时间字符串
- * @param {string} timeString - ISO 格式的时间字符串
- * @returns {string} 格式化后的时间字符串
- */
-const formatTime = (timeString) => {
-  if (!timeString) return '';
-  const date = new Date(timeString);
-  return date.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: 'numeric',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-};
-
 </script>
 
 <style scoped>
