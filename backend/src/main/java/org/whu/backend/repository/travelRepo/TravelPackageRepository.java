@@ -140,4 +140,8 @@ public interface TravelPackageRepository extends JpaRepository<TravelPackage, St
     Long sumCommentCountByPackageAndPeriod(@Param("packageId") String packageId,
                                            @Param("start") LocalDateTime start,
                                            @Param("end") LocalDateTime end);
+
+    List<TravelPackage> findAllByStatus(TravelPackage.PackageStatus packageStatus);
+
+    List<TravelPackage> findAllByStatusOrderByHiddenScoreDesc(TravelPackage.PackageStatus packageStatus);
 }

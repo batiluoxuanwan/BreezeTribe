@@ -64,7 +64,7 @@ public class RecommendationService {
 
         if (userProfile.isEmpty()) {
             log.info("服务层：用户ID '{}' 画像为空，返回通用热门旅游团。", userId);
-            return getGenericPackageRecommendations();
+            return getGenericPackageRecommendations(requestDto);
         }
 
         // 1. 获取用户已购买过的产品ID，用于后续排除
@@ -108,7 +108,7 @@ public class RecommendationService {
 
         if (userProfile.isEmpty()) {
             log.info("服务层：用户ID '{}' 画像为空，返回通用热门游记。", userId);
-            return getGenericPostRecommendations();
+            return getGenericPostRecommendations(requestDto);
         }
 
         // TODO: 游记推荐也可以增加排除逻辑，例如排除用户自己发布的、或已点赞/收藏的
@@ -169,20 +169,44 @@ public class RecommendationService {
         }
     }
 
+
     /**
-     * 降级策略：返回通用最新【旅游团】
+     * 【核心重构】降级策略：返回基于隐藏分和随机性的【旅游团】
      */
-    public List<PackageSummaryDto> getGenericPackageRecommendations() {
-        return packageRepository.findTop10ByOrderByCreatedTimeDesc().stream()
+    public List<PackageSummaryDto> getGenericPackageRecommendations(RecommendRequestDto requestDto) {
+        // 1. 获取所有状态为“已发布”的旅游团，并按隐藏分从高到低排序
+        List<TravelPackage> allPublishedPackages = packageRepository.findAllByStatusOrderByHiddenScoreDesc(TravelPackage.PackageStatus.PUBLISHED);
+
+        // 2. 从排序后的列表中，取出前N个作为“优质候选池”
+        int poolSize = Math.min(allPublishedPackages.size(), requestDto.getTotalNum());
+        List<TravelPackage> hotPool = new ArrayList<>(allPublishedPackages.subList(0, poolSize));
+
+        // 3. 将这个优质候选池的顺序完全打乱
+        Collections.shuffle(hotPool);
+
+        // 4. 从打乱后的池中，取出最终推荐的个数
+        int finalSize = Math.min(hotPool.size(), requestDto.getRecommendNum());
+        return hotPool.stream()
+                .limit(finalSize)
                 .map(dtoConverter::convertPackageToSummaryDto)
                 .collect(Collectors.toList());
     }
 
     /**
-     * 降级策略：返回通用最新【游记】
+     * 【已重构】降级策略：返回通用热门【游记】
      */
-    public List<PostSummaryDto> getGenericPostRecommendations() {
-        return postRepository.findTop10ByOrderByCreatedTimeDesc().stream()
+    public List<PostSummaryDto> getGenericPostRecommendations(RecommendRequestDto requestDto) {
+        // 游记的通用推荐也可以采用类似的随机策略，例如按浏览量排序
+        List<TravelPost> allPosts = postRepository.findTop100ByOrderByViewCountDesc();
+
+        int poolSize = Math.min(allPosts.size(), requestDto.getTotalNum());
+        List<TravelPost> hotPool = new ArrayList<>(allPosts.subList(0, poolSize));
+
+        Collections.shuffle(hotPool);
+
+        int finalSize = Math.min(hotPool.size(), requestDto.getRecommendNum());
+        return hotPool.stream()
+                .limit(finalSize)
                 .map(dtoConverter::convertPostToSummaryDto)
                 .collect(Collectors.toList());
     }
