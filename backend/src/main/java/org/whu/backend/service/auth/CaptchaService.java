@@ -234,10 +234,18 @@ public class CaptchaService {
 
         BufferedImage bgImg = loadRandomBackgroundImage();
 
-        int x = new Random().nextInt(width - blockSize - 20) + 10;
+        int x = new Random().nextInt(width/2 - blockSize - 20) + width/2;
         int y = new Random().nextInt(height - blockSize - 20) + 10;
 
         BufferedImage block = bgImg.getSubimage(x, y, blockSize, blockSize);
+
+        // ✅ 深拷贝滑块图像，防止原图更改污染 block 图
+        BufferedImage blockCopy = new BufferedImage(blockSize, blockSize, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = blockCopy.createGraphics();
+        g.drawImage(block, 0, 0, null);
+        g.dispose();
+        // 然后返回的是 blockCopy（非原始 block）
+        String blockBase64 = encodeBase64(blockCopy);
 
         Graphics2D g2d = bgImg.createGraphics();
         g2d.setComposite(AlphaComposite.Clear);
@@ -245,7 +253,6 @@ public class CaptchaService {
         g2d.dispose();
 
         String bgBase64 = encodeBase64(bgImg);
-        String blockBase64 = encodeBase64(block);
 
         String captchaId = UUID.randomUUID().toString();
         String X=""+x;

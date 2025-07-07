@@ -2,6 +2,7 @@ package org.whu.backend.service;
 
 
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -112,6 +113,7 @@ public class FriendService {
         friendRequestRepository.save(request);
     }
 
+    @Transactional
     public void deleteFriend(String friendId) {
         //String accountId = AccountUtil.getCurrentAccountId();
         Account account = accountUtil.getCurrentAccount();
