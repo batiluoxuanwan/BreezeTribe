@@ -325,20 +325,20 @@ onUnmounted(() => {
 }
 
 /* 去除阴影 */
-::v-deep .BMapGLInfoWindow {
+::deep .BMapGLInfoWindow {
   box-shadow: none !important; /* 移除任何可能的默认阴影 */
   border: none !important; /* 移除任何可能的默认边框 */
   width: auto !important;
   max-width: 300px !important;
 }
 
-::v-deep .BMapGL_bubble_content {
+::deep .BMapGL_bubble_content {
   box-shadow: none !important;
   border: none !important;
-  background-color: transparent !important; /* 确保背景是透明的，如果你的内容div有背景色 */
+  background-color: transparent !important; 
 }
 
-::v-deep .BMapGL_bubble_pop {
+::deep .BMapGL_bubble_pop {
   box-shadow: none !important;
   border: none !important;
   background-color: transparent !important;

@@ -114,7 +114,13 @@ const fetchInteractionStatus = async (itemId) => {
 // 跳转详情页并传递游记id
 const goToDetail = () => {
   console.log('查看游记详情:', props.note.id);
-  router.push({ name: 'TravelNoteDetail', params: { id: props.note.id } });
+  router.push({ 
+    name: 'TravelNoteDetail', 
+    params: { id: props.note.id },
+    query: {
+      from: 'square-notes'
+    }
+  });
 };
 </script>
 

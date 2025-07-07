@@ -68,7 +68,7 @@
         <el-input
           v-model="noteContent"
           type="textarea"
-          placeholder="分享你的旅行见闻..."
+          placeholder="分享你的旅行见闻...（必填）"
           maxlength="500"
           show-word-limit
           class="note-textarea"
@@ -94,14 +94,14 @@
             :limit="maxMediaFiles"
           >
             <el-icon><Plus /></el-icon>
-            <div class="el-upload__text">添加照片</div>
+            <div class="el-upload__text">添加照片（必填）</div>
           </el-upload>
         </div>
 
         <div class="title-input-container">
           <el-input
             v-model="noteTitle"
-            placeholder="为你的游记添加一个标题（可选）"
+            placeholder="为你的游记添加一个标题（必填）"
             maxlength="50"
             show-word-limit
           />
@@ -110,7 +110,7 @@
         <div class="location-picker" @click="pickLocation">
           <el-icon><Location /></el-icon>
           <span v-if="selectedLocation">{{ selectedLocation }}</span>
-          <span v-else class="placeholder-text">你在哪里？</span>
+          <span v-else class="placeholder-text">你在哪里？（必填）</span>
           <el-button type="text">选择位置</el-button>
         </div>
 
@@ -194,7 +194,7 @@ const mediaFiles = computed(() => {
 });
 
 const canPublish = computed(() => {
-  return noteContent.value.trim() !== '' || mediaFiles.value.length > 0;
+  return noteContent.value.trim() !== '' && mediaFiles.value.length > 0 && noteTitle.value.trim() !== '' && selectedLocation.value.trim() !== '';
 });
 
 const textareaRef = ref(null);

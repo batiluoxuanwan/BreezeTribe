@@ -23,7 +23,7 @@
       </div>
     </header>
 
-    <VideoText src="/src/assets/Timeline 1.mp4"> BREEZETRIBE </VideoText>
+    <VideoText src="/Timeline 1.mp4"> BREEZETRIBE </VideoText>
 
     <section class="section-container tour-section">
       <h2 class="section-header">
@@ -167,7 +167,6 @@ const fetchTours = async () => {
           tours.value = response.data.data; 
           console.log('个性化推荐旅行团获取成功:', tours.value);
         } else {
-          ElMessage.warning(response.data.message || '获取个性化推荐旅行团失败，尝试随机推荐。');
           await fetchAndSelectRandomToursFallback();
         }
       } catch (recommendError) {
@@ -245,7 +244,6 @@ const fetchNotes = async () => {
           notes.value = response.data.data; // 直接使用推荐结果
           console.log('个性化推荐游记获取成功:', notes.value);
         } else {
-          ElMessage.warning(response.data.message || '获取个性化推荐游记失败，尝试随机推荐。');
           // 如果推荐失败，则回退到随机推荐
           await fetchAndSelectRandomNotesFallback();
         }

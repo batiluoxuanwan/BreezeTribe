@@ -155,6 +155,7 @@ const fetchData = async () => {
       // --- 查看模式：获取已有评价详情 ---
       const response = await publicAxios.get(`/public/packages/comments/detail/${packageCommentId.value}`);
       if (response.data.code === 200 && response.data.data) {
+        console.log('查看评价',response.data)
         reviewDetail.value = response.data.data;
         // 填充表单字段以供显示
         reviewForm.rating = reviewDetail.value.rating;
@@ -292,6 +293,10 @@ onMounted(() => {
   padding: 40px;
   min-height: calc(100vh - 80px);
   background-color: #f5f7fa;
+  background-image: url('@/assets/bg1.jpg');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
 }
 
 .review-form-card {

@@ -258,6 +258,7 @@ watch(
 // --- 组件挂载时默认加载旅行团数据 ---
 onMounted(() => {
   searchKeyword.value = route.query.keyword || ''
+  activeTab.value = route.query.tab? route.query.tab:'groups'
   isSearchMode.value = !!searchKeyword.value.trim()
   fetchTravelGroups();
   fetchTravelNotes();
