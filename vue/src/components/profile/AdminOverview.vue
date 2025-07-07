@@ -49,9 +49,8 @@
         </el-card>
     </div>
 
-    <div class="grid-row">
-      <TripRankList />
-      <MerchantRankList />
+    <div>
+      <RankList />
     </div>
 
     <div class="full-row">
@@ -99,6 +98,7 @@ import { LineChart } from 'echarts/charts';
 import {TitleComponent,TooltipComponent,GridComponent,LegendComponent,} from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
 import { authAxios } from '@/utils/request';
+import RankList from '@/components/RankList.vue';
 
 use([LineChart, TitleComponent, TooltipComponent, GridComponent, LegendComponent, CanvasRenderer]);
 
