@@ -54,10 +54,24 @@ const fetchTravelPackageDetail = async (id) => {
     if (response.data.code === 200 && response.data.data) {
       return response.data.data;
     } else {
-      console.warn(`获取旅行团ID ${id} 详情失败:`, response.data.message);
+      const errorMessage = response.data.message || '';
+      if (response.data.code === 400 && errorMessage.includes('找不到ID为') && errorMessage.includes('尚未发布')) {
+        console.warn(`旅行团ID ${id} 已失效或未发布，前端将显示失效状态。`);
+        return { isInvalid: true, message: '该旅行团已失效' }; // 返回一个特殊标记
+      }
+      console.warn(`获取旅行团ID ${id} 详情失败:`, errorMessage);
       return null;
     }
   } catch (error) {
+    const actualErrorMessage = error.response?.data?.message;
+    //console.log('后端错误消息 (catch block):', actualErrorMessage); 
+    if (error.response && error.response.status === 400 && actualErrorMessage &&
+        actualErrorMessage.includes('找不到ID为') && actualErrorMessage.includes('尚未发布')) { 
+      console.warn(`旅行团ID ${id} 已失效或未发布 (通过错误响应捕获)，前端将显示失效状态。`);
+      return { isInvalid: true, message: '该旅行团已失效' }; // 返回一个特殊标记
+    }
+
+    // 如果不是我们期望的特定400错误，则继续打印原始错误
     console.error(`获取旅行团ID ${id} 详情时发生错误:`, error);
     return null;
   }
@@ -93,13 +107,23 @@ const fetchCollectedTours = async () => {
         }
         if (item.itemType === 'PACKAGE') {
           const packageDetail = await fetchTravelPackageDetail(item.itemid);
-          if (packageDetail) {
+          if (packageDetail && packageDetail.isInvalid) {
+            return {
+              ...item,
+              title: packageDetail.message, // 显示“该旅行团已失效”
+              coverImageUrls: [], // 清空封面图片，或者可以使用一个默认的失效图片
+              isInvalidPackage: true, // 添加一个标记，方便前端UI判断渲染样式
+              location: '未知', // 或其他合适的默认值
+              price: 0,
+              durationInDays: 0,
+            }
+          }else if (packageDetail) {
             return {
               ...item, 
               title: packageDetail.title,
               coverImageUrls: packageDetail.coverImageUrls,
             };
-          } else {
+            } else {
             return {
               ...item,
               title: `[${item.itemType}] ${item.itemid} (详情加载失败)`,

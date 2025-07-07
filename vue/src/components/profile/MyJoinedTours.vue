@@ -35,6 +35,20 @@
         </el-card>
       </div>
       <el-empty v-else description="暂无报名"></el-empty>
+
+      <!-- <div v-if="pagination.totalElements > 0" class="pagination-container">
+      <el-pagination
+        @size-change="handleSizeChange"
+        @current-change="handleCurrentChange"
+        :current-page="pagination.pageNumber + 1"
+        :page-sizes="[10, 20, 30, 40]"
+        :page-size="pagination.pageSize"
+        layout="total, sizes, prev, pager, next, jumper"
+        :total="pagination.totalElements"
+        background
+      >
+      </el-pagination>
+    </div> -->
     </div>
 </template>
 
@@ -248,4 +262,6 @@ onMounted(() => {
   display: flex;
   gap: 8px;
 }
+
+
 </style>
