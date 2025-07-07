@@ -73,9 +73,16 @@ public class JwtService {
         return parseClaims(token).getSubject();
     }
 
+//    public boolean validateToken(String token, Account account) {
+//        final String subject = extractAccountIdentifier(token);
+//        return subject.equals(account.getEmail()) && !isTokenExpired(token);
+//    }
     public boolean validateToken(String token, Account account) {
-        final String subject = extractAccountIdentifier(token);
-        return subject.equals(account.getEmail()) && !isTokenExpired(token);
+        final String identifierInToken = extractAccountIdentifier(token);
+
+        boolean isIdentifierMatch = identifierInToken.equals(account.getEmail()) || identifierInToken.equals(account.getPhone());
+
+        return isIdentifierMatch && !isTokenExpired(token);
     }
 
     private Claims parseClaims(String token) {

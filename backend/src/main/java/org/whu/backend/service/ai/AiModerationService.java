@@ -54,7 +54,7 @@ public class AiModerationService {
             config.setReadTimeout(6000);
 
             this.client = new Client(config);
-            log.info("阿里云内容安全【增强版】SDK客户端初始化成功！");
+            // log.info("阿里云内容安全【增强版】SDK客户端初始化成功！");
         } catch (Exception e) {
             log.error("阿里云内容安全【增强版】SDK客户端初始化失败！请检查配置。", e);
         }
