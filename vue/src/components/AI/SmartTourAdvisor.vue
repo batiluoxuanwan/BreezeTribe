@@ -15,7 +15,7 @@
           v-model="userQuestion"
           :rows="3"
           type="textarea"
-          placeholder="例如：有没有适合家庭亲子游的东南亚海岛团？或者推荐一个文化探索之旅。"
+          placeholder="例如：有没有适合家庭亲子游的海岛团？或者推荐一个文化探索之旅。"
           class="question-input"
           resize="none"
           @keyup.enter="handleAskQuestion"
