@@ -230,7 +230,7 @@ const mediaFiles = computed(() => {
 });
 
 const canPublish = computed(() => {
-  return noteContent.value.trim() !== '' && mediaFiles.value.length > 0 && noteTitle.value.trim() !== '' && selectedLocation.value.trim() !== '';
+  return noteContent.value.trim() !== '' && mediaFiles.value.length > 0 && noteTitle.value.trim() !== '';
 });
 
 const textareaRef = ref(null);
@@ -601,7 +601,6 @@ const publishNote = async () => {
       adjustTextareaHeight();
       // 根据模式跳转到不同的页面
       if (isEditMode.value) {
-        // 更新成功后，跳转到该游记的详情页（假设详情页路由名为 TravelNoteDetail）
         router.push({ name: 'EditNote', params: { id: res.data.data.id } });
       } else {
         // 发布成功后，跳转到用户个人主页
