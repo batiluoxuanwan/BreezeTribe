@@ -8,16 +8,30 @@
             <div class="header-controls">
                 <span>📈 用户增长趋势</span>
                 <div class="filters">
-                <el-select v-model="selectedPeriodUser" placeholder="选择周期" size="small" style="width: 120px" @change="fetchData">
-                    <el-option label="日" value="day" />
-                    <el-option label="周" value="week" />
-                    <el-option label="月" value="month" />
-                </el-select>
-                <el-select v-model="selectedRole" placeholder="选择用户类型" size="small" style="width: 150px" @change="fetchData">
-                    <el-option label="普通用户" value="ROLE_USER" />
-                    <el-option label="商家" value="ROLE_MERCHANT" />
-                    <el-option label="管理员" value="ROLE_ADMIN" />
-                </el-select>
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <el-select v-model="selectedPeriodUser" placeholder="选择周期" size="small" style="width: 120px" @change="fetchData">
+                            <el-option label="日" value="day" />
+                            <!-- <el-option label="周" value="week" /> -->
+                            <el-option label="月" value="month" />
+                        </el-select>
+                        <el-select v-model="selectedRole" placeholder="选择用户类型" size="small" style="width: 150px" @change="fetchData">
+                            <el-option label="普通用户" value="ROLE_USER" />
+                            <el-option label="商家" value="ROLE_MERCHANT" />
+                            <el-option label="管理员" value="ROLE_ADMIN" />
+                        </el-select>
+                    </div>
+                    <el-date-picker
+                        v-model="userDateRange"
+                        type="daterange"
+                        range-separator="至"
+                        start-placeholder="开始日期"
+                        end-placeholder="结束日期"
+                        size="small"
+                        @change="fetchData"
+                        value-format="YYYY-MM-DD"
+                        style="width: 240px;"
+                        clearable
+                    />
                 </div>
             </div>
             </template>
@@ -33,11 +47,25 @@
             <div class="header-controls">
                 <span>✈️ 旅行团增长趋势</span>
                 <div class="filters">
+                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
                 <el-select v-model="selectedPeriodTrip" placeholder="选择周期" size="small" style="width: 120px" @change="fetchTripData">
                     <el-option label="日" value="day" />
-                    <el-option label="周" value="week" />
+                    <!-- <el-option label="周" value="week" /> -->
                     <el-option label="月" value="month" />
                 </el-select>
+                </div>
+                <el-date-picker
+                    v-model="tripDateRange"
+                    type="daterange"
+                    range-separator="至"
+                    start-placeholder="开始日期"
+                    end-placeholder="结束日期"
+                    size="small"
+                    @change="fetchTripData"
+                    value-format="YYYY-MM-DD"
+                    style="width: 240px;"
+                    clearable
+                />
                 </div>
             </div>
             </template>
@@ -59,12 +87,21 @@
         <template #header>
           <div class="card-header">
             <div class="filters">
+              <div style="display: flex; gap: 10px; margin-bottom: 10px;">
                 <span>📊 订单统计概览</span>
-                <el-select v-model="orderStatsPeriod" placeholder="选择周期" size="small" style="width: 120px" @change="fetchOrderStatsData">
-                <el-option label="日" value="day" />
-                <el-option label="周" value="week" />
-                <el-option label="月" value="month" />
-              </el-select>
+                <el-date-picker
+                    v-model="orderStatsDateRange"
+                    type="daterange"
+                    range-separator="至"
+                    start-placeholder="开始日期"
+                    end-placeholder="结束日期"
+                    size="small"
+                    @change="fetchOrderStatsData"
+                    value-format="YYYY-MM-DD"
+                    style="width: 240px;"
+                    clearable
+                />
+              </div>
               </div>
           </div>
         </template>
@@ -90,7 +127,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
-import { ElCard, ElSelect, ElOption, ElIcon, ElMessage } from 'element-plus';
+import { ElCard, ElSelect, ElOption, ElIcon, ElMessage, ElDatePicker } from 'element-plus';
 import { Loading } from '@element-plus/icons-vue';
 import { use } from 'echarts/core';
 import VChart from 'vue-echarts';
@@ -107,10 +144,12 @@ const selectedPeriodUser = ref('month');
 const selectedRole = ref('ROLE_USER');
 const userChartOption = ref({});
 const userLoading = ref(false); 
+const userDateRange = ref([]);
 // 旅行团增长图表
 const selectedPeriodTrip = ref('month');
 const tripChartOption = ref({});
 const tripLoading = ref(false); 
+const tripDateRange = ref([]);
 //参与人数数量与收入流水统计
 const totalParticipants = ref(0); // 订单统计：总参与人数
 const totalRevenue = ref(0.0);   // 订单统计：总收入流水
@@ -123,12 +162,19 @@ const orderStatsLoading = ref(false); // 订单统计：加载状态
 const fetchUserData = async () => {
   userLoading.value = true;
   try {
-    const res = await authAxios.get('/admin/data/user-growth', {
-      params: {
-        period: selectedPeriodUser.value,
-        role: selectedRole.value,
-      }
-    });
+    const params = {
+      period: selectedPeriodUser.value, // period 始终发送
+      role: selectedRole.value, // 角色参数总是需要
+    };
+
+    // 只有当 userDateRange 有值且包含两个日期时才添加 startDate 和 endDate
+    if (userDateRange.value && userDateRange.value.length === 2) {
+      params.startDate = userDateRange.value[0]; // YYYY-MM-DD 格式
+      params.endDate = userDateRange.value[1];   // YYYY-MM-DD 格式
+    }
+    // 如果 userDateRange 为空，则不发送 startDate 和 endDate，后端将使用默认逻辑
+
+    const res = await authAxios.get('/admin/data/user-growth', { params });
     if (res.data.code === 200) {
         //console.log("后端返回的数据：",res.data.data);
         const backendData = res.data.data; 
@@ -176,11 +222,10 @@ const fetchTripData = async () => {
       period: selectedPeriodTrip.value,
     };
 
-    // 如果启用日期范围选择器，添加 startDate 和 endDate
-    // if (dateRange.value && dateRange.value.length === 2) {
-    //   params.startDate = dateRange.value[0].toISOString().split('T')[0]; // 格式化为 YYYY-MM-DD
-    //   params.endDate = dateRange.value[1].toISOString().split('T')[0];
-    // }
+     if (tripDateRange.value && tripDateRange.value.length === 2) {
+      params.startDate = tripDateRange.value[0];
+      params.endDate = tripDateRange.value[1];
+    }
 
     const res = await authAxios.get('/admin/data/trip-growth', { params });
 
@@ -309,9 +354,13 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  font-weight: bold;
+  font-size: 1.1em;
+  color: #333;
 }
 .filters {
   display: flex;
+  flex-direction: column; /* 垂直排列 */
   gap: 10px;
 }
 .loading-container {

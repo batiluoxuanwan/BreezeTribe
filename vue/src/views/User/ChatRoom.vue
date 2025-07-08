@@ -12,7 +12,9 @@
         <img :src="friend.avatarUrl || defaultAvatar" class="w-10 h-10 rounded-full shadow" />
         <div class="flex flex-col">
           <span class="font-semibold text-lg">{{ friend.username }}</span>
-          <span class="text-sm text-green-500">● 在线</span>
+          <span :class="{ 'text-green-500': friend.active, 'text-gray-500': !friend.active }" class="text-sm">
+            ● {{ friend.active ? '在线' : '离线' }}
+          </span>
         </div>
       </div>
       <div ref="messagesBox" class="flex-1 overflow-y-auto flex flex-col gap-4 pb-4">
@@ -94,35 +96,83 @@ const friend = reactive({
   username: '',
   avatarUrl: '',
   role: '',
-  active: true,
+  active: false,
 });
 
-const isLoading = ref(true);
-const token = authStore.token;
+const isLoading = ref(false);
 
 const messages = computed(() => chatStore.getMessages(props.friendId));
 const newMessage = ref('');
 const messagesBox = ref(null);
 
-
-// --- 监听 friendId 变化并加载数据 ---
-watch(() => props.friendId, async (newFriendId, oldFriendId) => {
-  if (newFriendId && newFriendId !== oldFriendId) { // 确保 friendId 有效且确实发生了变化
-    console.log(`Friend ID changed from ${oldFriendId} to ${newFriendId}`);
-    isLoading.value = true;
-    await fetchFriendInfo(newFriendId); // 重新获取好友信息
-    await fetchHistoryMessages(newFriendId); // 重新获取历史消息
-    isLoading.value = false;
-    scrollToBottom(); // 滚动到底部
+// 在组件挂载时，一次性获取当前用户信息并连接 WebSocket
+onMounted(async () => {
+  await fetchCurrentUser();
+  if (authStore.accessToken) {
+    connectWebSocket(authStore.accessToken, chatStore);
+  } else {
+    console.error('Auth token is not available for WebSocket connection.');
+    ElMessage.error('无法建立聊天连接，请确保已登录');
   }
-}, { immediate: true }); // immediate: true 确保组件初次渲染时也会执行一次
+  if (props.visible && props.friendId) {
+    console.log(`ChatDialog: onMounted 中检测到对话框可见，开始为 friend ID ${props.friendId} 加载数据。`);
+    isLoading.value = true;
+    try {
+      await Promise.all([
+        fetchFriendInfo(props.friendId),
+        fetchHistoryMessages(props.friendId)
+      ]);
+      console.log('ChatDialog: onMounted 数据加载成功。');
+    } catch (error) {
+      console.error('ChatDialog: onMounted 数据加载失败:', error);
+    } finally {
+      isLoading.value = false;
+      scrollToBottom();
+    }
+  } else {
+    console.log('ChatDialog: onMounted 时对话框不可见或 friendId 缺失，不进行初始数据加载。');
+  }
+});
+
+// --- 监听 friendId 和 visible 变化并加载数据 ---
+watch([() => props.friendId, () => props.visible], async ([newFriendId, newVisible], [oldFriendId, oldVisible]) => {
+  console.log(`Watch triggered: friendId=${newFriendId}, visible=${newVisible}`);
+
+  if (newVisible && newFriendId) {
+    const shouldLoad = (newVisible && !oldVisible) || (newFriendId && newFriendId !== oldFriendId);
+
+    if (shouldLoad) {
+      if (!authStore.accessToken) {
+        console.error('Auth token is missing when attempting to fetch friend info and messages.');
+        ElMessage.error('会话已过期，请重新登录');
+        return;
+      }
+
+      console.log(`Initiating data fetch for friend ID: ${newFriendId}`);
+      isLoading.value = true;
+      await Promise.all([
+        fetchFriendInfo(newFriendId),
+        fetchHistoryMessages(newFriendId)
+      ]);
+      isLoading.value = false;
+      scrollToBottom();
+    }
+  } else if (!newVisible) {
+    Object.assign(friend, {
+      id: '',
+      username: '',
+      avatarUrl: defaultAvatar,
+      role: '',
+      active: false,
+    });
+    console.log('Dialog closed, friend info reset.');
+  }
+}, { immediate: true }); 
 
 // 封装历史消息拉取逻辑
 const fetchHistoryMessages = async (targetFriendId) => {
   try {
-    const res = await authAxios.get('/messages/' + targetFriendId, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+    const res = await authAxios.get('/messages/' + targetFriendId);
     console.log(`Fetched history for friend ${targetFriendId}:`, res.data);
     const history = res.data.map(m => ({
       from: m.fromAccountId,
@@ -138,12 +188,9 @@ const fetchHistoryMessages = async (targetFriendId) => {
   }
 };
 
-
 const fetchCurrentUser = async () => {
   try {
-    const res = await authAxios.get('/auth/me', {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+    const res = await authAxios.get('/auth/me');
     if (res.data.code === 200) {
       Object.assign(user, res.data.data);
       console.log('当前用户:', user);
@@ -156,11 +203,9 @@ const fetchCurrentUser = async () => {
   }
 };
 
-const fetchFriendInfo = async (friendIdToFetch) => { // 接受参数 friendIdToFetch
+const fetchFriendInfo = async (friendIdToFetch) => { 
   try {
-    const res = await authAxios.get(`public/users/${friendIdToFetch}/info`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+    const res = await authAxios.get(`public/users/${friendIdToFetch}/info`);
     if (res.data.code === 200) {
       Object.assign(friend, res.data.data);
       console.log('好友信息:', friend);
@@ -188,15 +233,6 @@ const fetchFriendInfo = async (friendIdToFetch) => { // 接受参数 friendIdToF
     });
   }
 };
-
-onMounted(async () => {
-  // 只在挂载时获取当前用户信息
-  await fetchCurrentUser();
-  await fetchFriendInfo(props.friendId);
-  // friendInfo 和历史消息会在 watch 中根据 props.friendId 首次触发并加载
-  // 确保 WebSocket 连接只建立一次
-  connectWebSocket(authStore.token, chatStore); 
-});
 
 function send() {
   if (!newMessage.value.trim()) return;
