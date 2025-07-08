@@ -123,6 +123,16 @@
               ></el-input>
             </el-form-item>
 
+            <el-form-item>
+                <el-divider class="clickable-divider" @click="showSmartAssistant = !showSmartAssistant">
+                  <span class="divider-text">
+                    <el-icon><MagicStick /></el-icon>
+                    {{ showSmartAssistant ? '收起智能文案助手' : '或使用智能文案助手生成' }}
+                  </span>
+                </el-divider>
+            </el-form-item>
+            <SmartContentGenerator v-if="showSmartAssistant" />
+
             <el-form-item label="🖼️ 团主图">
               <el-upload
                 action="#"
@@ -267,6 +277,7 @@ import { Search, Plus, InfoFilled, Calendar, List, Location, Check, Delete, Arro
 import { publicAxios, authAxios } from '@/utils/request';
 import { ElMessage, ElMessageBox ,ElTag, ElDivider } from 'element-plus';
 import { useRouter, useRoute } from 'vue-router';
+import SmartContentGenerator from '@/components/AI/SmartContentGenerator.vue';
 
 const router = useRouter();
 const route = useRoute();
@@ -306,6 +317,8 @@ const activeDayIndex = ref(null); // 记录当前操作是哪一天
 
 // --- 计算属性 ---
 const isEditMode = computed(() => !!tourId.value); // 判断是否为编辑模式
+
+const showSmartAssistant = ref(false); // 控制智能文案生成组件的显示/隐藏
 
 // --- 生命周期钩子 ---
 onMounted(() => {
@@ -1290,5 +1303,6 @@ const submitTourPackage = async () => {
 .ai-tag-item {
   cursor: default; /* AI推荐的标签不应该直接点击选择 */
 }
+
 
 </style>

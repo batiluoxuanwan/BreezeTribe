@@ -1,3 +1,4 @@
+<!-- RAG知识库 -->
 <template>
   <div class="admin-rag-management">
     <h2>RAG 知识库管理</h2>
@@ -122,8 +123,8 @@ const exportRagKnowledgeBase = async () => {
   try {
     const response = await authAxios.get(`${API_BASE_URL}/export-xlsx-url`);
 
-    if (response.data.code === 200 && response.data.data && response.data.data.downloadUrl) {
-      downloadUrl.value = response.data.data.downloadUrl;
+    if (response.data.code === 200 && response.data.data) {
+      downloadUrl.value = response.data.data;
       ElMessage.success('知识库导出链接已生成，请点击下载！');
     } else {
       ElMessage.error(`导出失败: ${response.data.message || '未能获取下载链接'}`);
@@ -168,7 +169,7 @@ h2 {
 .card-header {
   font-size: 18px;
   font-weight: bold;
-  color: #409eff; 
+  color: #50af9a; 
 }
 
 .card-content p {

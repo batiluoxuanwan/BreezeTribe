@@ -97,6 +97,15 @@
           ref="textareaRef"
         />
 
+        <el-divider class="clickable-divider" @click="showSmartAssistant = !showSmartAssistant">
+          <span class="divider-text">
+            <el-icon><MagicStick /></el-icon>
+            {{ showSmartAssistant ? '收起智能助手' : '或点击此处使用智能助手生成' }}
+          </span>
+        </el-divider>
+
+        <SmartContentGenerator v-if="showSmartAssistant" />
+
         <div class="media-upload-area">
           <div v-for="(file, index) in mediaFiles" :key="index" class="media-preview-item">
             <img :src="file.url" class="media-thumbnail" />
@@ -189,6 +198,7 @@ import {
 } from 'element-plus';
 import { ArrowLeft, Plus, Location, InfoFilled, CircleCloseFilled, Search, Cpu } from '@element-plus/icons-vue';
 import { publicAxios,authAxios } from '@/utils/request';
+import SmartContentGenerator from '@/components/AI/SmartContentGenerator.vue';
 
 const router = useRouter();
 const route = useRoute();
@@ -196,6 +206,9 @@ const route = useRoute();
 const noteContent = ref('');
 const noteTitle = ref('');
 const maxMediaFiles = 9;
+
+// 智能助手默认不显示
+const showSmartAssistant = ref(false);
 
 const existingMediaFiles = ref([]); // 存储从后端加载的已有图片 {id}
 const newlyUploadedMediaFiles = ref([]); // 存储用户本次会话新上传的图片 {id, url, type, rawFile}
@@ -307,7 +320,7 @@ const goBack = () => {
     cancelButtonText: '取消',
     type: 'warning',
   }).then(() => {
-    router.back();
+    router.push({ name: '用户个人主页', query: { tab: 'notes' } })
   }).catch(() => {
     // 用户点击取消
   });
