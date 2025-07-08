@@ -36,19 +36,16 @@
       </div>
       <el-empty v-else description="暂无报名"></el-empty>
 
-      <!-- <div v-if="pagination.totalElements > 0" class="pagination-container">
-      <el-pagination
-        @size-change="handleSizeChange"
-        @current-change="handleCurrentChange"
-        :current-page="pagination.pageNumber + 1"
-        :page-sizes="[10, 20, 30, 40]"
-        :page-size="pagination.pageSize"
-        layout="total, sizes, prev, pager, next, jumper"
-        :total="pagination.totalElements"
-        background
-      >
-      </el-pagination>
-    </div> -->
+      <div class="pagination-container" v-if="joinedTotal > 0">
+        <el-pagination
+          background
+          layout="prev, pager, next"
+          :total="joinedTotal"
+          :page-size="pageSize"
+          :current-page="currentPage"
+          @current-change="handlePageChange"
+        />
+      </div>
     </div>
 </template>
 
@@ -60,11 +57,10 @@ import { useRouter } from 'vue-router';
 
 const router = useRouter();
 
-
+const currentPage = ref(1);
+const pageSize = ref(8); // 每页显示图片数量
 const joinedTours = ref([]); // 存储我的报名旅行团列表
 const joinedTotal = ref(0); // 我的报名总数
-const joinedPageSize = 9; // 每页显示数量，你可以根据需要调整
-const joinedCurrentPage = ref(1); // 当前页码
 
 const loadingJoinedTours = ref(false); // 专门用于“我的报名”Tab 的加载状态
 
@@ -74,8 +70,8 @@ const fetchJoinedTours = async () => {
   try {
     const response = await authAxios.get('/user/orders', {
       params: {
-        page: joinedCurrentPage.value,
-        size: joinedPageSize,
+        page: currentPage.value, 
+        size: pageSize.value,
       },
     });
 
@@ -209,6 +205,11 @@ const goToTourDetail = (id) => {
   router.push({ name: 'TravelGroupDetail', params: { id } });
 };
 
+const handlePageChange = (newPage) => {
+  currentPage.value = newPage;
+  fetchJoinedTours();
+};
+
 onMounted(() => {
   fetchJoinedTours();
 });
@@ -268,5 +269,9 @@ onMounted(() => {
   gap: 8px;
 }
 
-
+.pagination-container {
+  margin-top: 30px;
+  display: flex;
+  justify-content: center;
+}
 </style>

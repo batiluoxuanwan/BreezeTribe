@@ -53,6 +53,14 @@ public interface TravelOrderRepository extends JpaRepository<TravelOrder, String
     Set<String> findPackageIdsByUserId(@Param("userId") String userId);
 
     /**
+     * 查询所有状态为“待支付”且创建时间早于指定时间的订单
+     * @param status 订单状态 (PENDING_PAYMENT)
+     * @param time   时间点
+     * @return 符合条件的订单列表
+     */
+    List<TravelOrder> findAllByStatusAndCreatedTimeBefore(TravelOrder.OrderStatus status, LocalDateTime time);
+
+    /**
      * ====== 1. 按日统计（YYYY-MM-DD）======
      */
     @Query("""

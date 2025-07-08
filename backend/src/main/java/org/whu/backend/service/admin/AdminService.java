@@ -9,7 +9,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -26,6 +25,7 @@ import org.whu.backend.dto.admin.UserManagementDto;
 import org.whu.backend.dto.spot.SpotCreateRequestDto;
 import org.whu.backend.dto.spot.SpotSummaryDto;
 import org.whu.backend.dto.spot.SpotUpdateRequestDto;
+import org.whu.backend.dto.travelpack.PackageDetailDto;
 import org.whu.backend.dto.travelpack.PackageSummaryDto;
 import org.whu.backend.entity.Spot;
 import org.whu.backend.entity.travelpac.PackageComment;
@@ -34,7 +34,6 @@ import org.whu.backend.entity.accounts.*;
 import org.whu.backend.entity.Notification;
 import org.whu.backend.repository.authRepo.MerchantRepository;
 import org.whu.backend.repository.authRepo.UserRepository;
-import org.whu.backend.repository.projection.TimeCount;
 import org.whu.backend.repository.travelRepo.*;
 import org.whu.backend.service.DtoConverter;
 import org.whu.backend.service.NotificationService;
@@ -46,10 +45,6 @@ import org.whu.backend.repository.authRepo.AuthRepository;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.YearMonth;
-import java.time.temporal.ChronoUnit;
-import java.time.temporal.IsoFields;
-import java.time.temporal.WeekFields;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.List;
@@ -774,6 +769,19 @@ public class AdminService {
         funnelData.put("travelPackageId", travelPackageId == null ? "ALL" : travelPackageId);
 
         return funnelData;
+    }
+
+    // 获取单个旅行团的详情
+    public PackageDetailDto getPackageDetails(String id) {
+        // 1. 调用Repository中定义好的方法
+        TravelPackage travelPackage = travelPackageRepository.findById(id)
+                .orElseThrow(() -> {
+                    log.warn("查询失败：找不到ID为 '{}' 的旅行团。", id);
+                    return new BizException("找不到ID为 " + id + " 的旅行团。");
+                });
+        log.info("成功查询到旅行团 '{}' 的详情。", travelPackage.getTitle());
+        // 2. 将Entity转换为详细的DTO
+        return dtoConverter.convertPackageToDetailDto(travelPackage);
     }
 }
 

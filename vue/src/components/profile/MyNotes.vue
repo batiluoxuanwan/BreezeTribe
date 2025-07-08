@@ -38,6 +38,17 @@
         已加载全部游记
       </p>
     </div>
+
+    <div class="pagination-container" v-if=" totalNotes  > 0">
+        <el-pagination
+          background
+          layout="prev, pager, next"
+          :total=" totalNotes "
+          :page-size="pageSize"
+          :current-page="currentPage"
+          @current-change="handlePageChange"
+        />
+    </div>
 </template>
 
 <script setup>
@@ -102,7 +113,7 @@ const fetchNotes = async (reset = false) => {
       // 判断是否加载完所有数据
       if (notes.value.length >= totalNotes.value) {
         noMoreNotes.value = true;
-        ElMessage.info("所有游记已加载完毕。");
+        //ElMessage.info("所有游记已加载完毕。");
       } else {
         // ElMessage.success(`成功加载第 ${nextPage} 页游记！`); // 加载成功提示
       }
@@ -130,6 +141,10 @@ const goToPublishTravelNote = () => {
   router.push("/user/publish-travel-note");
 };
 
+const handlePageChange = (newPage) => {
+  currentPage.value = newPage;
+   fetchNotes(true);
+};
 const showFootprintMap = () => {
   router.push("/mymap");
 }

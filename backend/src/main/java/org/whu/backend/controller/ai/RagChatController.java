@@ -22,7 +22,7 @@ import java.util.List;
 
 @Tag(name = "AI智能问答", description = "提供基于RAG的智能旅行推荐，提供标签智能推荐")
 @RestController
-@PreAuthorize("hasRole('USER')")
+@PreAuthorize("hasRole('USER') or hasRole('MERCHANT')")
 @RequestMapping("/api/chat") // 你可以定义一个更合适的路径
 public class RagChatController {
 

@@ -21,6 +21,17 @@
             <span class="author-name">{{ note.author.username || '匿名用户' }}</span>
             <span class="publish-time">{{ formatTime(note.createdTime) }}</span>
           </div>
+          <el-button
+            v-if="note.author.id !== currentUserId"
+            type="warning"
+            :icon="Warning"
+            circle
+            size="big"
+            @click="reportItem(note.id, 'TRAVEL_POST', note.title)"
+            class="report-button"
+            style="margin-left: 10px;"
+          >
+          </el-button>
         </div>
         <h1 class="note-title">{{ note.title }}</h1>
       </div>
@@ -119,6 +130,16 @@
                     @click="deleteCommentOrReply(comment, null, 'comment')"
                     title="删除评论"
                   ></el-button>
+                  <el-button
+                    v-if="currentUserId !== comment.author.id"
+                    type="text"
+                    :icon="Warning"
+                    size="big"
+                    class="report-reply-btn"
+                    @click="reportItem(comment.id, 'POST_COMMENT', comment.author.username + '的回复')"
+                    style="margin-left: 10px; color: #f56c6c;"
+                  >
+                  </el-button>
                 </div>
                 <!-- 评论正文 -->
                 <p class="comment-text">{{ comment.content }}</p>
@@ -140,6 +161,16 @@
                          @click="deleteCommentOrReply(reply, comment, 'reply')"
                          title="删除回复"
                         ></el-button>
+                       <el-button
+                         v-if="currentUserId !== reply.author.id"
+                         type="text"
+                         :icon="Warning"
+                         size="big"
+                         class="report-reply-btn"
+                         @click="reportItem(reply.id, 'POST_COMMENT', reply.author.username + '的回复')"
+                         style="margin-left: 10px; color: #f56c6c;"
+                       >
+                       </el-button>
                     </div>
                   </div>
                   <div v-if="comment.totalReplies > comment.repliesPreview.length" class="view-more-replies" @click="toggleReplies(comment)">
@@ -179,6 +210,16 @@
                               @click="deleteCommentOrReply(reply, comment, 'reply')"
                               title="删除回复"
                             ></el-button>
+                            <el-button
+                              v-if="currentUserId !== reply.author.id"
+                              type="text"
+                              :icon="Warning"
+                              size="big"
+                              class="report-reply-btn"
+                              @click="reportItem(reply.id, 'POST_COMMENT', reply.author.username + '的回复')"
+                              style="margin-left: 10px; color: #f56c6c;"
+                            >
+                            </el-button>
                           </div>
                           <p class="reply-text">{{ reply.content }}</p>
                           <div class="reply-actions">
@@ -274,10 +315,10 @@
   </template>
 
 <script setup>
-import { ref, onMounted , computed, watch,reactive} from 'vue';
+import { ref, onMounted , computed, watch,reactive,h,nextTick} from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ElMessage,ElMessageBox } from 'element-plus';
-import { ArrowLeft, Star, ChatDotRound ,Delete} from '@element-plus/icons-vue';
+import { ElMessage,ElMessageBox,ElForm, ElFormItem, ElInput, ElInputNumber,ElSelect,ElOption } from 'element-plus';
+import { ArrowLeft, Star, ChatDotRound ,Delete,Warning} from '@element-plus/icons-vue';
 import { publicAxios,authAxios } from '@/utils/request'; 
 import { useAuthStore } from '@/stores/auth';
 import UserProfilePopup from '@/components/UserProfilePopup.vue'; 
@@ -697,8 +738,6 @@ const postReplyComment = async (parentComment) => {
   try {
     const payload = {
       content: replyContent.value.trim(),
-      // 如果 currentReplyTarget 是该主评论本身，则parentId是主评论ID
-      // 如果 currentReplyTarget 是该主评论下的某个回复，则parentId是该回复的ID
       parentId: currentReplyTarget.value.id 
     };
     
@@ -709,6 +748,14 @@ const postReplyComment = async (parentComment) => {
       replyContent.value = ''; // 清空输入框
       activeReplyInputId.value = null; // 关闭回复输入框
       currentReplyTarget.value = null; // 重置回复目标
+
+      if (note.value.commentCount !== undefined && note.value.commentCount !== null) {
+        note.value.commentCount++;
+      } else {
+        note.value.commentCount = 1;
+      }
+
+      //又说我没更改不能提交
 
       await fetchComments(true); 
 
@@ -878,6 +925,191 @@ const goBack = () => {
   }
 };
 
+// --- 举报功能 ---
+const reportItem = async (itemId, itemType, itemName) => {
+  if (!authStore.isLoggedIn) {
+    ElMessage.error('请先登录才能举报！');
+    router.push('/login');
+    return;
+  }
+
+  try {
+    // 步骤 1: 确认举报
+    await ElMessageBox.confirm(
+      `确定要举报此${itemName}吗？举报后管理员将进行审核。`,
+      '确认举报',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    );
+
+    // 定义举报原因选项
+    const reasonOptions = [
+      { label: '垃圾广告', value: 'SPAM_AD' },
+      { label: '色情内容', value: 'PORNOGRAPHIC' },
+      { label: '违法内容', value: 'ILLEGAL_CONTENT' },
+      { label: '人身攻击', value: 'PERSONAL_ATTACK' },
+      { label: '其他原因', value: 'OTHER' },
+    ];
+
+    // 用于收集用户输入的举报信息
+    const reportData = reactive({
+      reason: '',
+      additionalInfo: '',
+    });
+
+    // 表单验证规则
+    const rules = reactive({
+      reason: [
+        { required: true, message: '请选择举报原因', trigger: 'change' },
+      ],
+      additionalInfo: [
+        {
+          required: true,
+          message: '请输入具体的举报理由',
+          trigger: 'blur',
+        },
+      ],
+    });
+
+    // 弹出包含 ElSelect 和 ElInput 的自定义举报弹窗
+    const formRef = ref(null); // 用于获取 ElForm 实例以进行验证
+
+    await ElMessageBox({
+      title: `举报${itemName}`,
+      message: () => h(
+        ElForm,
+        {
+          ref: instance => {
+            // 在VNode渲染时捕获formRef实例
+            if (instance) formRef.value = instance;
+          },
+          model: reportData,
+          'label-width': '80px',
+        },
+        [
+          h(
+            ElFormItem,
+            {
+              label: '举报原因',
+              prop: 'reason',
+              rules: rules.reason, // 将规则传递给 ElFormItem
+            },
+            () => h(
+              ElSelect,
+              {
+                modelValue: reportData.reason,
+                'onUpdate:modelValue': (val) => {
+                  reportData.reason = val;
+                  // 当原因改变时，如果不再是'OTHER'，清空additionalInfo并清除其验证状态
+                  if (val !== 'OTHER') {
+                    reportData.additionalInfo = '';
+                    nextTick(() => {
+                        if (formRef.value) {
+                            formRef.value.clearValidate('additionalInfo');
+                        }
+                    });
+                  }
+                },
+                placeholder: '请选择举报原因',
+                style: { width: '100%' },
+              },
+              () => reasonOptions.map(option =>
+                h(ElOption, { label: option.label, value: option.value })
+              )
+            )
+          ),
+          reportData.reason === 'OTHER'
+            ? h(
+                ElFormItem,
+                {
+                  label: '具体理由',
+                  prop: 'additionalInfo',
+                  rules: rules.additionalInfo, 
+                },
+                () => h(
+                  ElInput,
+                  {
+                    type: 'textarea',
+                    modelValue: reportData.additionalInfo,
+                    'onUpdate:modelValue': (val) => (reportData.additionalInfo = val),
+                    rows: 3,
+                    placeholder: '请输入具体的举报理由',
+                  }
+                )
+              )
+            : null, // 如果不是OTHER，则不渲染此项
+          // --- 显示选择的内容区域 ---
+          h('div', { style: 'margin-top: 15px; padding-top: 10px; border-top: 1px solid #eee; font-size: 14px; color: #606266;' }, [
+            reportData.reason 
+              ? h('p', { style: 'margin-bottom: 5px;' }, `您选择的举报原因： ${reasonOptions.find(opt => opt.value === reportData.reason)?.label || reportData.reason}`) 
+              : null,
+            reportData.reason === 'OTHER' && reportData.additionalInfo
+              ? h('p', {}, `您填写的具体理由： ${reportData.additionalInfo}`)
+              : null,
+          ]),
+        ]
+      ),
+
+      showCancelButton: true,
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      beforeClose: (action, instance, done) => {
+        if (action === 'confirm') {
+          // 在点击确认时手动触发表单验证
+          if (formRef.value) {
+            formRef.value.validate(async (valid) => {
+              if (valid) {
+                 if (reportData.reason === 'OTHER' && !reportData.additionalInfo.trim()) {
+                    ElMessage.error('选择“其他原因”时，具体理由不能为空！');
+                    instance.confirmButtonLoading = false; // 停止加载动画
+                    return;
+                }
+                done(); // 验证通过，关闭弹窗
+              } else {
+                ElMessage.error('请完善举报信息！');
+                instance.confirmButtonLoading = false; // 停止加载动画
+              }
+            });
+          } else {
+            ElMessage.error('表单组件未准备好！');
+            instance.confirmButtonLoading = false; // 停止加载动画
+          }
+        } else {
+          done(); // 点击取消，直接关闭
+        }
+      },
+    });
+
+    // 发送举报请求
+    const response = await authAxios.post('/user/report', {
+      reportedItemId: itemId,
+      itemType: itemType,
+      reason: reportData.reason,
+      additionalInfo: reportData.additionalInfo,
+    });
+
+    if (response.data.code === 200) {
+      ElMessage.success(`成功举报此${itemName}！感谢您的反馈，管理员将尽快处理。`);
+    } else {
+      ElMessage.error(response.data.message || `举报${itemName}失败，请稍后再试。`);
+    }
+  } catch (error) {
+    if (error === 'cancel') {
+      ElMessage.info('已取消举报。');
+    } else {
+      console.error(`举报${itemName}请求失败:`, error);
+      if (error.response && error.response.data && error.response.data.message) {
+        ElMessage.error(error.response.data.message);
+      } else {
+        ElMessage.error(`举报${itemName}网络错误或操作失败，请稍后再试！`);
+      }
+    }
+  }
+};
+
 onMounted(() => {
   postId.value = route.params.id; 
   if (postId.value) {
@@ -905,22 +1137,6 @@ watch(
   }
 );
 
-/**
- * 格式化时间戳为更友好的日期时间字符串
- * @param {string} timeString - ISO 格式的时间字符串
- * @returns {string} 格式化后的时间字符串
- */
-const formatTime = (timeString) => {
-  if (!timeString) return '';
-  const date = new Date(timeString);
-  return date.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: 'numeric',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-};
 
 </script>
 
@@ -1007,6 +1223,7 @@ const formatTime = (timeString) => {
 .author-info-text {
   display: flex;
   flex-direction: column;
+  flex-grow: 1;
 }
 
 .author-name {
@@ -1712,6 +1929,7 @@ const formatTime = (timeString) => {
   background-color: rgba(245, 108, 108, 0.1);
   transform: scale(1.1);
 }
-
-
+.full-reply-content-wrapper .reply-header .report-reply-btn {
+  margin-left: auto;
+}
 </style>

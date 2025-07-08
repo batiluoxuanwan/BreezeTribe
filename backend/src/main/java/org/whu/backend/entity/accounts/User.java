@@ -14,6 +14,6 @@ import lombok.EqualsAndHashCode;
 public class User extends Account {
     //用户专属
     @Lob
-    @Column(nullable = false, columnDefinition = "LONGTEXT")
+    @Column(nullable = true, columnDefinition = "LONGTEXT")
     private String interestProfile; // 存储用户兴趣画像的JSON
 }

@@ -40,6 +40,8 @@ import org.whu.backend.service.specification.SearchSpecification;
 import org.whu.backend.util.AccountUtil;
 import org.whu.backend.util.AliyunOssUtil;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -168,10 +170,14 @@ public class PublicService {
         Sort sort = Sort.by(Sort.Direction.ASC, "departureDate");
         Pageable pageable = PageRequest.of(pageRequestDto.getPage() - 1, pageRequestDto.getSize(), sort);
 
-        // 3. 查询状态为OPEN（可报名）的团期
-        Page<TravelDeparture> departurePage = travelDepartureRepository.findByTravelPackageIdAndStatus(
+        // 3. 获取今天的开始时间，用于过滤掉今天及今天之前的团期
+        LocalDateTime today = LocalDate.now().atStartOfDay();
+
+        // 3.1 调用新的仓库方法，查询状态为OPEN且出发日期在今天之后的团期
+        Page<TravelDeparture> departurePage = travelDepartureRepository.findByTravelPackageIdAndStatusAndDepartureDateAfter(
                 packageId,
                 TravelDeparture.DepartureStatus.OPEN,
+                today, // 传入今天的时间作为过滤条件
                 pageable
         );
         log.info("服务层：为产品ID '{}' 查询到 {} 个可报名团期。", packageId, departurePage.getTotalElements());

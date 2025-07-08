@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 import org.whu.backend.entity.travelpost.TravelPost;
 
 import java.util.Collection;
+import java.util.List;
 
 @Repository
 public interface TravelPostRepository extends JpaRepository<TravelPost, String> {
@@ -59,4 +60,6 @@ public interface TravelPostRepository extends JpaRepository<TravelPost, String> 
     Page<TravelPost> findAll(Specification<TravelPost> spec, Pageable pageable);
 
     Collection<TravelPost> findTop10ByOrderByCreatedTimeDesc();
+
+    List<TravelPost> findTop100ByOrderByViewCountDesc();
 }

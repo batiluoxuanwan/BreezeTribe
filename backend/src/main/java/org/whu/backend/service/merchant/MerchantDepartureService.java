@@ -122,12 +122,13 @@ public class MerchantDepartureService {
         departureRepository.delete(departure);
     }
 
+
     /**
-     * 分页查询指定产品下的团期列表
+     * 分页查询指定产品下的团期列表，支持按状态筛选
      */
     @Transactional(readOnly = true)
-    public PageResponseDto<DepartureSummaryDto> getDeparturesForPackage(String packageId, String currentDealerId, PageRequestDto pageRequestDto) {
-        log.info("服务层：开始为经销商ID '{}' 查询产品ID '{}' 的团期列表", currentDealerId, packageId);
+    public PageResponseDto<DepartureSummaryDto> getDeparturesForPackage(String packageId, String currentDealerId, String status, PageRequestDto pageRequestDto) {
+        log.info("服务层：开始为经销商ID '{}' 查询产品ID '{}' 的团期列表，状态: {}", currentDealerId, packageId, status);
 
         // 1. 验证产品是否存在且属于当前经销商
         if (!packageRepository.existsByIdAndDealerId(packageId, currentDealerId)) {
@@ -138,18 +139,28 @@ public class MerchantDepartureService {
         Sort sort = Sort.by(Sort.Direction.fromString(pageRequestDto.getSortDirection()), pageRequestDto.getSortBy());
         Pageable pageable = PageRequest.of(pageRequestDto.getPage() - 1, pageRequestDto.getSize(), sort);
 
-        // 3. 查询分页数据 (需要一个新Repository方法)
-        Page<TravelDeparture> departurePage = departureRepository.findByTravelPackageId(packageId, pageable);
+        // 3. 根据前端传入的status，决定调用哪个查询方法
+        Page<TravelDeparture> departurePage;
+        LocalDateTime now = LocalDateTime.now(); // 获取当前时间作为分割点
 
-        // 4. 转换DTO
-        List<DepartureSummaryDto> summaryDtos = departurePage.getContent().stream()
-                .map(dtoConverter::convertDepartureToSummaryDto)
-                .collect(Collectors.toList());
+        if ("UPCOMING".equalsIgnoreCase(status)) {
+            // 查询“待出发”的团期（出发时间在当前时间之后）
+            log.info("服务层：筛选条件为“待出发”，查询 {} 之后的团期。", now);
+            departurePage = departureRepository.findByTravelPackageIdAndDepartureDateAfter(packageId, now, pageable);
+        } else if ("PAST".equalsIgnoreCase(status)) {
+            // 查询“已出发”的团期（出发时间在当前时间或之前）
+            log.info("服务层：筛选条件为“已出发”，查询 {} 之前的团期。", now);
+            departurePage = departureRepository.findByTravelPackageIdAndDepartureDateBefore(packageId, now, pageable);
+        } else {
+            // 如果不提供status，或status为其他值，则返回所有团期
+            log.info("服务层：无状态筛选条件，查询所有团期。");
+            departurePage = departureRepository.findByTravelPackageId(packageId, pageable);
+        }
 
-        log.info("查询到 {} 条团期数据", departurePage.getTotalElements());
+        log.info("服务层：查询到 {} 条团期数据。", departurePage.getTotalElements());
 
         // 5. 封装并返回分页DTO
-        return dtoConverter.convertPageToDto(departurePage, summaryDtos);
+        return dtoConverter.convertPageToDto(departurePage, dtoConverter::convertDepartureToSummaryDto);
     }
 
     /**
