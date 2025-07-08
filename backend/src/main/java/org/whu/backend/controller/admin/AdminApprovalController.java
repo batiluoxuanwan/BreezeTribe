@@ -73,7 +73,7 @@ public class AdminApprovalController {
 
     @Operation(summary = "驳回一个商户注册")
     @PostMapping("/merchants/{packageId}/reject")
-    public Result<?> rejectMerchants(@PathVariable String packageId, @RequestBody RejectionRequestDto rejectionDto) {
+    public Result<?> rejectMerchants(@PathVariable String packageId, @RequestBody(required = false) RejectionRequestDto rejectionDto) {
         JpaUtil.isTrue(adminService.rejectMerchants(packageId, rejectionDto), "操作失败");
         return Result.success("操作成功");
     }

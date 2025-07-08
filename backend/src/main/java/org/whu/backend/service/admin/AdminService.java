@@ -227,7 +227,7 @@ public class AdminService {
     }
 
 
-    public boolean rejectMerchants(@PathVariable String merchantId, @RequestBody RejectionRequestDto rejectionDto) {
+    public boolean rejectMerchants(@PathVariable String merchantId, @RequestBody(required = false) RejectionRequestDto rejectionDto) {
         Merchant merchant = JpaUtil.getOrThrow(merchantRepository, merchantId, "商家不存在");
         if (!PENDING.equals(merchant.getApproval())) {
             throw new BizException("当前状态不可驳回");
