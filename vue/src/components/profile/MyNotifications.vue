@@ -227,56 +227,50 @@ const markCurrentCategoryAsRead = async () => {
 
 
 const Turn = async (notification) => {
-    // 根据通知类型获取目标路由对象
-    let targetRoute = null;
-    const notificationConfig = NOTIFICATION_TYPE_MAP[notification.type];
-    
-    // 如果没有找到对应的配置或者明确设置为不可跳转
-    if (!notificationConfig || notificationConfig.routeName === null) {
-        switch (notification.type) {
-            case 'NEW_COMMENT_REPLY':
-                if (notification.relatedItemId) {
-                    targetRoute = { name: 'TravelNoteDetail', params: { id: notification.relatedItemId } };
-                } else {
-                    ElMessage.warning('评论回复通知无有效跳转链接。');
-                }
-                break;
+  let targetRoute = null;
 
-            default:
-                ElMessage.info('此类型通知暂无直接跳转链接。');
-                console.log('未处理的通知类型:', notification.type, notification);
-                break;
-        }
-    } else {
-        targetRoute = { name: notificationConfig.routeName };
+  switch (notification.type) {
+    case 'NEW_POST_COMMENT':
+      if (notification.relatedItemId) {
+        targetRoute = {
+          name: 'TravelNoteDetail',
+          params: { id: notification.relatedItemId }
+        };
+      } else {
+        ElMessage.warning('评论回复通知无有效跳转链接。');
+        return;
+      }
+      break;
 
-        if (notification.relatedItemId) {
-            targetRoute.params = { id: notification.relatedItemId };
-        } 
-        else if (notification.type.startsWith('ORDER_') && notification.relatedOrderId) {
-            targetRoute.query = { activeTab: notificationConfig.queryTab, orderId: notification.relatedOrderId };
-        } else if (notification.type.startsWith('PACKAGE_') && notification.relatedTourId) {
-            targetRoute.query = { activeTab: notificationConfig.queryTab, tourId: notification.relatedTourId };
-        }
-        else if (notification.type !== 'USER_PAID') {
-            ElMessage.warning('通知相关ID缺失，无法跳转。');
-            console.warn(`通知类型 ${notification.type} 缺失相关ID:`, notification);
-            return;
-        }
-    }
+    case 'NEW_POST_LIKE':
+    case 'NEW_POST_FAVORITE':
+      if (notification.relatedItemId) {
+        targetRoute = {
+          name: 'TravelNoteDetail',
+          params: { id: notification.relatedItemId }
+        };
+      } else {
+        ElMessage.warning('点赞/收藏通知无有效跳转链接。');
+        return;
+      }
+      break;
 
-    // 如果成功构建了目标路由对象，则在新页面打开
-    if (targetRoute) {
-        // 使用 router.resolve() 将路由对象解析成一个完整的 URL
-        const resolvedRoute = router.resolve(targetRoute);
-        if (resolvedRoute && resolvedRoute.href) {
-            window.open(resolvedRoute.href, '_blank'); // 在新标签页打开
-        } else {
-            ElMessage.error('无法解析跳转链接。');
-            console.error('无法解析路由对象到URL:', targetRoute);
-        }
-    }
+    default:
+      ElMessage.info('此类型通知不支持跳转。');
+      console.log('阻止跳转的通知类型:', notification.type);
+      return;
+  }
+
+  // 成功构建路由后，在新标签页打开
+  const resolvedRoute = router.resolve(targetRoute);
+  if (resolvedRoute && resolvedRoute.href) {
+    window.open(resolvedRoute.href, '_blank');
+  } else {
+    ElMessage.error('无法解析跳转链接。');
+    console.error('路由解析失败:', targetRoute);
+  }
 };
+
 
 
 // 获取通知来源文本
