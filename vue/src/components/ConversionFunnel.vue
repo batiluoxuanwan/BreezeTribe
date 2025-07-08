@@ -28,7 +28,7 @@
           :remote-method="searchPackages"
           placeholder="请输入关键词搜索"
           :loading="searching"
-        >
+          value-key="id"  >
           <el-option
             v-for="pkg in searchResults"
             :key="pkg.id"
