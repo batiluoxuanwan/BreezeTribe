@@ -16,4 +16,6 @@ public class MerchantSummaryDto {
     //执照
     private String businessLicense;
     private String companyName;
+    private String phone;
+    private String email;
 }

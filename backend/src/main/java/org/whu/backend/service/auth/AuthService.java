@@ -25,6 +25,7 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import static org.whu.backend.dto.ai.ContentGenerationRequestDto.RequestRole.MERCHANT;
+import static org.whu.backend.entity.accounts.Merchant.status.APPROVED;
 import static org.whu.backend.entity.accounts.Merchant.status.PENDING;
 import static org.whu.backend.entity.accounts.Role.ROLE_MERCHANT;
 import static org.whu.backend.service.DtoConverter.IMAGE_PROCESS;
@@ -161,7 +162,7 @@ public class AuthService {
         Account account = optionalAccount.get();
         if(account.getRole().equals(ROLE_MERCHANT)){
                 Merchant MC= (Merchant) account;
-            if (MC.getApproval()!=PENDING) {
+            if (MC.getApproval()!=APPROVED) {
                 throw new BizException("账号未通过审核");
             }
         }
