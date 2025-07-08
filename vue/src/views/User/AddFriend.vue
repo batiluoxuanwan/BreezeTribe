@@ -30,7 +30,7 @@
     >
       <div class="user-info">
         <img
-          :src="user.avatar || defaultAvatar"
+          :src="user.avatarUrl || defaultAvatar"
           alt="avatar"
           class="user-avatar"
         />
@@ -290,7 +290,7 @@ const acceptFriendRequest = async (requestId) => {
     console.log('接受好友请求API响应:', res); 
 
     if (res.data && res.data.code === 200) {
-      ElMessage.success('已接受好友请求！');
+      //ElMessage.success('已接受好友请求！');
       fetchReceivedRequests();
     } else {
       ElMessage.warning(res.data.message || '接受请求失败');
@@ -327,7 +327,7 @@ const rejectFriendRequest = async (requestId) => {
         }
       }
     ); if (res.data.code === 200) {
-      ElMessage.success('已拒绝好友请求！');
+      //ElMessage.success('已拒绝好友请求！');
       fetchReceivedRequests(); 
     } else {
       if (res.data.code === 400 && res.data.message.includes("找不到")) {
