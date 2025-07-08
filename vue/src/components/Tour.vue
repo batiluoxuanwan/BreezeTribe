@@ -14,8 +14,9 @@
           <span class="duration">{{ tour.durationInDays }}天</span>
         </div>
         <div class="tour-price-wrapper">
-          <span class="tour-price">¥{{ tour.price }}</span>
-          <span class="price-unit">起</span>
+          <span class="tour-price" v-if="tour.price > 0">¥{{ tour.price }}</span>
+          <span class="price-unit" v-if="tour.price > 0">起</span>
+          <span class="no-tours-available" v-else>暂无可用团期</span>
         </div>
         <el-button type="primary" size="small" class="view-details-button" @click.stop="goToDetail">
           查看详情 

@@ -184,6 +184,8 @@ public class AdminService {
                     dto.setName(mc.getUsername());
                     dto.setBusinessLicense(mc.getBusinessLicense());
                     dto.setCompanyName(mc.getCompanyName());
+                    dto.setPhone(mc.getPhone());
+                    dto.setEmail(mc.getEmail());
 //                    dto.setBusinessPermitUrl(mc.getBusinessPermitUrl());
 //                    dto.setIdCardUrl1(mc.getIdCardUrl1());
 //                    dto.setIdCardUrl2(mc.getIdCardUrl2());
@@ -225,14 +227,14 @@ public class AdminService {
     }
 
 
-    public boolean rejectMerchants(@PathVariable String merchantId, @RequestBody RejectionRequestDto rejectionDto) {
+    public boolean rejectMerchants(@PathVariable String merchantId, @RequestBody(required = false) RejectionRequestDto rejectionDto) {
         Merchant merchant = JpaUtil.getOrThrow(merchantRepository, merchantId, "商家不存在");
         if (!PENDING.equals(merchant.getApproval())) {
             throw new BizException("当前状态不可驳回");
         }
 
         merchant.setApproval(Merchant.status.REJECTED);
-        merchant.setRejectionReason(rejectionDto.getReason());
+        merchant.setRejectionReason(rejectionDto != null ? rejectionDto.getReason() : null);
         merchantRepository.save(merchant);
 
 //TODO: 记录驳回原因
@@ -519,6 +521,9 @@ public class AdminService {
         LocalDateTime start = dateTimeRange.getLeft();
         LocalDateTime end = dateTimeRange.getRight();
 
+        log.info(String.valueOf(start));
+        log.info(String.valueOf(end));
+
         // 3. 查询数据
         List<Object[]> rawData = switch (period.toLowerCase()) {
             case "day" -> travelOrderRepository.countOrderStatsByDay(start, end, merchantId);
@@ -654,7 +659,7 @@ public class AdminService {
         return Math.round(value * Math.pow(10, digits)) / Math.pow(10, digits);
     }
 
-    @Scheduled(cron = "0 16 15 * * ?") // 每小时刷新一次
+    @Scheduled(cron = "0 55 9 * * ?") // 每小时刷新一次
     @Transactional
     public void refreshMerchantAverageRatings() {
         // 获取所有商家
@@ -665,9 +670,14 @@ public class AdminService {
             List<TravelPackage> packages = travelPackageRepository
                     .findByDealerAndStatus(merchant, TravelPackage.PackageStatus.PUBLISHED);
 
+            // 筛掉没有评分（averageRating == 0）的旅行团
+            List<TravelPackage> ratedPackages = packages.stream()
+                    .filter(pkg -> pkg.getAverageRating() > 0)
+                    .toList();
+
             // 计算平均评分
-            double avg = packages.isEmpty() ? 0.0 :
-                    packages.stream()
+            double avg = ratedPackages.isEmpty() ? 0.0 :
+                    ratedPackages.stream()
                             .mapToDouble(TravelPackage::getAverageRating)
                             .average()
                             .orElse(0.0);

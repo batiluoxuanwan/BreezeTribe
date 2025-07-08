@@ -105,7 +105,7 @@ const newMessage = ref('');
 const messagesBox = ref(null);
 
 
-// --- 新增：监听 friendId 变化并加载数据 ---
+// --- 监听 friendId 变化并加载数据 ---
 watch(() => props.friendId, async (newFriendId, oldFriendId) => {
   if (newFriendId && newFriendId !== oldFriendId) { // 确保 friendId 有效且确实发生了变化
     console.log(`Friend ID changed from ${oldFriendId} to ${newFriendId}`);
@@ -117,7 +117,7 @@ watch(() => props.friendId, async (newFriendId, oldFriendId) => {
   }
 }, { immediate: true }); // immediate: true 确保组件初次渲染时也会执行一次
 
-// 优化：封装历史消息拉取逻辑
+// 封装历史消息拉取逻辑
 const fetchHistoryMessages = async (targetFriendId) => {
   try {
     const res = await authAxios.get('/messages/' + targetFriendId, {
@@ -146,7 +146,7 @@ const fetchCurrentUser = async () => {
     });
     if (res.data.code === 200) {
       Object.assign(user, res.data.data);
-      console.log('✅✅✅✅✅✅✅✅✅✅✅✅当前用户:', user);
+      console.log('当前用户:', user);
     } else {
       ElMessage.error(res.data.message || '获取当前用户失败');
     }
@@ -163,7 +163,7 @@ const fetchFriendInfo = async (friendIdToFetch) => { // 接受参数 friendIdToF
     });
     if (res.data.code === 200) {
       Object.assign(friend, res.data.data);
-      console.log('✅✅✅✅✅✅✅✅✅✅✅✅好友信息:', friend);
+      console.log('好友信息:', friend);
     } else {
       ElMessage.error(res.data.message || '获取好友信息失败');
       // 如果获取失败，清空或重置 friend 信息，避免显示旧数据
@@ -223,11 +223,10 @@ function scrollToBottom() {
 </script>
 
 <style scoped>
-/* 确保这些 Tailwind CSS 类在你的项目中已配置并正常工作 */
 .h-screen { height: 100vh; }
 .bg-gray-50 { background-color: #f9fafb; }
 .px-4 { padding-left: 1rem; padding-right: 1rem; }
-.md\:px-8 { /* for medium screens and up */ padding-left: 2rem; padding-right: 2rem; }
+.md\:px-8 {  padding-left: 2rem; padding-right: 2rem; }
 .pt-4 { padding-top: 1rem; }
 .flex { display: flex; }
 .flex-col { flex-direction: column; }
@@ -257,8 +256,8 @@ function scrollToBottom() {
 .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
 .rounded-2xl { border-radius: 1rem; }
 .rounded-bl-none { border-bottom-left-radius: 0px; }
-.max-w-\[70\%\] { max-width: 70%; } /* Custom utility, ensure it works with your Tailwind config */
-.bg-blue-500 { background-color: #3b82f6; }
+.max-w-\[70\%\] { max-width: 70%; } 
+.bg-blue-500 { background-color: #41b1a2; }
 .text-white { color: #fff; }
 .rounded-br-none { border-bottom-right-radius: 0px; }
 .border-t { border-top-width: 1px; border-color: #e5e7eb; }
@@ -270,15 +269,14 @@ function scrollToBottom() {
 .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
 .mr-4 { margin-right: 1rem; }
 .focus\:outline-none { outline: 2px solid transparent; outline-offset: 2px; }
-.focus\:ring-2 { --tw-ring-offset-width: 0px; --tw-ring-offset-color: #fff; --tw-ring-color: #3b82f6; ring-width: 2px; }
+.focus\:ring-2 { --tw-ring-offset-width: 0px; --tw-ring-offset-color: #fff; --tw-ring-color: #4fc2af; ring-width: 2px; }
 .focus\:ring-blue-400 { --tw-ring-opacity: 1; ring-color: rgb(96 165 250 / var(--tw-ring-opacity)); }
-.hover\:bg-blue-600:hover { background-color: #2563eb; }
+.hover\:bg-blue-600:hover { background-color: #3ab6a5; }
 .transition { transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms; }
 
-/* Custom styles for the dialog's content area to ensure h-screen works */
 .el-dialog__body {
-  padding: 0 !important; /* Remove default padding of El-dialog body */
-  height: calc(100vh - 10vh - 54px - 16px); /* Adjust based on dialog top and header height if any, 54px for default header height, 16px for potential default padding */
+  padding: 0 !important; 
+  height: calc(100vh - 10vh - 54px - 16px); 
   display: flex;
   flex-direction: column;
 }
