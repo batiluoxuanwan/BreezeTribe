@@ -182,10 +182,11 @@ public class AdminService {
                     MerchantSummaryDto dto = new MerchantSummaryDto();
                     dto.setId(mc.getId());
                     dto.setName(mc.getUsername());
-                    dto.setBusinessLicenseUrl(mc.getBusinessLicenseUrl());
-                    dto.setBusinessPermitUrl(mc.getBusinessPermitUrl());
-                    dto.setIdCardUrl1(mc.getIdCardUrl1());
-                    dto.setIdCardUrl2(mc.getIdCardUrl2());
+                    dto.setBusinessLicense(mc.getBusinessLicense());
+                    dto.setCompanyName(mc.getCompanyName());
+//                    dto.setBusinessPermitUrl(mc.getBusinessPermitUrl());
+//                    dto.setIdCardUrl1(mc.getIdCardUrl1());
+//                    dto.setIdCardUrl2(mc.getIdCardUrl2());
                     return dto;
                 })
                 .toList();

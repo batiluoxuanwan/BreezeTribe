@@ -10,4 +10,6 @@ public class RegisterRequest {
     private String password;
     private String code;
     private Role role;
+    private String companyname;
+    private String businesslicensenumber;
 }
