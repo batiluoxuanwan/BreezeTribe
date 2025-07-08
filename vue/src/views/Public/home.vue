@@ -314,7 +314,7 @@ onMounted(() => {
 const doSearch = () => {
   if (keyword.value.trim()) {
     console.log('keyword:', keyword.value)
-    router.push({ name: '旅行广场', query: { keyword: keyword.value, tab: 'group' , page: 1 } })
+    router.push({ name: '旅行广场', query: { keyword: keyword.value, tab: 'groups' , page: 1 } })
   }
 }
 </script>

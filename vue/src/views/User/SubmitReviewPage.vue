@@ -337,7 +337,7 @@ onMounted(() => {
 }
 
 .delete-button:hover {
-  background-color: #E6A23C; /* 悬停时颜色略深 */
+  background-color: #E6A23C; 
   border-color: #E6A23C;
 }
 
@@ -347,9 +347,9 @@ onMounted(() => {
 }
 
 .back-button:hover {
-  background-color: #f2f6fc;
-  border-color: #c6e2ff;
-  color: #409eff;
+  background-color: #f2fbfc;
+  border-color: #a6dfe1;
+  color: #4bc9ae;
 }
 
 .package-info { /* 类名从 .order-details 更改 */
