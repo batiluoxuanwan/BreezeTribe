@@ -12,7 +12,7 @@
       <el-card class="filter-card">
         <el-form :inline="true" :model="searchForm" class="search-form">
           <el-form-item label="搜索">
-            <el-input v-model="searchForm.keyword" placeholder="搜索标题/内容" clearable ></el-input>
+            <el-input v-model="searchForm.keyword" placeholder="搜索标题/内容" clearable @keyup.enter="applyFilters"></el-input>
           </el-form-item>
           <el-form-item>
             <!-- <el-button type="primary" @click="applyFilters">搜索</el-button> -->

@@ -49,6 +49,12 @@
             class="gallery-image"
             @click="previewImage(imageUrl, note.imageUrls)"
           />
+          <el-image-viewer
+            v-if="showImageViewer"
+            :url-list="imagePreviewList"
+            :initial-index="imagePreviewIndex"
+            @close="closeImageViewer"
+          />
         </div>
 
         <div v-if="note.spot" class="note-spot">
@@ -317,7 +323,7 @@
 <script setup>
 import { ref, onMounted , computed, watch,reactive,h,nextTick} from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ElMessage,ElMessageBox,ElForm, ElFormItem, ElInput, ElInputNumber,ElSelect,ElOption } from 'element-plus';
+import { ElMessage,ElMessageBox,ElForm, ElFormItem, ElInput, ElInputNumber,ElSelect,ElOption,ElImageViewer } from 'element-plus';
 import { ArrowLeft, Star, ChatDotRound ,Delete,Warning} from '@element-plus/icons-vue';
 import { publicAxios,authAxios } from '@/utils/request'; 
 import { useAuthStore } from '@/stores/auth';
@@ -354,6 +360,24 @@ const repliesCurrentPageForComment = reactive({}); // 用于控制每个评论�
 const activeReplyInputId = ref(null); // 当前显示回复输入框的评论ID (即点击了"回复"按钮的评论)
 const replyContent = ref(''); // 回复输入框的内容
 const currentReplyTarget = ref(null); // 当前回复的目标（可能是主评论，也可能是某个回复）
+
+// --- 图片预览相关变量 ---
+const showImageViewer = ref(false);
+const imagePreviewList = ref([]);
+const imagePreviewIndex = ref(0);
+
+// --- 图片预览功能 ---
+const previewImage = (currentImageUrl, allImageUrls) => {
+  imagePreviewList.value = allImageUrls;
+  imagePreviewIndex.value = allImageUrls.indexOf(currentImageUrl); // 查找当前点击图片在列表中的索引
+  showImageViewer.value = true;
+};
+
+const closeImageViewer = () => {
+  showImageViewer.value = false;
+  imagePreviewList.value = []; // 清空列表，释放内存
+  imagePreviewIndex.value = 0; // 重置索引
+};
 
 // 获取互动状态
 const fetchInteractionStatus = async (itemId) => {
@@ -934,7 +958,7 @@ const reportItem = async (itemId, itemType, itemName) => {
   }
 
   try {
-    // 步骤 1: 确认举报
+    // 确认举报
     await ElMessageBox.confirm(
       `确定要举报此${itemName}吗？举报后管理员将进行审核。`,
       '确认举报',
@@ -1251,6 +1275,8 @@ watch(
 /* 游记内容区域 */
 .note-content {
   padding: 10px 0; /* 调整内容内边距 */
+  word-break: break-word;
+  line-height: 1.6;
 }
 
 /* 封面图片容器 */
