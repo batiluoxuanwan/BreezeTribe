@@ -25,8 +25,7 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import static org.whu.backend.dto.ai.ContentGenerationRequestDto.RequestRole.MERCHANT;
-import static org.whu.backend.entity.accounts.Merchant.status.APPROVED;
-import static org.whu.backend.entity.accounts.Merchant.status.PENDING;
+import static org.whu.backend.entity.accounts.Merchant.status.*;
 import static org.whu.backend.entity.accounts.Role.ROLE_MERCHANT;
 import static org.whu.backend.service.DtoConverter.IMAGE_PROCESS;
 
@@ -162,8 +161,13 @@ public class AuthService {
         Account account = optionalAccount.get();
         if(account.getRole().equals(ROLE_MERCHANT)){
                 Merchant MC= (Merchant) account;
+            if(MC.getApproval()==REJECTED){
+                if(MC.getBanReason()!=null)
+                    throw new BizException("账号已被拒绝,拒绝原因：" + MC.getBanReason()+"/n请联系管理员:breezetribe@gamil.com");
+                throw new BizException("账号已被拒绝,请联系管理员:breezetribe@gamil.com");
+            }
             if (MC.getApproval()!=APPROVED) {
-                throw new BizException("账号未通过审核");
+                throw new BizException("账号正在审核中！");
             }
         }
         if (account.getBanDurationDays() != 0) {

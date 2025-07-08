@@ -101,7 +101,7 @@ public class DataController {
         return Result.success("团期列表查询成功", resultPage);
     }
 
-    @PreAuthorize("hasRole('MERCHANT')") // 确保只有管理员能访问
+    @PreAuthorize("hasRole('MERCHANT')") //能访问
     @Operation(summary = "获取参与人数与收入流水统计")
     @GetMapping("/checkorder")
     public Result<Map<String, Object>> checkOrder(
@@ -113,7 +113,7 @@ public class DataController {
         return Result.success(data);
     }
 
-    @PreAuthorize("hasRole('MERCHANT')") // 确保只有管理员能访问
+    @PreAuthorize("hasRole('MERCHANT')") // 能访问
     @Operation(summary = "获取旅游团转化漏斗图数据", description = "统计某旅游团在指定时间范围内的浏览、收藏、拼团/分享、下单等行为数量")
     @GetMapping("/conversion-funnel")
     public Result<Map<String, Object>> getConversionFunnel(

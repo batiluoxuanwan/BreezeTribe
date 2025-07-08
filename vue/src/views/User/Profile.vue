@@ -64,6 +64,13 @@
           <span>我的素材库</span>
         </div>
         <div
+          :class="{ 'menu-item': true, 'active': activeTab === 'tourAdvisor' }"
+          @click="activeTab = 'tourAdvisor'"
+        >
+          <el-icon><Avatar /></el-icon>
+          <span>智能旅行顾问</span>
+        </div>
+        <div
           :class="{ 'menu-item': true, 'active': activeTab === 'systemSettings' }"
           @click="activeTab = 'systemSettings'"
         >
@@ -87,6 +94,8 @@
       <MyFriends v-if="activeTab === 'friends'" />
 
       <MyMediaLibrary v-if="activeTab === 'images'" />
+
+      <SmartTourAdvisor v-if="activeTab === 'tourAdvisor'" />
 
       <div v-if="activeTab === 'systemSettings'" class="settings-section">
         <AccountOverview @userUpdated="handleUserUpdated" />
@@ -113,6 +122,7 @@ import MyFriends from '@/components/profile/MyFriends.vue'
 import MyReviews from '@/components/profile/MyReviews.vue' 
 import AccountOverview from '@/components/AccountOverview.vue' 
 import MyMediaLibrary from '@/components/profile/MyMediaLibrary.vue' 
+import SmartTourAdvisor from '@/components/AI/SmartTourAdvisor.vue';
 const router = useRouter();
 const route = useRoute();
 const notificationStore = useNotificationStore();

@@ -227,14 +227,14 @@ public class AdminService {
     }
 
 
-    public boolean rejectMerchants(@PathVariable String merchantId, @RequestBody RejectionRequestDto rejectionDto) {
+    public boolean rejectMerchants(@PathVariable String merchantId, @RequestBody(required = false) RejectionRequestDto rejectionDto) {
         Merchant merchant = JpaUtil.getOrThrow(merchantRepository, merchantId, "商家不存在");
         if (!PENDING.equals(merchant.getApproval())) {
             throw new BizException("当前状态不可驳回");
         }
 
         merchant.setApproval(Merchant.status.REJECTED);
-        merchant.setRejectionReason(rejectionDto.getReason());
+        merchant.setRejectionReason(rejectionDto != null ? rejectionDto.getReason() : null);
         merchantRepository.save(merchant);
 
 //TODO: 记录驳回原因
@@ -520,6 +520,9 @@ public class AdminService {
         Pair<LocalDateTime, LocalDateTime> dateTimeRange = ChartDataUtil.toDateTimeRange(startDate, endDate);
         LocalDateTime start = dateTimeRange.getLeft();
         LocalDateTime end = dateTimeRange.getRight();
+
+        log.info(String.valueOf(start));
+        log.info(String.valueOf(end));
 
         // 3. 查询数据
         List<Object[]> rawData = switch (period.toLowerCase()) {
