@@ -169,6 +169,11 @@ watch([() => props.friendId, () => props.visible], async ([newFriendId, newVisib
   }
 }, { immediate: true }); 
 
+// --- 监听 messages 数组变化以滚动到底部 ---
+watch(messages, () => {
+  scrollToBottom();
+}, { deep: true }); // 深度监听数组内部的变化
+
 // 封装历史消息拉取逻辑
 const fetchHistoryMessages = async (targetFriendId) => {
   try {
