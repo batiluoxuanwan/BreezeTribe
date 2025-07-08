@@ -13,7 +13,8 @@
       <div class="card-info">
         <span>时长: {{ group.durationInDays }}天</span>
         <!-- <span>人数: {{ group.members }}人</span> -->
-        <span>评分: {{ group.averageRating }}</span>
+        <span v-if="group.averageRating > 0">评分: {{ group.averageRating }}</span>
+        <span class="no-tours-available" v-else>暂无评分</span>
       </div>
       <el-button type="primary" size="small" class="detail-button" @click.stop="goToDetail">查看详情</el-button>
     </div>
