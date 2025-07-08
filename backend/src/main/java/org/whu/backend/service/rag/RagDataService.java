@@ -103,49 +103,34 @@ public class RagDataService {
      * @return 包含XLSX文件内容的字节数组
      */
     public byte[] exportKnowledgeToXlsxBytes() throws IOException {
-        // 查找所有已发布的旅行团
-        List<TravelPackage> packages = travelPackageRepository.findByStatus(TravelPackage.PackageStatus.PUBLISHED);
+        // 1. 【重大改变】直接从 rag_knowledge_base 表中查询所有已处理好的数据
+        List<RagKnowledgeEntry> entries = ragKnowledgeEntryRepository.findAll();
+        log.info("服务层：准备从知识库导出 {} 条数据到XLSX...", entries.size());
 
-        // 使用 Apache POI 创建一个 XLSX 工作簿
+        // 2. 使用 Apache POI 创建一个 XLSX 工作簿
         try (XSSFWorkbook workbook = new XSSFWorkbook()) {
-            XSSFSheet sheet = workbook.createSheet("旅游团信息");
+            XSSFSheet sheet = workbook.createSheet("旅游团知识库");
 
-            // 1. 创建表头 (必须与你在百炼平台创建的“数据表”列名完全对应)
-            String[] headers = {"ID", "名称", "内容", "起步价", "天数"};
+            // 3. 创建表头，严格与 RagKnowledgeEntry 实体字段对应
+            String[] headers = {"id", "name", "startingPrice", "durationInDays", "content"};
             Row headerRow = sheet.createRow(0);
             for (int i = 0; i < headers.length; i++) {
                 Cell cell = headerRow.createCell(i);
                 cell.setCellValue(headers[i]);
             }
 
-            // 2. 填充数据行
+            // 4. 【重大改变】填充数据行，直接使用 RagKnowledgeEntry 的字段
             int rowNum = 1;
-            for (TravelPackage pkg : packages) {
-                // 1. 【新增】计算该产品所有团期中的最低价作为“起价”
-                Optional<BigDecimal> minPriceOpt = pkg.getDepartures().stream()
-                        .filter(d -> d.getStatus() == TravelDeparture.DepartureStatus.OPEN) // 只考虑可报名的团期
-                        .map(TravelDeparture::getPrice)
-                        .min(Comparator.naturalOrder());
-
-                // 如果没有可报名的团期，可以跳过或设置一个默认行为
-                if (minPriceOpt.isEmpty()) {
-                    log.warn("产品ID '{}' 没有找到任何可报名的团期，跳过同步。", pkg.getId());
-                    continue;
-                }
-
+            for (RagKnowledgeEntry entry : entries) {
                 Row row = sheet.createRow(rowNum++);
-
-                // 注意：这里的顺序必须和表头顺序一致
-                row.createCell(0).setCellValue(pkg.getId());
-                row.createCell(1).setCellValue(pkg.getTitle());
-                // “内容”列，我们依然使用之前写好的 buildContentForPackage 方法来生成详细描述
-                row.createCell(2).setCellValue(buildContentForPackage(pkg,minPriceOpt.get()));
-                //价格需要转为double类型，Excel才能识别为数字
-                row.createCell(3).setCellValue(pkg.getPrice().doubleValue());
-                row.createCell(4).setCellValue(pkg.getDurationInDays());
+                row.createCell(0).setCellValue(entry.getId());
+                row.createCell(1).setCellValue(entry.getName());
+                row.createCell(2).setCellValue(entry.getStartingPrice().doubleValue());
+                row.createCell(3).setCellValue(entry.getDurationInDays());
+                row.createCell(4).setCellValue(entry.getContent());
             }
 
-            // 3. 将工作簿写入内存中的字节流
+            // 5. 将工作簿写入内存中的字节流
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             workbook.write(baos);
             return baos.toByteArray();
