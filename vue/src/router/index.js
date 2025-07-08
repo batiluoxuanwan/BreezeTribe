@@ -30,6 +30,7 @@ const routes =[
     {
         path:'/user/publish-travel-note',
         name:'用户发布游记',
+        props: true,
         component:() =>import('../views/User/PublishTravelNote.vue')
     },
     {

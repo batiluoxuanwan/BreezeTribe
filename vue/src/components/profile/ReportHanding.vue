@@ -340,8 +340,11 @@ watch([currentPage, pageSize, filterStatus], () => {
 </script>
 
 <style scoped>
+.admin-report-handling-container{
+    max-width: 970px;
+}
+
 .box-card {
-  max-width: 1120px;
   margin: 0 auto;
   border-radius: 8px;
 }

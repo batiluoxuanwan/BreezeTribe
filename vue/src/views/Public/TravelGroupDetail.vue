@@ -379,7 +379,10 @@ const goBack = () => {
     router.push({ name: '旅行广场', query: { tab: 'groups' } });
   }else if(from === 'home'){
     router.push('/')
-  }else{
+  }else if(from === 'smartAdvisor'){
+    router.push({ name: '用户个人主页', query: { tab: 'tourAdvisor' } })
+  }
+  else{
     router.push('/')
   }
 };
