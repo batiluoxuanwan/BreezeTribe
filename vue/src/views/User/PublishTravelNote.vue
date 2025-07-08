@@ -332,14 +332,14 @@ const handleMediaChange = (file) => {
     return false; 
   }
   const isJPGPNG = file.raw.type === 'image/jpeg' || file.raw.type === 'image/png';
-  const isLt1000K = file.raw.size / 1024 < 1000; 
+  const isLt8000K = file.raw.size / 1024 < 8000; 
 
   if (!isJPGPNG) {
     ElMessage.error('图片只能是 JPG 或 PNG 格式！');
     return false;
   }
-  if (!isLt1000K) {
-    ElMessage.error('图片大小不能超过 1MB！');
+  if (!isLt8000K) {
+    ElMessage.error('图片大小不能超过 8MB！');
     return false;
   }
   return true; 
