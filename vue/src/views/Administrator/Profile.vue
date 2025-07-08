@@ -124,7 +124,28 @@
                 </el-button>
               </template>
             </el-table-column>
-          </el-table>
+            </el-table>
+            <el-pagination
+              background
+              layout="prev, pager, next"
+              :total="pendingMerchantTotal"
+              :page-size="merchantPageSize"
+              v-model:current-page="pendingMerchantPage"
+              @current-change="fetchPendingMerchants"
+              class="pagination-bottom"
+            />
+            <!-- <h3 class="tab-header">团长注册审核</h3>
+            <el-table :data="pendingMerchants" v-loading="pendingMerchantLoading" style="width: 100%" class="admin-table">
+              <el-table-column prop="username" label="用户名" />
+              <el-table-column prop="companyName" label="公司名称" />
+              <el-table-column prop="email" label="联系邮箱" />
+              <el-table-column label="操作" width="200">
+                <template #default="{ row }">
+                  <el-button link type="success" size="small" @click="approveMerchant(row.id)">通过</el-button>
+                  <el-button link type="danger" size="small" @click="openRejectDialog(row)">驳回</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
           <el-pagination
             background
             layout="prev, pager, next"
@@ -133,7 +154,7 @@
             v-model:current-page="merchantCurrentPage"
             @current-change="fetchMerchants"
             class="pagination-bottom"
-          />
+          /> -->
         </el-tab-pane>
 
         <el-tab-pane label="旅行团审核" name="tourReview">
@@ -230,6 +251,21 @@
         <el-button @click="tourDetailsDialog = false">取消</el-button>
         <el-button type="danger" @click="rejectTour(selectedTour.id)">拒绝</el-button>
         <el-button type="success" @click="approveTour(selectedTour.id)">通过</el-button>
+      </template>
+    </el-dialog>
+        <el-dialog v-model="rejectDialogVisible" title="驳回商户注册" width="500px">
+      <p>请输入驳回理由：</p>
+      <el-input
+        v-model="rejectReason"
+        type="textarea"
+        rows="4"
+        placeholder="请说明驳回理由"
+        maxlength="200"
+        show-word-limit
+      />
+      <template #footer>
+        <el-button @click="rejectDialogVisible = false">取消</el-button>
+        <el-button type="danger" @click="submitReject">确认驳回</el-button>
       </template>
     </el-dialog>
   </div>
@@ -676,6 +712,85 @@ const handleUserUpdated = () => {
   console.log('Parent: User update notification received from child. Re-fetching user profile...');
   fetchAdminInfo();
 };
+
+// // 商户注册审核列表
+// const pendingMerchants = ref([]);
+// const pendingMerchantPage = ref(1);
+// const pendingMerchantTotal = ref(0);
+// const pendingMerchantLoading = ref(false);
+
+// // 驳回对话框
+// const rejectDialogVisible = ref(false);
+// const rejectReason = ref('');
+// const rejectTargetMerchant = ref(null);
+
+// // 获取待审核商户列表
+// const fetchPendingMerchants = async () => {
+//   pendingMerchantLoading.value = true;
+//   try {
+//     const res = await authAxios.get('/admin/approvals/merchants', {
+//       params: {
+//         page: pendingMerchantPage.value,
+//         size: merchantPageSize.value,
+//       }
+//     });
+//     if (res.data.code === 200 && res.data.data) {
+//       pendingMerchants.value = res.data.data.content || [];
+//       pendingMerchantTotal.value = res.data.data.totalElements;
+//     }
+//   } catch (err) {
+//     ElMessage.error('加载待审核商户失败');
+//   } finally {
+//     pendingMerchantLoading.value = false;
+//   }
+// };
+
+// // 打开驳回理由弹窗
+// const openRejectDialog = (merchant) => {
+//   rejectTargetMerchant.value = merchant;
+//   rejectReason.value = '';
+//   rejectDialogVisible.value = true;
+// };
+
+// // 确认驳回商户注册
+// const submitReject = async () => {
+//   const id = rejectTargetMerchant.value?.id;
+//   if (!id || !rejectReason.value.trim()) {
+//     ElMessage.warning('请填写驳回理由');
+//     return;
+//   }
+
+//   try {
+//     const res = await authAxios.post(`/admin/approvals/merchants/${id}/reject`, {
+//       reason: rejectReason.value.trim()
+//     });
+
+//     if (res.data.code === 200) {
+//       ElMessage.success('已驳回商户注册申请');
+//       rejectDialogVisible.value = false;
+//       fetchPendingMerchants(); // 刷新数据
+//     } else {
+//       ElMessage.error(res.data.message || '驳回失败');
+//     }
+//   } catch (error) {
+//     ElMessage.error('网络错误或权限不足');
+//   }
+// };
+
+// // 通过商户注册（接口可根据后端定义补充）
+// const approveMerchant = async (id) => {
+//   try {
+//     const res = await authAxios.post(`/admin/approvals/merchants/${id}/approve`);
+//     if (res.data.code === 200) {
+//       ElMessage.success('商户注册已通过');
+//       fetchPendingMerchants();
+//     } else {
+//       ElMessage.error(res.data.message || '操作失败');
+//     }
+//   } catch (e) {
+//     ElMessage.error('请求失败');
+//   }
+// };
 
 // --- 初始化数据 ---
 onMounted(() => {

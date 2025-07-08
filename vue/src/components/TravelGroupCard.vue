@@ -8,7 +8,8 @@
     </div>
     <div class="card-content">
       <h3 class="card-title">{{ group.title }}</h3>
-      <p class="card-price">¥{{ group.price }} 起</p>
+      <p class="card-price" v-if="group.price > 0">¥{{ group.price }} 起</p>
+      <span class="no-tours-available" v-else>暂无可用团期</span>
       <div class="card-info">
         <span>时长: {{ group.durationInDays }}天</span>
         <!-- <span>人数: {{ group.members }}人</span> -->
