@@ -113,7 +113,7 @@ const fetchNotes = async (reset = false) => {
       // 判断是否加载完所有数据
       if (notes.value.length >= totalNotes.value) {
         noMoreNotes.value = true;
-        ElMessage.info("所有游记已加载完毕。");
+        //ElMessage.info("所有游记已加载完毕。");
       } else {
         // ElMessage.success(`成功加载第 ${nextPage} 页游记！`); // 加载成功提示
       }

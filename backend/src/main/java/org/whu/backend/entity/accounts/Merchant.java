@@ -12,13 +12,13 @@ import lombok.Data;
 @DiscriminatorValue("MERCHANT")
 public class Merchant extends Account {
     //营业执照
-    private String businessLicenseUrl;
+    private String businessLicense;
     //营业许可证
     private String businessPermitUrl;
     //身份证(正反两面)
     private String idCardUrl1;
     private String idCardUrl2;
-
+    private String companyName;
     private String rejectionReason;
     // 审核状态
     public enum status {

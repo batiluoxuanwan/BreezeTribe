@@ -6,10 +6,10 @@ import { useAuthStore } from './auth'  // ⬅ 用于获取当前用户 ID
 export const useChatStore = defineStore('chatStore', () => {
     const authStore = useAuthStore()
 
-    // ✅ 所有消息，结构为：{ friendId: [msg1, msg2, ...] }
+    // 所有消息，结构为：{ friendId: [msg1, msg2, ...] }
     const messages = reactive({})
 
-    // ✅ 未读消息计数，结构为：{ friendId: count }
+    // 未读消息计数，结构为：{ friendId: count }
     const unread = reactive({})
 
     /**
@@ -26,7 +26,7 @@ export const useChatStore = defineStore('chatStore', () => {
 
         messages[friendId].push(msg)
 
-        // ✅ 可选：根据时间戳排序，避免乱序
+        // 根据时间戳排序，避免乱序
         messages[friendId].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
     }
 

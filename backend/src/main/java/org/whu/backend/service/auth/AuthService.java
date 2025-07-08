@@ -24,7 +24,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
+import static org.whu.backend.dto.ai.ContentGenerationRequestDto.RequestRole.MERCHANT;
 import static org.whu.backend.entity.accounts.Merchant.status.PENDING;
+import static org.whu.backend.entity.accounts.Role.ROLE_MERCHANT;
 import static org.whu.backend.service.DtoConverter.IMAGE_PROCESS;
 
 @Service
@@ -98,11 +100,13 @@ public class AuthService {
                 break;
             case ROLE_MERCHANT:
                 Merchant merchant = new Merchant();
-                merchant.setRole(Role.ROLE_MERCHANT);
+                merchant.setRole(ROLE_MERCHANT);
                 merchant.setUsername("新商家" + generatename());
                 //merchant.setEnabled(false);
-                merchant.setBanDurationDays(-1);
+                merchant.setBanDurationDays(0);
                 merchant.setApproval(PENDING);
+                merchant.setBusinessLicense(request.getBusinesslicensenumber());
+                merchant.setCompanyName(request.getCompanyname());
                 // 特有字段暂时不填，后续用接口补充
                 account = merchant;
                 break;
@@ -155,7 +159,12 @@ public class AuthService {
             throw new BizException("账号不存在");
         }
         Account account = optionalAccount.get();
-
+        if(account.getRole().equals(ROLE_MERCHANT)){
+                Merchant MC= (Merchant) account;
+            if (MC.getApproval()!=PENDING) {
+                throw new BizException("账号未通过审核");
+            }
+        }
         if (account.getBanDurationDays() != 0) {
             if (account.getBanDurationDays() == -1)
                 throw new BizException("账号已被永久封禁，如有疑问请联系管理员");

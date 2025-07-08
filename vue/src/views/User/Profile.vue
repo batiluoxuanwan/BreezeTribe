@@ -150,7 +150,7 @@ const fetchUserProfile = async () => {
 
     if (res.data.code === 200) {
       Object.assign(user, res.data.data);
-      ElMessage.success('用户信息获取成功！');
+      //ElMessage.success('用户信息获取成功！');
       console.log('User Profile Data:', user); // 调试用
     } else {
       // 处理非200状态码，显示后端返回的错误信息
@@ -262,7 +262,7 @@ const fetchNotes = async (reset = false) => {
       // 判断是否加载完所有数据
       if (notes.value.length >= totalNotes.value) {
         noMoreNotes.value = true;
-        ElMessage.info('所有游记已加载完毕。');
+        //ElMessage.info('所有游记已加载完毕。');
       } else {
         // ElMessage.success(`成功加载第 ${nextPage} 页游记！`); // 加载成功提示
       }

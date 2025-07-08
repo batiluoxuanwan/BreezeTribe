@@ -47,6 +47,13 @@
           <el-badge v-if="pendingToursCount > 0" :value="pendingToursCount" class="notification-badge" />
         </div>
         <div
+          :class="{ 'menu-item': true, 'active': activeTab === 'reportHanding' }"
+          @click="activeTab = 'reportHanding'"
+        >
+          <el-icon><MagicStick /></el-icon>
+          <span>举报处理</span>
+        </div>
+        <div
           :class="{ 'menu-item': true, 'active': activeTab === 'friends' }"
           @click="activeTab = 'friends'"
         >
@@ -161,8 +168,8 @@
           <h3 class="tab-header">待审核旅行团</h3>
           <el-table :data="pendingTours" v-loading="tourReviewLoading" style="width: 100%" class="admin-table">
             <el-table-column prop="title" label="团名"></el-table-column>
-            <el-table-column prop="merchantName" label="发布团长"></el-table-column>
-            <el-table-column prop="submitDate" label="提交日期"></el-table-column>
+            <el-table-column prop="merchant.username" label="发布团长"></el-table-column>
+            <el-table-column prop="durationInDays" label="天数"></el-table-column>
             <el-table-column label="操作" width="200">
               <template #default="{ row }">
                 <el-button link type="primary" size="small" @click="viewTourDetails(row)">查看详情</el-button>
@@ -181,6 +188,13 @@
             class="pagination-bottom"
           />
         </el-tab-pane>
+
+        <el-tab-pane label="举报处理" name="reportHanding">
+          <div style="margin-bottom: 32px;">
+            <ReportHanding/>
+          </div>
+          </el-tab-pane>
+
 
         <el-tab-pane label="我的好友" name="friends">
           <h3 class="tab-header">我的好友</h3>
@@ -277,7 +291,8 @@ import { User, Shop, PictureFilled, Document, Setting, EditPen, ArrowLeft } from
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { authAxios } from '@/utils/request'; 
 import { useRouter } from 'vue-router';
-import AccountOverview from '@/components/AccountOverview.vue';
+import AccountOverview from '@/components/AccountOverview.vue'  
+import ReportHanding from '@/components/profile/ReportHanding.vue'  
 import MyFriends from '@/components/profile/MyFriends.vue' ;
 import AdminOverview from '@/components/profile/AdminOverview.vue';
 
@@ -837,16 +852,14 @@ const goToHome = () => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  position: sticky;
   top: 40px;
   align-self: flex-start;
-  overflow-y: auto; /* 侧边栏内容过多时可滚动 */
 }
 
 .back-to-home-btn{
   position:absolute;
-  top:10px;
-  left:10px;
+  top:50px;
+  left:50px;
   padding:8px 15px;
   font-size:0.9rem;
   border-radius:8px;
