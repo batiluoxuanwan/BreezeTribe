@@ -958,7 +958,7 @@ const reportItem = async (itemId, itemType, itemName) => {
   }
 
   try {
-    // 步骤 1: 确认举报
+    // 确认举报
     await ElMessageBox.confirm(
       `确定要举报此${itemName}吗？举报后管理员将进行审核。`,
       '确认举报',
@@ -1275,6 +1275,8 @@ watch(
 /* 游记内容区域 */
 .note-content {
   padding: 10px 0; /* 调整内容内边距 */
+  word-break: break-word;
+  line-height: 1.6;
 }
 
 /* 封面图片容器 */

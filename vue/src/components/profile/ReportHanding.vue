@@ -12,9 +12,9 @@
         <el-table-column label="举报人" width="120">
           <template #default="{ row }">
             <el-link v-if="row.reporter && row.reporter.id" type="primary" @click="openUserProfile(row.reporter.id)">
-              {{ row.reporter.username || '匿名用户' }}
+              {{ row.reporter.username || 'AI' }}
             </el-link>
-            <span v-else>匿名用户</span>
+            <span v-else>AI</span>
           </template>
         </el-table-column>
         <el-table-column label="被举报内容" min-width="280">
@@ -341,7 +341,7 @@ watch([currentPage, pageSize, filterStatus], () => {
 
 <style scoped>
 .admin-report-handling-container{
-    max-width: 970px;
+    max-width: 980px
 }
 
 .box-card {

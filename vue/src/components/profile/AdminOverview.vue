@@ -284,7 +284,7 @@ onMounted(() => {
 <style scoped>
 .admin-dashboard {
   padding: 24px;
-  background-color: #f5f5f5;
+  background-color: #eefaf83a;
 }
 
 .grid-row {

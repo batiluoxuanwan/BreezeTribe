@@ -791,7 +791,7 @@ const goToHome = () => {
 }
 
 .sidebar {
-  width: 280px;
+  min-width: 280px;
   background: linear-gradient(135deg, #ffffff, #fdfdfd);
   border-radius: 18px;
   padding: 32px 24px;
