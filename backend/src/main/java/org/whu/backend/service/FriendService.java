@@ -18,6 +18,7 @@ import org.whu.backend.dto.PageResponseDto;
 import org.whu.backend.dto.accounts.ShareDto;
 import org.whu.backend.dto.friend.FriendDto;
 import org.whu.backend.dto.friend.FriendRequestDto;
+import org.whu.backend.entity.Notification;
 import org.whu.backend.entity.accounts.Account;
 import org.whu.backend.entity.association.friend.FriendRequest;
 import org.whu.backend.entity.association.friend.Friendship;
@@ -51,6 +52,8 @@ public class FriendService {
     private PublicService publicService;
     @Autowired
     private DtoConverter dtoConverter;
+    @Autowired
+    private NotificationService notificationService;
 
     public void sendRequest(String toAccountId) {
         String currentAccountId = AccountUtil.getCurrentAccountId();
@@ -75,6 +78,17 @@ public class FriendService {
         request.setTo(toAccount.get());
         request.setStatus(FriendRequest.RequestStatus.PENDING);
         friendRequestRepository.save(request);
+
+        // 发送通知
+        String description = String.format("[%s] 申请添加您为好友", currentAccount.getUsername());
+        notificationService.createAndSendNotification(
+                toAccount.get(),
+                Notification.NotificationType.NEW_FRIEND,
+                description,
+                null,
+                currentAccount,
+                request.getId()
+        );
     }
 
     public void acceptRequest(String requestId) {

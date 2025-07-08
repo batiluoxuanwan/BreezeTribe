@@ -10,12 +10,7 @@
         class="avatar"
       />
       <h2 class="username">{{ adminInfo.username }}</h2>
-      <div class="stats">
-        <div><strong>{{ adminInfo.totalUsers }}</strong><p>注册用户</p></div>
-        <div><strong>{{ adminInfo.totalMerchants }}</strong><p>注册团长</p></div>
-        <div><strong>{{ adminInfo.pendingTours }}</strong><p>待审旅行团</p></div>
-      </div>
-
+      <br>
       <div class="sidebar-menu">
         <div
           :class="{ 'menu-item': true, 'active': activeTab === 'overview' }"
@@ -52,6 +47,12 @@
         >
           <el-icon><MagicStick /></el-icon>
           <span>举报处理</span>
+        </div>
+        <div
+          :class="{ 'menu-item': true, 'active': activeTab === 'ragManagement' }"
+          @click="activeTab = 'ragManagement'"
+        >
+          <el-icon><DataLine /></el-icon> <span>RAG知识库</span>
         </div>
         <div
           :class="{ 'menu-item': true, 'active': activeTab === 'friends' }"
@@ -203,27 +204,29 @@
           />
         </el-tab-pane>
 
-        <el-tab-pane label="举报处理" name="reportHanding">
-          <div style="margin-bottom: 32px;">
-            <ReportHanding/>
-          </div>
-          </el-tab-pane>
+      <div v-if="activeTab === 'reportHanding'">
+        <div style="margin-bottom: 32px;">
+          <ReportHanding/>
+        </div>
+      </div>
 
+      <div v-if="activeTab === 'ragManagement'">
+        <AdminRagManagement />
+      </div>
 
-        <el-tab-pane label="我的好友" name="friends">
-          <h3 class="tab-header">我的好友</h3>
-          <div style="margin-bottom: 32px;">
-            <MyFriends/>
-          </div>
-        </el-tab-pane>
+      <div v-if="activeTab === 'friends'">
+        <h3 class="tab-header">我的好友</h3>
+        <div style="margin-bottom: 32px;">
+          <MyFriends/>
+        </div>
+      </div>
 
-        <el-tab-pane label="系统设置" name="systemSettings">
-          <h3 class="tab-header">系统配置</h3>
-          <div style="margin-bottom: 32px;">
-            <AccountOverview @userUpdated="handleUserUpdated"/>
-          </div>
-        </el-tab-pane>
-      </el-tabs>
+      <div v-if="activeTab === 'systemSettings'">
+        <h3 class="tab-header">系统配置</h3>
+        <div style="margin-bottom: 32px;">
+          <AccountOverview @userUpdated="handleUserUpdated"/>
+        </div>
+      </div>
     </main>
 
     <el-dialog v-model="userDetailsDialog" :title="`用户详情: ${selectedUser.username}`" width="600px">
@@ -294,6 +297,7 @@ import AccountOverview from '@/components/AccountOverview.vue'
 import ReportHanding from '@/components/profile/ReportHanding.vue'  
 import MyFriends from '@/components/profile/MyFriends.vue' ;
 import AdminOverview from '@/components/profile/AdminOverview.vue';
+import AdminRagManagement from '@/components/AdminRagManagement.vue';
 
 
 const router = useRouter();
@@ -901,34 +905,6 @@ const goToHome = () => {
   font-size: 1.4rem;
   font-weight: 700;
   color: #333;
-}
-
-.stats {
-  display: flex;
-  justify-content: space-around;
-  margin: 25px 0 30px;
-  width: 100%;
-}
-
-.stats div {
-  flex: 1;
-  text-align: center;
-  font-size: 15px;
-  color: rgb(0,100,110);
-  padding: 5px 0;
-  border-right: 1px solid #eee;
-}
-
-.stats div:last-child {
-  border-right: none;
-}
-
-.stats strong {
-  display: block;
-  font-size: 20px;
-  color: rgb(0,100,110);
-  margin-bottom: 4px;
-  font-weight: 600;
 }
 
 .sidebar-menu {
