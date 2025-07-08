@@ -11,7 +11,7 @@
                     <div style="display: flex; gap: 10px; margin-bottom: 10px;">
                         <el-select v-model="selectedPeriodUser" placeholder="选择周期" size="small" style="width: 120px" @change="fetchData">
                             <el-option label="日" value="day" />
-                            <el-option label="周" value="week" />
+                            <!-- <el-option label="周" value="week" /> -->
                             <el-option label="月" value="month" />
                         </el-select>
                         <el-select v-model="selectedRole" placeholder="选择用户类型" size="small" style="width: 150px" @change="fetchData">
@@ -50,7 +50,7 @@
                 <div style="display: flex; gap: 10px; margin-bottom: 10px;">
                 <el-select v-model="selectedPeriodTrip" placeholder="选择周期" size="small" style="width: 120px" @change="fetchTripData">
                     <el-option label="日" value="day" />
-                    <el-option label="周" value="week" />
+                    <!-- <el-option label="周" value="week" /> -->
                     <el-option label="月" value="month" />
                 </el-select>
                 </div>

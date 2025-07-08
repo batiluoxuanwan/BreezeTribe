@@ -115,7 +115,7 @@
           <el-input v-model="merchantSearchQuery" placeholder="搜索团长ID、用户名或公司名" clearable @input="debouncedSearchMerchants" class="search-input"></el-input>
           <el-table :data="merchants" v-loading="merchantLoading" style="width: 100%" class="admin-table">
             <el-table-column prop="username" label="用户名"></el-table-column>
-            <el-table-column prop="companyName" label="公司名称"></el-table-column>
+            <el-table-column prop="phone" label="联系电话"></el-table-column>
             <el-table-column prop="email" label="联系邮箱"></el-table-column>
             <el-table-column label="状态" width="100">
               <template #default="{ row }">
@@ -148,11 +148,7 @@
             class="admin-table" >
             <el-table-column prop="name" label="商户名称"></el-table-column>
             <el-table-column prop="companyName" label="公司名称"></el-table-column>
-            <el-table-column label="营业执照" > <template #default="{ row }">
-                <a :href="row.businessLicense" target="_blank" class="license-link" v-if="row.businessLicense">查看营业执照</a>
-                <span v-else>无</span>
-              </template>
-            </el-table-column>
+            <el-table-column prop="businessLicense"label="营业执照" ></el-table-column>
             <el-table-column label="手机/邮箱" > <template #default="{ row }">
                 <span>{{ row.phone || row.email || 'N/A' }}</span>
               </template>
@@ -227,6 +223,7 @@
           <AccountOverview @userUpdated="handleUserUpdated"/>
         </div>
       </div>
+      </el-tabs>
     </main>
 
     <el-dialog v-model="userDetailsDialog" :title="`用户详情: ${selectedUser.username}`" width="600px">
@@ -508,6 +505,7 @@ const fetchMerchants = async () => {
       }
     });
     if (response.data.code === 200 && response.data.data) {
+      console.log('response.data.data',response.data.data)
       merchants.value = response.data.data.content;
       merchantTotal.value = response.data.data.totalElements;
     } else {
@@ -750,6 +748,7 @@ const fetchPendingMerchants = async () => {
     });
 
     if (response.data.code === 200) {
+      console.log('获取待审核商户列表',response.data)
       pendingMerchants.value = response.data.data.content || [];
       pendingMerchantsTotal.value = response.data.data.totalElements || 0;
       // ElMessage.success('待审核商户列表加载成功！'); // 频繁弹出可能干扰
