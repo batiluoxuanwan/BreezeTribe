@@ -234,7 +234,7 @@ public class AdminService {
         }
 
         merchant.setApproval(Merchant.status.REJECTED);
-        merchant.setRejectionReason(rejectionDto.getReason());
+        merchant.setRejectionReason(rejectionDto != null ? rejectionDto.getReason() : null);
         merchantRepository.save(merchant);
 
 //TODO: 记录驳回原因
@@ -520,6 +520,9 @@ public class AdminService {
         Pair<LocalDateTime, LocalDateTime> dateTimeRange = ChartDataUtil.toDateTimeRange(startDate, endDate);
         LocalDateTime start = dateTimeRange.getLeft();
         LocalDateTime end = dateTimeRange.getRight();
+
+        log.info(String.valueOf(start));
+        log.info(String.valueOf(end));
 
         // 3. 查询数据
         List<Object[]> rawData = switch (period.toLowerCase()) {
