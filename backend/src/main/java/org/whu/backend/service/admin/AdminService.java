@@ -184,6 +184,8 @@ public class AdminService {
                     dto.setName(mc.getUsername());
                     dto.setBusinessLicense(mc.getBusinessLicense());
                     dto.setCompanyName(mc.getCompanyName());
+                    dto.setPhone(mc.getPhone());
+                    dto.setEmail(mc.getEmail());
 //                    dto.setBusinessPermitUrl(mc.getBusinessPermitUrl());
 //                    dto.setIdCardUrl1(mc.getIdCardUrl1());
 //                    dto.setIdCardUrl2(mc.getIdCardUrl2());
@@ -654,7 +656,7 @@ public class AdminService {
         return Math.round(value * Math.pow(10, digits)) / Math.pow(10, digits);
     }
 
-    @Scheduled(cron = "0 16 15 * * ?") // 每小时刷新一次
+    @Scheduled(cron = "0 55 9 * * ?") // 每小时刷新一次
     @Transactional
     public void refreshMerchantAverageRatings() {
         // 获取所有商家
@@ -665,9 +667,14 @@ public class AdminService {
             List<TravelPackage> packages = travelPackageRepository
                     .findByDealerAndStatus(merchant, TravelPackage.PackageStatus.PUBLISHED);
 
+            // 筛掉没有评分（averageRating == 0）的旅行团
+            List<TravelPackage> ratedPackages = packages.stream()
+                    .filter(pkg -> pkg.getAverageRating() > 0)
+                    .toList();
+
             // 计算平均评分
-            double avg = packages.isEmpty() ? 0.0 :
-                    packages.stream()
+            double avg = ratedPackages.isEmpty() ? 0.0 :
+                    ratedPackages.stream()
                             .mapToDouble(TravelPackage::getAverageRating)
                             .average()
                             .orElse(0.0);
