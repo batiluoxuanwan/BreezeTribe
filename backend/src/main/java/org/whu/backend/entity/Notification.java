@@ -91,6 +91,7 @@ public class Notification {
         // 对用户
         NEW_POST_COMMENT,       // 游记被评论
         NEW_COMMENT_REPLY,      // 你的评论被回复
+        NEW_FRIEND,             // 新好友
         // 对商家
         NEW_PACKAGE_COMMENT,    // 旅行团被评论
 
