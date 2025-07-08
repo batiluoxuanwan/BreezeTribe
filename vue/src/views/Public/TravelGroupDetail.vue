@@ -275,7 +275,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, reactive ,watch,h,nextTick} from 'vue';
+import { ref, onMounted, reactive ,watch,h,nextTick,computed} from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, ElCard, ElRow, ElCol, ElImage, ElDivider, ElTag, ElRate, ElEmpty, ElButton, ElCarousel, ElCarouselItem, ElTimeline, ElTimelineItem, ElIcon, ElMessageBox, ElDialog, ElForm, ElFormItem, ElInput, ElInputNumber,ElSelect,ElOption } from 'element-plus';
 import { ArrowLeftBold, Picture, Star, StarFilled, Tickets,Warning } from '@element-plus/icons-vue'; 

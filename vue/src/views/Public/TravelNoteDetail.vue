@@ -491,7 +491,7 @@ const fetchNoteDetail = async () => {
     if (response.data && response.data.code === 200 && response.data.data) {
       note.value = response.data.data;
       
-      ElMessage.success('游记详情加载成功！');
+      //ElMessage.success('游记详情加载成功！');
       console.log('游记详情:', note.value);
     } else {
       note.value = null;
