@@ -53,7 +53,7 @@ import java.util.stream.Collectors;
 public class DtoConverter {
 
     public static final long EXPIRE_TIME = 60 * 60 * 4 * 1000;
-    public static final String IMAGE_PROCESS = "image/resize,l_400/quality,q_50/format,webp";
+    public static final String IMAGE_PROCESS = "image/resize,l_800/quality,q_80/format,webp";
 
 
     public NotificationDto convertNotificationToDto(Notification notification) {

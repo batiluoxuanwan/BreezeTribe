@@ -694,7 +694,7 @@ public class AdminService {
         MerchantrankDto dto = new MerchantrankDto();
         dto.setId(merchant.getId());
         dto.setName(merchant.getUsername());
-        dto.setAvatarUrl(AliyunOssUtil.generatePresignedGetUrl(merchant.getAvatarUrl(), 36000, IMAGE_PROCESS)); // 假设继承自 Account
+        dto.setAvatarUrl(AliyunOssUtil.generatePresignedGetUrl(merchant.getAvatarUrl(), 3600000, IMAGE_PROCESS)); // 假设继承自 Account
         dto.setAverageRating(merchant.getAverageRating());
         return dto;
     }

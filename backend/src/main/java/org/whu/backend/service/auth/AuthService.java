@@ -333,7 +333,7 @@ public class AuthService {
         account.setAvatarUrl(objectkey);
         // 调用 Service 完成保存头像操作
         authRepository.save(account);
-        return Result.success("修改成功", AliyunOssUtil.generatePresignedGetUrl(account.getAvatarUrl(), 3600, IMAGE_PROCESS));
+        return Result.success("修改成功", AliyunOssUtil.generatePresignedGetUrl(account.getAvatarUrl(), 3600000, IMAGE_PROCESS));
     }
 
     public Medto me() {
@@ -346,7 +346,7 @@ public class AuthService {
         dto.setCreatedAt(account.getCreatedAt());
         dto.setUpdatedAt(account.getUpdatedAt());
         dto.setRole(account.getRole());
-        dto.setAvatarUrl(AliyunOssUtil.generatePresignedGetUrl(account.getAvatarUrl(), 3600, IMAGE_PROCESS));
+        dto.setAvatarUrl(AliyunOssUtil.generatePresignedGetUrl(account.getAvatarUrl(), 3600000, IMAGE_PROCESS));
         return dto;
     }
 
