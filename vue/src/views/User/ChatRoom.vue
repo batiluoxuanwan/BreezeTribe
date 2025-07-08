@@ -192,6 +192,7 @@ const fetchFriendInfo = async (friendIdToFetch) => { // 接受参数 friendIdToF
 onMounted(async () => {
   // 只在挂载时获取当前用户信息
   await fetchCurrentUser();
+  await fetchFriendInfo(props.friendId);
   // friendInfo 和历史消息会在 watch 中根据 props.friendId 首次触发并加载
   // 确保 WebSocket 连接只建立一次
   connectWebSocket(authStore.token, chatStore); 

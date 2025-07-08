@@ -79,16 +79,24 @@ public interface TravelOrderRepository extends JpaRepository<TravelOrder, String
      * ====== 2. 按周统计（YEARWEEK，格式为202527）======
      */
     @Query("""
-    SELECT FUNCTION('YEARWEEK', o.createdTime), SUM(o.travelerCount), SUM(o.totalPrice)
-    FROM TravelOrder o
-    WHERE o.createdTime >= :start AND o.createdTime < :end
-    AND (:merchantId IS NULL OR o.travelDeparture.travelPackage.dealer.id = :merchantId)
-    GROUP BY FUNCTION('YEARWEEK', o.createdTime)
-    ORDER BY FUNCTION('YEARWEEK', o.createdTime)
+SELECT
+  FUNCTION('YEARWEEK', o.createdTime, 1) AS yearWeek,
+  SUM(o.travelerCount),
+  SUM(o.totalPrice)
+FROM TravelOrder o
+JOIN o.travelDeparture d
+JOIN d.travelPackage p
+JOIN p.dealer dealer
+WHERE o.createdTime >= :start AND o.createdTime < :end
+  AND (:merchantId IS NULL OR dealer.id = :merchantId)
+GROUP BY FUNCTION('YEARWEEK', o.createdTime, 1)
+ORDER BY FUNCTION('YEARWEEK', o.createdTime, 1)
 """)
-    List<Object[]> countOrderStatsByWeek(@Param("start") LocalDateTime start,
-                                         @Param("end") LocalDateTime end,
-                                         @Param("merchantId") String merchantId);
+    List<Object[]> countOrderStatsByWeek(
+            @Param("start")      LocalDateTime start,
+            @Param("end")        LocalDateTime end,
+            @Param("merchantId") String merchantId
+    );
 
     /**
      * ====== 3. 按月统计（YYYY-MM）======

@@ -311,7 +311,7 @@ public class PublicService {
         dto.setId(account.getId());
         dto.setRole(account.getRole());
         dto.setUsername(account.getUsername());
-        dto.setAvatarUrl(AliyunOssUtil.generatePresignedGetUrl(account.getAvatarUrl(), 36000, IMAGE_PROCESS));
+        dto.setAvatarUrl(AliyunOssUtil.generatePresignedGetUrl(account.getAvatarUrl(), 3600000, IMAGE_PROCESS));
         dto.setActive(account.isActive());
 
         return dto;
@@ -330,7 +330,7 @@ public class PublicService {
         ShareDto dto = new ShareDto();
         dto.setId(user.getId());
         dto.setUsername(user.getUsername());
-        dto.setAvatarUrl(AliyunOssUtil.generatePresignedGetUrl(user.getAvatarUrl(), 36000, IMAGE_PROCESS));
+        dto.setAvatarUrl(AliyunOssUtil.generatePresignedGetUrl(user.getAvatarUrl(), 3600000, IMAGE_PROCESS));
         dto.setRole(user.getRole());
         dto.setActive(user.isActive());
         return dto;
