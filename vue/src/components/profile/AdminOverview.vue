@@ -302,7 +302,8 @@ const fetchOrderStatsData = async () => {
     const res = await authAxios.get('/admin/data/orders-stats', { params });
 
     if (res.data.code === 200) {
-      totalParticipants.value = res.data.data.totalParticipants || 0;
+      console.log('获取订单统计',res.data.data)
+      totalParticipants.value = res.data.data.totalTravelerCount || 0;
       totalRevenue.value = res.data.data.totalRevenue || 0.0;
     } else {
       ElMessage.error(res.data.message || '获取订单统计失败');
