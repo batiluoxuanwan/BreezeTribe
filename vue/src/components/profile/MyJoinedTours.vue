@@ -202,9 +202,13 @@ const cancelOrder = async (orderId) => {
 
 //跳转旅行团详情
 const goToTourDetail = (id) => {
-  router.push({ name: 'TravelGroupDetail', params: { id } });
-};
+  const routeData = router.resolve({
+    name: 'TravelGroupDetail', 
+    params: { id: id },       
+  });
 
+  window.open(routeData.href, '_blank');
+};
 const handlePageChange = (newPage) => {
   currentPage.value = newPage;
   fetchJoinedTours();

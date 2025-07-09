@@ -206,6 +206,7 @@ const deleteFriend = async (friendId) => {
 
     if (response.data.code === 200) { 
       ElMessage.success('好友删除成功！');
+      fetchFriends();
       friends.value = friends.value.filter(f => f.id !== friendId);
       // 如果删除的是当前活跃的聊天好友，需要重置 activeFriend
       if (activeFriendId.value === friendId) {

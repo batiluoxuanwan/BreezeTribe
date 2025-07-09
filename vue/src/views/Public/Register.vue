@@ -326,16 +326,17 @@ const handleRegister = () => {
         registrationData.email = registerForm.email;
       }
 
-      // // 仅当角色为经销商时才添加公司名称和营业执照号
-      // if (registerForm.role === 'ROLE_MERCHANT') {
-      //   registrationData.company = registerForm.company;
-      //   registrationData.license = registerForm.license;
-      // }
+      // 仅当角色为经销商时才添加公司名称和营业执照号
+      if (registerForm.role === 'ROLE_MERCHANT') {
+        registrationData.companyname = registerForm.company;
+        registrationData.businesslicensenumber = registerForm.license;
+      }
 
       try {
         const response = await publicAxios.post('/auth/register', registrationData);
 
         if (response.data.code === 200) {
+          console.log("注册信息：",registrationData)
           ElMessage.success('注册成功！');
           router.push('/login');
         } else {

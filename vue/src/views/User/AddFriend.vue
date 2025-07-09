@@ -30,7 +30,7 @@
     >
       <div class="user-info">
         <img
-          :src="user.avatar || defaultAvatar"
+          :src="user.avatarUrl || defaultAvatar"
           alt="avatar"
           class="user-avatar"
         />
@@ -122,7 +122,7 @@ import { ref ,onMounted } from 'vue';
 //import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { authAxios } from '@/utils/request';
-import defaultAvatar from '@/assets/NotFoundsonailong.jpg';
+import defaultAvatar from '@/assets/default.jpg';
 import { ElMessage } from 'element-plus';
 import { Search ,Plus ,ArrowRight } from '@element-plus/icons-vue';
 
@@ -290,7 +290,7 @@ const acceptFriendRequest = async (requestId) => {
     console.log('接受好友请求API响应:', res); 
 
     if (res.data && res.data.code === 200) {
-      ElMessage.success('已接受好友请求！');
+      //ElMessage.success('已接受好友请求！');
       fetchReceivedRequests();
     } else {
       ElMessage.warning(res.data.message || '接受请求失败');
@@ -327,7 +327,7 @@ const rejectFriendRequest = async (requestId) => {
         }
       }
     ); if (res.data.code === 200) {
-      ElMessage.success('已拒绝好友请求！');
+      //ElMessage.success('已拒绝好友请求！');
       fetchReceivedRequests(); 
     } else {
       if (res.data.code === 400 && res.data.message.includes("找不到")) {

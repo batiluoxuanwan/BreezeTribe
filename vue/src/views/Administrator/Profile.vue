@@ -72,68 +72,133 @@
     </aside>
 
     <main class="main-content">
-      <div v-if="activeTab === 'overview'">
-        <AdminOverview/>
-      </div>
+      <el-tabs v-model="activeTab" class="hidden-tabs-header">
+        <el-tab-pane label="概览" name="overview">
+          <AdminOverview/>
+        </el-tab-pane>
+        <el-tab-pane label="用户管理" name="userManagement">
+          <h3 class="tab-header">用户列表</h3>
+          <el-input v-model="userSearchQuery" placeholder="搜索用户ID、用户名或邮箱" clearable @input="debouncedSearchUsers" class="search-input"></el-input>
+          <el-table :data="users" v-loading="userLoading" style="width: 100%" class="admin-table">
+            <el-table-column prop="username" label="用户名"></el-table-column>
+            <el-table-column prop="email" label="邮箱"></el-table-column>
+            <el-table-column prop="phone" label="电话"></el-table-column>
+            <el-table-column label="状态" width="100">
+              <template #default="{ row }">
+                <el-tag :type="getBanStatusType(row.banDurationDays)">
+                  {{ getBanStatusText(row.banDurationDays) }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="180">
+              <template #default="{ row }">
+                <el-button link type="primary" size="small" @click="viewUserDetails(row)">查看详情</el-button>
+                <el-button link :type="row.banDurationDays === 0 ? 'danger' : 'success'" size="small" @click="toggleBanStatus(row)">
+                  {{ row.banDurationDays === 0 ? '封禁' : '解封' }}
+                </el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+          <el-pagination
+            background
+            layout="prev, pager, next"
+            :total="userTotal"
+            :page-size="userPageSize"
+            v-model:current-page="userCurrentPage"
+            @current-change="fetchUsers"
+            class="pagination-bottom"
+          />
+        </el-tab-pane>
 
-      <div v-if="activeTab === 'userManagement'">
-        <h3 class="tab-header">用户列表</h3>
-        <el-input v-model="userSearchQuery" placeholder="搜索用户ID、用户名或邮箱" clearable @input="debouncedSearchUsers" class="search-input"></el-input>
-        <el-table :data="users" v-loading="userLoading" style="width: 100%" class="admin-table">
-          <el-table-column prop="username" label="用户名"></el-table-column>
-          <el-table-column prop="email" label="邮箱"></el-table-column>
-          <el-table-column prop="phone" label="电话"></el-table-column>
-          <el-table-column label="状态" width="100">
-            <template #default="{ row }">
-              <el-tag :type="getBanStatusType(row.banDurationDays)">
-                {{ getBanStatusText(row.banDurationDays) }}
-              </el-tag>
+        <el-tab-pane label="团长管理" name="merchantManagement">
+          <h3 class="tab-header">团长列表</h3>
+          <el-input v-model="merchantSearchQuery" placeholder="搜索团长ID、用户名或公司名" clearable @input="debouncedSearchMerchants" class="search-input"></el-input>
+          <el-table :data="merchants" v-loading="merchantLoading" style="width: 100%" class="admin-table">
+            <el-table-column prop="username" label="用户名"></el-table-column>
+            <el-table-column prop="phone" label="联系电话"></el-table-column>
+            <el-table-column prop="email" label="联系邮箱"></el-table-column>
+            <el-table-column label="状态" width="100">
+              <template #default="{ row }">
+                <el-tag :type="getBanStatusType(row.banDurationDays)">
+                  {{ getBanStatusText(row.banDurationDays) }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="180">
+              <template #default="{ row }">
+                <el-button link type="primary" size="small" @click="viewMerchantDetails(row)">查看详情</el-button>
+                <el-button link :type="row.banDurationDays === 0 ? 'danger' : 'success'" size="small" @click="toggleBanStatus(row)">
+                  {{ row.banDurationDays === 0 ? '封禁' : '解封' }}
+                </el-button>
+              </template>
+            </el-table-column>
+            </el-table>
+            <el-pagination
+              background
+              layout="prev, pager, next"
+              :total="pendingMerchantTotal"
+              :page-size="merchantPageSize"
+              v-model:current-page="pendingMerchantPage"
+              @current-change="fetchPendingMerchants"
+              class="pagination-bottom"
+            />
+            <h3 class="tab-header" style="margin-top: 30px;">待审核团长列表</h3> <el-table
+            :data="pendingMerchants" v-loading="pendingMerchantsLoading" element-loading-text="正在加载待审核商户..."
+            style="width: 100%"
+            class="admin-table" >
+            <el-table-column prop="name" label="商户名称"></el-table-column>
+            <el-table-column prop="companyName" label="公司名称"></el-table-column>
+            <el-table-column prop="businessLicense"label="营业执照" ></el-table-column>
+            <el-table-column label="手机/邮箱" > <template #default="{ row }">
+                <span>{{ row.phone || row.email || 'N/A' }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作">
+              <template #default="{ row }">
+                <el-button link type="success" size="small" @click="approvePendingMerchant(row.id)">通过</el-button>
+                <el-button link type="danger" size="small" @click="rejectPendingMerchant(row.id)">拒绝</el-button>
+              </template>
+            </el-table-column>
+            <template #empty>
+              <el-empty description="暂无待审核商户"></el-empty>
             </template>
-          </el-table-column>
-          <el-table-column label="操作" width="180">
-            <template #default="{ row }">
-              <el-button link type="primary" size="small" @click="viewUserDetails(row)">查看详情</el-button>
-              <el-button link :type="row.banDurationDays === 0 ? 'danger' : 'success'" size="small" @click="toggleBanStatus(row)">
-                {{ row.banDurationDays === 0 ? '封禁' : '解封' }}
-              </el-button>
-            </template>
-          </el-table-column>
-        </el-table>
-        <el-pagination
-          background
-          layout="prev, pager, next"
-          :total="userTotal"
-          :page-size="userPageSize"
-          v-model:current-page="userCurrentPage"
-          @current-change="fetchUsers"
-          class="pagination-bottom"
-        />
-      </div>
+          </el-table>
 
-      <div v-if="activeTab === 'tourReview'">
-        <h3 class="tab-header">待审核旅行团</h3>
-        <el-table :data="pendingTours" v-loading="tourReviewLoading" style="width: 100%" class="admin-table">
-          <el-table-column prop="title" label="团名"></el-table-column>
-          <el-table-column prop="merchant.username" label="发布团长"></el-table-column>
-          <el-table-column prop="durationInDays" label="天数"></el-table-column>
-          <el-table-column label="操作" width="200">
-            <template #default="{ row }">
-              <el-button link type="primary" size="small" @click="viewTourDetails(row)">查看详情</el-button>
-              <el-button link type="success" size="small" @click="approveTour(row.id)">通过</el-button>
-              <el-button link type="danger" size="small" @click="rejectTour(row.id)">拒绝</el-button>
-            </template>
-          </el-table-column>
-        </el-table>
-        <el-pagination
-          background
-          layout="prev, pager, next"
-          :total="pendingToursTotal"
-          :page-size="tourReviewPageSize"
-          v-model:current-page="tourReviewCurrentPage"
-          @current-change="fetchPendingTours"
-          class="pagination-bottom"
-        />
-      </div>
+          <el-pagination
+              background
+              layout="prev, pager, next"
+              :total="pendingMerchantsTotal"
+              :page-size="pendingMerchantPageSize"
+              v-model:current-page="pendingMerchantCurrentPage"
+              @current-change="handlePendingMerchantCurrentChange"
+              class="pagination-bottom"
+            />
+        </el-tab-pane>
+
+        <el-tab-pane label="旅行团审核" name="tourReview">
+          <h3 class="tab-header">待审核旅行团</h3>
+          <el-table :data="pendingTours" v-loading="tourReviewLoading" style="width: 100%" class="admin-table">
+            <el-table-column prop="title" label="团名"></el-table-column>
+            <el-table-column prop="merchant.username" label="发布团长"></el-table-column>
+            <el-table-column prop="durationInDays" label="天数"></el-table-column>
+            <el-table-column label="操作" width="200">
+              <template #default="{ row }">
+                <el-button link type="primary" size="small" @click="viewTourDetails(row)">查看详情</el-button>
+                <el-button link type="success" size="small" @click="approveTour(row.id)">通过</el-button>
+                <el-button link type="danger" size="small" @click="rejectTour(row.id)">拒绝</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+          <el-pagination
+            background
+            layout="prev, pager, next"
+            :total="pendingToursTotal"
+            :page-size="tourReviewPageSize"
+            v-model:current-page="tourReviewCurrentPage"
+            @current-change="fetchPendingTours"
+            class="pagination-bottom"
+          />
+        </el-tab-pane>
 
       <div v-if="activeTab === 'reportHanding'">
         <div style="margin-bottom: 32px;">
@@ -158,6 +223,7 @@
           <AccountOverview @userUpdated="handleUserUpdated"/>
         </div>
       </div>
+      </el-tabs>
     </main>
 
     <el-dialog v-model="userDetailsDialog" :title="`用户详情: ${selectedUser.username}`" width="600px">
@@ -215,21 +281,6 @@
         <el-button type="success" @click="approveTour(selectedTour.id)">通过</el-button>
       </template>
     </el-dialog>
-        <el-dialog v-model="rejectDialogVisible" title="驳回商户注册" width="500px">
-      <p>请输入驳回理由：</p>
-      <el-input
-        v-model="rejectReason"
-        type="textarea"
-        rows="4"
-        placeholder="请说明驳回理由"
-        maxlength="200"
-        show-word-limit
-      />
-      <template #footer>
-        <el-button @click="rejectDialogVisible = false">取消</el-button>
-        <el-button type="danger" @click="submitReject">确认驳回</el-button>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
@@ -281,6 +332,13 @@ const merchantPageSize = 10;
 const merchantSearchQuery = ref('');
 const selectedMerchant = ref({});
 const merchantDetailsDialog = ref(false);
+
+// --- 待审核团长列表相关数据  ---
+const pendingMerchants = ref([]);
+const pendingMerchantsLoading = ref(false);
+const pendingMerchantCurrentPage = ref(1); // 待审核团长的当前页
+const pendingMerchantPageSize = ref(10); // 待审核团长的每页记录数
+const pendingMerchantsTotal = ref(0);
 
 // --- 旅行团审核数据 ---
 const pendingTours = ref([]);
@@ -447,6 +505,7 @@ const fetchMerchants = async () => {
       }
     });
     if (response.data.code === 200 && response.data.data) {
+      console.log('response.data.data',response.data.data)
       merchants.value = response.data.data.content;
       merchantTotal.value = response.data.data.totalElements;
     } else {
@@ -677,84 +736,98 @@ const handleUserUpdated = () => {
   fetchAdminInfo();
 };
 
-// // 商户注册审核列表
-// const pendingMerchants = ref([]);
-// const pendingMerchantPage = ref(1);
-// const pendingMerchantTotal = ref(0);
-// const pendingMerchantLoading = ref(false);
+// --- 待审核团长列表---
+const fetchPendingMerchants = async () => {
+  pendingMerchantsLoading.value = true;
+  try {
+    const response = await authAxios.get('/admin/approvals/merchants', {
+      params: {
+        page: pendingMerchantCurrentPage.value,
+        size: pendingMerchantPageSize.value,
+      },
+    });
 
-// // 驳回对话框
-// const rejectDialogVisible = ref(false);
-// const rejectReason = ref('');
-// const rejectTargetMerchant = ref(null);
+    if (response.data.code === 200) {
+      console.log('获取待审核商户列表',response.data)
+      pendingMerchants.value = response.data.data.content || [];
+      pendingMerchantsTotal.value = response.data.data.totalElements || 0;
+      // ElMessage.success('待审核商户列表加载成功！'); // 频繁弹出可能干扰
+    } else {
+      ElMessage.error(response.data.message || '获取待审核商户列表失败！');
+      pendingMerchants.value = [];
+      pendingMerchantsTotal.value = 0;
+    }
+  } catch (error) {
+    console.error('获取待审核商户列表请求失败:', error);
+    ElMessage.error('网络请求失败，请检查您的网络或稍后再试。');
+    pendingMerchants.value = [];
+    pendingMerchantsTotal.value = 0;
+  } finally {
+    pendingMerchantsLoading.value = false;
+  }
+};
 
-// // 获取待审核商户列表
-// const fetchPendingMerchants = async () => {
-//   pendingMerchantLoading.value = true;
-//   try {
-//     const res = await authAxios.get('/admin/approvals/merchants', {
-//       params: {
-//         page: pendingMerchantPage.value,
-//         size: merchantPageSize.value,
-//       }
-//     });
-//     if (res.data.code === 200 && res.data.data) {
-//       pendingMerchants.value = res.data.data.content || [];
-//       pendingMerchantTotal.value = res.data.data.totalElements;
-//     }
-//   } catch (err) {
-//     ElMessage.error('加载待审核商户失败');
-//   } finally {
-//     pendingMerchantLoading.value = false;
-//   }
-// };
+const handlePendingMerchantSizeChange = (newSize) => {
+  pendingMerchantPageSize.value = newSize;
+  pendingMerchantCurrentPage.value = 1; // 改变每页大小时，重置到第一页
+  fetchPendingMerchants();
+};
 
-// // 打开驳回理由弹窗
-// const openRejectDialog = (merchant) => {
-//   rejectTargetMerchant.value = merchant;
-//   rejectReason.value = '';
-//   rejectDialogVisible.value = true;
-// };
+const handlePendingMerchantCurrentChange = (newPage) => {
+  pendingMerchantCurrentPage.value = newPage;
+  fetchPendingMerchants();
+};
 
-// // 确认驳回商户注册
-// const submitReject = async () => {
-//   const id = rejectTargetMerchant.value?.id;
-//   if (!id || !rejectReason.value.trim()) {
-//     ElMessage.warning('请填写驳回理由');
-//     return;
-//   }
+const approvePendingMerchant = async (id) => {
+  ElMessageBox.confirm('确定要通过该商户的审核吗？', '确认操作', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning',
+  })
+    .then(async () => {
+      try {
+        const response = await authAxios.post(`/admin/approvals/merchants/${id}/approve`);
+        if (response.data.code === 200) {
+          ElMessage.success('商户审核已通过！');
+          fetchPendingMerchants(); // 刷新待审核列表
+        } else {
+          ElMessage.error(response.data.message || '商户审核通过失败！');
+        }
+      } catch (error) {
+        console.error('通过商户审核请求失败:', error);
+        ElMessage.error('网络请求失败，请检查您的网络或稍后再试。');
+      }
+    })
+    .catch(() => {
+      ElMessage.info('已取消审核操作。');
+    });
+};
 
-//   try {
-//     const res = await authAxios.post(`/admin/approvals/merchants/${id}/reject`, {
-//       reason: rejectReason.value.trim()
-//     });
+const rejectPendingMerchant = async (id) => {
+  ElMessageBox.confirm('确定要拒绝该商户的注册申请吗？', '确认操作', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning',
+  })
+    .then(async () => {
+      try {
+        const response = await authAxios.post(`/admin/approvals/merchants/${id}/reject`);
 
-//     if (res.data.code === 200) {
-//       ElMessage.success('已驳回商户注册申请');
-//       rejectDialogVisible.value = false;
-//       fetchPendingMerchants(); // 刷新数据
-//     } else {
-//       ElMessage.error(res.data.message || '驳回失败');
-//     }
-//   } catch (error) {
-//     ElMessage.error('网络错误或权限不足');
-//   }
-// };
-
-// // 通过商户注册（接口可根据后端定义补充）
-// const approveMerchant = async (id) => {
-//   try {
-//     const res = await authAxios.post(`/admin/approvals/merchants/${id}/approve`);
-//     if (res.data.code === 200) {
-//       ElMessage.success('商户注册已通过');
-//       fetchPendingMerchants();
-//     } else {
-//       ElMessage.error(res.data.message || '操作失败');
-//     }
-//   } catch (e) {
-//     ElMessage.error('请求失败');
-//   }
-// };
+        if (response.data.code === 200) {
+          ElMessage.success('商户注册申请已拒绝！');
+          fetchPendingMerchants(); 
+        } else {
+          ElMessage.error(response.data.message || '拒绝商户注册申请失败！');
+        }
+      } catch (error) {
+        console.error('拒绝商户注册申请请求失败:', error);
+        ElMessage.error('网络请求失败，请检查您的网络或稍后再试。');
+      }
+    })
+    .catch(() => {
+      ElMessage.info('已取消操作。');
+    });
+};
 
 // --- 初始化数据 ---
 onMounted(() => {
@@ -764,6 +837,7 @@ onMounted(() => {
   fetchMerchants();     // 加载团长列表
   fetchPendingTours();  // 加载待审核旅行团
   //fetchPendingNotes();  // 加载待审核游记
+  fetchPendingMerchants();//加载待审核商户注册
 });
 
 // 跳转首页
@@ -791,7 +865,7 @@ const goToHome = () => {
 }
 
 .sidebar {
-  width: 280px;
+  min-width: 280px;
   background: linear-gradient(135deg, #ffffff, #fdfdfd);
   border-radius: 18px;
   padding: 32px 24px;

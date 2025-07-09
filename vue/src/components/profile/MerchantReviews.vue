@@ -15,7 +15,7 @@
         class="admin-table"
       >
         <el-table-column prop="title" label="旅行团名称" min-width="180"></el-table-column>
-        <el-table-column label="平均评分" width="120">
+        <el-table-column label="平均评分" width="130">
           <template #default="{ row }">
             <el-rate
               v-model="row.averageRating"
