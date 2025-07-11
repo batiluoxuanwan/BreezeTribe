@@ -489,11 +489,9 @@ const isSelected = (tag) => {
   return selectedTags.value.some(t => t.id === tag.id);
 };
 
-// 新增 AI 推荐标签方法 
+// AI 推荐标签方法 
 const getAiSuggestedTags = async () => {
-  // 旅行团的标题对应游记的 title
   const tourTitle = title.value.trim();
-  // 旅行团的详细描述对应游记的 content
   const tourContent = detailDescription.value.trim();
 
   if (!tourTitle && !tourContent) {
@@ -1275,7 +1273,7 @@ const submitTourPackage = async () => {
   transform: scale(1.1);
 }
 
-/* 新增 AI 推荐标签样式 */
+/* AI 推荐标签样式 */
 .ai-recommend-section {
   margin-top: 20px;
   padding-top: 15px;

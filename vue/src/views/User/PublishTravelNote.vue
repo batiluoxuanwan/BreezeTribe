@@ -680,7 +680,7 @@ const isSelected = (tag) => {
   return selectedTags.value.some(t => t.id === tag.id)
 }
 
-// 新增 AI 推荐标签方法
+//  AI 推荐标签方法
 const getAiSuggestedTags = async () => {
   const title = noteTitle.value.trim();
   const content = noteContent.value.trim();
